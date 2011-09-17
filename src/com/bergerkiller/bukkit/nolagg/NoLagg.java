@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.List;
+
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -27,23 +29,49 @@ public class NoLagg extends JavaPlugin {
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.ENTITY_COMBUST, entityListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.ENTITY_DEATH, entityListener, Priority.Monitor, this);
 				
+		//General settings
 		Configuration config = getConfiguration();
 		NLEntityListener.maxTNTIgnites = config.getInt("maxTnTIgnites", 40);
 		ItemHandler.maxItemsPerChunk = config.getInt("maxItemsPerChunk", 40);
 		ItemHandler.formStacks = config.getBoolean("formItemStacks", true);
+		ChunkHandler.chunkUnloadDelay = config.getInt("chunkUnloadDelay", 10000);
+		
+		//Spawn restrictions
+		List<String> tmplist = config.getKeys("spawnlimits.default");
+		if (tmplist != null && tmplist.size() > 0) {
+			for (String deflimit : tmplist) {
+				String key = "spawnlimits.default." + deflimit;
+				SpawnHandler.setLimit(null, deflimit, config.getInt(key, -1));
+			}
+		}
+		tmplist = config.getKeys("spawnlimits.worlds");
+		if (tmplist != null && tmplist.size() > 0) {
+			for (String world : tmplist) {
+				for (String deflimit : config.getKeys("spawnlimits.worlds." + world)) {
+					String key = "spawnlimits.worlds." + world + "." + deflimit;
+					SpawnHandler.setLimit(world, deflimit, config.getInt(key, -1));
+				}
+			}
+		}
+				
+		//Write out data
 		config.setProperty("maxTnTIgnites", NLEntityListener.maxTNTIgnites);
 		config.setProperty("maxItemsPerChunk", ItemHandler.maxItemsPerChunk);
 		config.setProperty("formItemStacks", ItemHandler.formStacks);
+		config.setProperty("chunkUnloadDelay", ChunkHandler.chunkUnloadDelay);
 		config.save(); 
-		
+
 		ItemHandler.loadAll();
-		
+		SpawnHandler.init();
+				
 		getCommand("nolagg").setExecutor(this);
 		
         //final msg
@@ -52,6 +80,7 @@ public class NoLagg extends JavaPlugin {
 	}
 	public void onDisable() {
 		ItemHandler.unloadAll();
+		SpawnHandler.deinit();
 		System.out.println("NoLagg disabled!");
 	}
 	

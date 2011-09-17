@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityListener;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 
 public class NLEntityListener extends EntityListener {
@@ -15,11 +18,24 @@ public class NLEntityListener extends EntityListener {
 	
 	@Override
 	public void onItemSpawn(ItemSpawnEvent event) {
-		if (!ItemHandler.handleItemSpawn((Item) event.getEntity())) {
-			event.setCancelled(true);
+		SpawnHandler.handleSpawn(event);
+		if (!event.isCancelled()) {
+			if (!ItemHandler.handleItemSpawn((Item) event.getEntity())) {
+				event.setCancelled(true);
+			}
 		}
 	}
 	
+	@Override
+	public void onCreatureSpawn(CreatureSpawnEvent event) {
+		SpawnHandler.handleSpawn(event);
+	}
+	
+	@Override
+	public void onExplosionPrime(ExplosionPrimeEvent event) {
+		SpawnHandler.handleSpawn(event);
+	}
+		
 	public static int maxTNTIgnites = 40;
 	public static int TNTIgnites = 0;
 	
@@ -41,18 +57,16 @@ public class NLEntityListener extends EntityListener {
 	
 	@Override
 	public void onEntityExplode(EntityExplodeEvent event) {
-		if (event.getEntity() instanceof TNTPrimed) {
-			if (TNTIgnites < maxTNTIgnites) {
-				TNTIgnites += 1;
-				plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-					public void run() {
-						TNTIgnites -= 1;
-						if (TNTIgnites < 0) TNTIgnites = 0;
-					}
-				}, 20L);
-			} else {
-				event.getLocation().getWorld().spawn(event.getLocation(), org.bukkit.entity.TNTPrimed.class);
-				event.setCancelled(true);
+		if (!event.isCancelled()) {
+			if (event.getEntity() instanceof TNTPrimed) {
+				if (TNTIgnites < maxTNTIgnites) {
+					TNTIgnites += 1;
+					delayedSubtract();
+				} else {
+					Entity entity = event.getLocation().getWorld().spawn(event.getLocation(), org.bukkit.entity.TNTPrimed.class);
+					SpawnHandler.handleSpawn(entity);
+					event.setCancelled(true);
+				}
 			}
 		}
 	}
