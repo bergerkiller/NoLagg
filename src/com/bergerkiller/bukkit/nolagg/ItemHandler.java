@@ -152,4 +152,22 @@ public class ItemHandler {
 			}
 		}
 	}
+
+	public static void clear() {
+		spawnedItems.clear();
+		hiddenItems.clear();
+	}
+	
+	public static void update() {
+		for (ArrayList<Item> list : spawnedItems.values()) {
+			int i = 0;
+			while (i < list.size()) {
+				if (list.get(i).isDead()) {
+					list.remove(i);
+				} else {
+					i++;
+				}
+			}
+		}
+	}
 }

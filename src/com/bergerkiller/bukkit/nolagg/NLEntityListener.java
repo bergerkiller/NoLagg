@@ -1,10 +1,13 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
@@ -22,6 +25,9 @@ public class NLEntityListener extends EntityListener {
 		if (!event.isCancelled()) {
 			if (!ItemHandler.handleItemSpawn((Item) event.getEntity())) {
 				event.setCancelled(true);
+			} else {
+				Item item = (Item) event.getEntity();
+				StackFormer.add(item);
 			}
 		}
 	}
@@ -29,6 +35,23 @@ public class NLEntityListener extends EntityListener {
 	@Override
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		SpawnHandler.handleSpawn(event);
+	}
+		
+	@Override
+	public void onEntityDamage(EntityDamageEvent event) {
+		if (!event.isCancelled() && event.getEntity() instanceof Player) {
+			Player p = (Player) event.getEntity();
+			if (event.getDamage() >= p.getHealth()) {
+			    try {
+			    	if (p.getExperience() > 0) {
+						ExperienceOrb orb = p.getWorld().spawn(p.getLocation(), ExperienceOrb.class);
+						orb.setExperience(p.getExperience());
+						p.setExperience(0);
+			    	}
+			    } catch (Exception ex) {
+			    }
+			}
+		}
 	}
 	
 	@Override

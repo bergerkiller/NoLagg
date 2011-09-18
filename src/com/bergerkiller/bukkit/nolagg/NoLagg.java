@@ -2,10 +2,13 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.List;
 
+import net.minecraft.server.Packet29DestroyEntity;
+
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -22,6 +25,8 @@ public class NoLagg extends JavaPlugin {
 	private final NLPlayerListener playerListener = new NLPlayerListener();
 	private final NLEntityListener entityListener = new NLEntityListener(this);
 	private final NLWorldListener worldListener = new NLWorldListener();
+	private int updateID = -1;
+	private int updateInterval = 20;
 	
 	public void onEnable() {	
 		plugin = this;
@@ -32,10 +37,11 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.ENTITY_COMBUST, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.ENTITY_DEATH, entityListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.Monitor, this);
 				
 		//General settings
 		Configuration config = getConfiguration();
@@ -43,6 +49,9 @@ public class NoLagg extends JavaPlugin {
 		ItemHandler.maxItemsPerChunk = config.getInt("maxItemsPerChunk", 40);
 		ItemHandler.formStacks = config.getBoolean("formItemStacks", true);
 		ChunkHandler.chunkUnloadDelay = config.getInt("chunkUnloadDelay", 10000);
+		AutoSaveChanger.newInterval = config.getInt("autoSaveInterval", 0);
+		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
+		updateInterval = config.getInt("updateInterval", updateInterval);
 		
 		//Spawn restrictions
 		List<String> tmplist = config.getKeys("spawnlimits.default");
@@ -61,17 +70,31 @@ public class NoLagg extends JavaPlugin {
 				}
 			}
 		}
+		
+		//init it to write out correctly
+		AutoSaveChanger.init();
 				
 		//Write out data
 		config.setProperty("maxTnTIgnites", NLEntityListener.maxTNTIgnites);
 		config.setProperty("maxItemsPerChunk", ItemHandler.maxItemsPerChunk);
 		config.setProperty("formItemStacks", ItemHandler.formStacks);
 		config.setProperty("chunkUnloadDelay", ChunkHandler.chunkUnloadDelay);
+		config.setProperty("autoSaveInterval", AutoSaveChanger.newInterval);
+		config.setProperty("orbScannerInterval", OrbScanner.interval);
+		config.setProperty("updateInterval", updateInterval);
 		config.save(); 
 
 		ItemHandler.loadAll();
 		SpawnHandler.init();
-				
+		OrbScanner.init();
+		
+		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+			public void run() {
+				ItemHandler.update();
+				StackFormer.update();
+			}
+		}, 0, updateInterval);
+		
 		getCommand("nolagg").setExecutor(this);
 		
         //final msg
@@ -79,9 +102,32 @@ public class NoLagg extends JavaPlugin {
         System.out.println(pdfFile.getName() + " version " + pdfFile.getVersion() + " is enabled!" );
 	}
 	public void onDisable() {
+		getServer().getScheduler().cancelTask(updateID);
+		OrbScanner.deinit();
 		ItemHandler.unloadAll();
 		SpawnHandler.deinit();
+		AutoSaveChanger.deinit();
 		System.out.println("NoLagg disabled!");
+	}
+	
+	public static void hideEntity(Entity e) {
+		Packet29DestroyEntity packet = new Packet29DestroyEntity(e.getEntityId());
+		for (Player p : e.getWorld().getPlayers()) {
+			((CraftPlayer) p).getHandle().netServerHandler.sendPacket(packet);
+		}
+	}
+	private void clear(World w) {
+		for (Entity e : w.getEntities()) {
+			if (e instanceof Item) {
+				e.remove();
+			} else if (isOrb(e)) {
+				e.remove();
+			}
+		}
+	}
+	
+	public static boolean isOrb(Entity e) {
+		return e.getClass().getSimpleName().equals("CraftExperienceOrb");
 	}
 	
 	@Override
@@ -94,11 +140,12 @@ public class NoLagg extends JavaPlugin {
 						return true;
 					}
 				}
-				ItemHandler.unloadAll();
-				for (World w : getServer().getWorlds()) {
-					for (Entity e : w.getEntities().toArray(new Entity[0])) {
-						if (e instanceof Item) e.remove();
+				if (!(sender instanceof Player) || (args.length == 2 && args[1].equalsIgnoreCase("all"))) {
+					for (World w : getServer().getWorlds()) {
+						clear(w);
 					}
+				} else {
+					clear(((Player) sender).getWorld());
 				}
 				sender.sendMessage("All spawned items on this server are cleared!");
 				ItemHandler.loadAll();

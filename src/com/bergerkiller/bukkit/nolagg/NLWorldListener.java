@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldListener;
+import org.bukkit.event.world.WorldLoadEvent;
 
 public class NLWorldListener extends WorldListener {
 
@@ -18,6 +19,11 @@ public class NLWorldListener extends WorldListener {
 		if (!event.isCancelled()) {
 			ItemHandler.unloadChunk(event.getChunk());
 		}
+	}
+	
+	@Override
+	public void onWorldLoad(WorldLoadEvent event) {
+		AutoSaveChanger.change(event.getWorld());
 	}
 
 }

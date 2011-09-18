@@ -1,13 +1,14 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.1
+version: 1.11
 author: bergerkiller
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam
 commands:
     nolagg:
         description: NoLagg is used to prevent lag on your server.
         usage: |
-            /nolagg clear - Removes all items from your server and from the buffer
+            /nolagg clear - Removes all items from your world and from the buffer (console uses all)
+            /nolagg clear all - Removes all items from your server and from the buffer (players only)
 permissions:
     nolagg.clear:
         description: Allows a player to clear all items at the server
