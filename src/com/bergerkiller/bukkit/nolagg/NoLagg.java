@@ -23,11 +23,11 @@ public class NoLagg extends JavaPlugin {
 	public static NoLagg plugin;
 
 	private final NLPlayerListener playerListener = new NLPlayerListener();
-	private final NLEntityListener entityListener = new NLEntityListener(this);
+	private final NLEntityListener entityListener = new NLEntityListener();
 	private final NLWorldListener worldListener = new NLWorldListener();
 	private int updateID = -1;
 	private int updateInterval = 20;
-	
+		
 	public void onEnable() {	
 		plugin = this;
 		
@@ -38,14 +38,16 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.ENTITY_COMBUST, entityListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.Monitor, this);
+		
 				
 		//General settings
 		Configuration config = getConfiguration();
-		NLEntityListener.maxTNTIgnites = config.getInt("maxTnTIgnites", 40);
+		TnTHandler.interval = config.getInt("tntDetonationInterval", TnTHandler.interval);
+		TnTHandler.rate = config.getInt("tntDetonationRate", TnTHandler.rate);
 		ItemHandler.maxItemsPerChunk = config.getInt("maxItemsPerChunk", 40);
 		ItemHandler.formStacks = config.getBoolean("formItemStacks", true);
 		ChunkHandler.chunkUnloadDelay = config.getInt("chunkUnloadDelay", 10000);
@@ -75,7 +77,8 @@ public class NoLagg extends JavaPlugin {
 		AutoSaveChanger.init();
 				
 		//Write out data
-		config.setProperty("maxTnTIgnites", NLEntityListener.maxTNTIgnites);
+		config.setProperty("tntDetonationInterval", TnTHandler.interval);
+		config.setProperty("tntDetonationRate", TnTHandler.rate);
 		config.setProperty("maxItemsPerChunk", ItemHandler.maxItemsPerChunk);
 		config.setProperty("formItemStacks", ItemHandler.formStacks);
 		config.setProperty("chunkUnloadDelay", ChunkHandler.chunkUnloadDelay);
@@ -132,7 +135,7 @@ public class NoLagg extends JavaPlugin {
 	
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String cmdLabel, String[] args) {
-		if (args.length == 1) {
+		if (args.length > 0) {
 			if (args[0].equalsIgnoreCase("clear")) {
 				if (sender instanceof Player) {
 					if (!((Player) sender).hasPermission("nolagg.clear")) {

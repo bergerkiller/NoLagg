@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import org.bukkit.Bukkit;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldListener;

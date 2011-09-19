@@ -89,6 +89,8 @@ public class ItemHandler {
 	}
 	public static boolean handleItemSpawn(Item item) {
 		if (ignoreSpawn) return true;
+		if (maxItemsPerChunk == 0) return false;
+		if (maxItemsPerChunk < 0) return true;
 		Chunk c = item.getLocation().getBlock().getChunk();
 		int currentcount = ItemHandler.getSpawnedItemCount(c);
 		if (currentcount > ItemHandler.maxItemsPerChunk) {
@@ -137,6 +139,7 @@ public class ItemHandler {
 	}
 	
 	public static void removeSpawnedItem(Item item) {
+		if (maxItemsPerChunk <= 0) return;
 		Chunk c = item.getLocation().getBlock().getChunk();
 		if (getSpawnedItems(c).remove(item)) {
 			spawnInChunk(c);
@@ -159,6 +162,7 @@ public class ItemHandler {
 	}
 	
 	public static void update() {
+		if (maxItemsPerChunk == -1) return;
 		for (ArrayList<Item> list : spawnedItems.values()) {
 			int i = 0;
 			while (i < list.size()) {

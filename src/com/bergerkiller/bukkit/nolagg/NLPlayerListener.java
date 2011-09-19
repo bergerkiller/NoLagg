@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import org.bukkit.Material;
-import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
@@ -21,5 +19,5 @@ public class NLPlayerListener extends PlayerListener {
 			ChunkHandler.handleMove(event.getFrom(), event.getTo());
 		}
 	}
-		
+				
 }

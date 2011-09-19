@@ -21,8 +21,12 @@ public class SpawnLimiter {
 		String name;
 		if (object instanceof Item) {
 			Material type = ((Item) object).getItemStack().getType();
-			name = "item" + type.toString().toLowerCase();
-			if (!info.containsKey(name)) {
+			if (type != null) {
+				name = "item" + type.toString().toLowerCase();
+				if (!info.containsKey(name)) {
+					name = "item";
+				}
+			} else {
 				name = "item";
 			}
 		} else {
