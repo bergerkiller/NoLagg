@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -159,6 +160,24 @@ public class ItemHandler {
 	public static void clear() {
 		spawnedItems.clear();
 		hiddenItems.clear();
+	}
+	
+	public static void clear(World world) {
+		HashSet<Chunk> toremove = new HashSet<Chunk>();
+		for (Chunk c : spawnedItems.keySet()) {
+			if (c.getWorld() == world) {
+				toremove.add(c);
+			}
+		}
+		for (Chunk c : hiddenItems.keySet()) {
+			if (c.getWorld() == world) {
+				toremove.add(c);
+			}
+		}
+		for (Chunk c : toremove) {
+			spawnedItems.remove(c);
+			hiddenItems.remove(c);
+		}
 	}
 	
 	public static void update() {

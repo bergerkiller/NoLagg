@@ -12,6 +12,7 @@ import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -123,6 +124,8 @@ public class NoLagg extends JavaPlugin {
 		for (Entity e : w.getEntities()) {
 			if (e instanceof Item) {
 				e.remove();
+			} else if (e instanceof TNTPrimed) {
+				e.remove();
 			} else if (isOrb(e)) {
 				e.remove();
 			}
@@ -143,14 +146,19 @@ public class NoLagg extends JavaPlugin {
 						return true;
 					}
 				}
+				TnTHandler.clear();
 				if (!(sender instanceof Player) || (args.length == 2 && args[1].equalsIgnoreCase("all"))) {
+					ItemHandler.clear();
 					for (World w : getServer().getWorlds()) {
 						clear(w);
 					}
+					sender.sendMessage("All items, TnT and experience orbs on this server are cleared!");
 				} else {
-					clear(((Player) sender).getWorld());
+					World w = ((Player) sender).getWorld();
+					ItemHandler.clear(w);
+					clear(w);
+					sender.sendMessage("All items, TnT and experience orbs on this world are cleared!");
 				}
-				sender.sendMessage("All spawned items on this server are cleared!");
 				ItemHandler.loadAll();
 				return true;
 			}

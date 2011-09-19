@@ -1,13 +1,20 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.server.Explosion;
 import net.minecraft.server.MathHelper;
+import net.minecraft.server.Packet60Explosion;
+import net.minecraft.server.ServerConfigurationManager;
+import net.minecraft.server.WorldServer;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
@@ -58,48 +65,36 @@ public class NLEntityListener extends EntityListener {
 		}
 	}
 			
-	public void createExplosion(Entity source, Location at, List<Block> affectedBlocks, float yield) {
-		net.minecraft.server.World world = ((CraftWorld) at.getWorld()).getHandle();
-		world.makeSound(at.getX(), at.getY(), at.getZ(), "random.explode", 4.0F, (1.0F + (world.random.nextFloat() - world.random.nextFloat()) * 0.2F) * 0.7F);
-		
-		Explosion ex = new Explosion(world, ((CraftEntity) source).getHandle(), at.getX(), at.getY(), at.getZ(), radius);
-		ex.a = fire;
-		ex.a();
-		at.getWorld().createExplosion(at, 0.1f);
-		for (Block b : affectedBlocks) {
-			 
-			int id = b.getTypeId();
-			int x = b.getLocation().getBlockX();
-			int y = b.getLocation().getBlockY();
-			int z = b.getLocation().getBlockZ();
+	@SuppressWarnings("rawtypes")
+	public void createExplosion(net.minecraft.server.Entity source, Location at, List<Block> affectedBlocks, float yield) {
+		try {
+			WorldServer world = ((CraftWorld) at.getWorld()).getHandle();
 			
-            double d0 = (double) ((float) x + world.random.nextFloat());
-            double d1 = (double) ((float) y + world.random.nextFloat());
-            double d2 = (double) ((float) z + world.random.nextFloat());
-            double d3 = d0 - at.getX();
-            double d4 = d1 - at.getY();
-            double d5 = d2 - at.getX();
-            double d6 = (double) MathHelper.a(d3 * d3 + d4 * d4 + d5 * d5);
-
-            d3 /= d6;
-            d4 /= d6;
-            d5 /= d6;
-            double d7 = 0.5D / (d6 / (double) radius + 0.1D);
-
-            d7 *= (double) (world.random.nextFloat() * world.random.nextFloat() + 0.3F);
-            d3 *= d7;
-            d4 *= d7;
-            d5 *= d7;
-            world.a("explode", (d0 + at.getX() * 1.0D) / 2.0D, (d1 + at.getY() * 1.0D) / 2.0D, (d2 + at.getZ() * 1.0D) / 2.0D, d3, d4, d5);
-            world.a("smoke", d0, d1, d2, d3, d4, d5);
- 
-            if (id > 0 && id != Material.FIRE.getId()) {
-                net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
-                if (bb != null) {
-        			bb.dropNaturally(world, x, y, z, world.getData(x, y, z), yield);
-                }
-            }	
-            world.setTypeId(x, y, z, 0);
+			for (Block b : affectedBlocks) {
+				 
+				int id = b.getTypeId();
+				 
+	            if (id == Material.TNT.getId()) {
+					TnTHandler.detonate(b);
+	            } else {
+	    			int x = b.getLocation().getBlockX();
+	    			int y = b.getLocation().getBlockY();
+	    			int z = b.getLocation().getBlockZ();
+	            	if (id > 0 && id != Material.FIRE.getId()) {
+	            		net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
+	            		if (bb != null) {
+	            			bb.dropNaturally(world, x, y, z, world.getData(x, y, z), yield);
+	            		}
+	            	}
+	                world.setTypeId(x, y, z, 0);
+	            }
+			}
+			Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, new HashSet());
+			ServerConfigurationManager manager = world.server.serverConfigurationManager;
+			manager.sendPacketNearby(at.getX(), at.getY(), at.getZ(), 64.0D, world.dimension, packet);
+		} catch (Throwable t) {
+			System.out.println("[NoLagg] Warning: explosion did not go as planned!");
+			t.printStackTrace();
 		}
 	}
 	
@@ -115,21 +110,15 @@ public class NLEntityListener extends EntityListener {
 	@Override
 	public void onEntityExplode(EntityExplodeEvent event) {
 		if (!event.isCancelled()) {
-			int i = 0;
-			boolean hasTNT = false;
-			while (i < event.blockList().size()) {
-				Block b = event.blockList().get(i);
+			for (Block b : event.blockList()) {
 				if (b.getType() == Material.TNT) {
-					TnTHandler.detonate(b);
-					hasTNT = true;
-					event.blockList().remove(i);
-				} else {
-					i++;
+					net.minecraft.server.Entity entity = ((CraftEntity) event.getEntity()).getHandle();
+					if (entity != null) {
+						createExplosion(entity, event.getLocation(), event.blockList(), event.getYield());
+						event.setCancelled(true);
+						break;
+					}
 				}
-			}
-			if (hasTNT) {
-				createExplosion(event.getEntity(), event.getLocation(), event.blockList(), event.getYield());
-				event.setCancelled(true);
 			}
 		}
 	}

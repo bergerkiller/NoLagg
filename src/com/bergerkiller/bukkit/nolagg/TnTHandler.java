@@ -54,16 +54,21 @@ public class TnTHandler {
 		}
 	}
 	
+	public static void clear() {
+		todo.clear();
+		added.clear();
+	}
+	
 	public static boolean detonate(Block tntBlock) {
 		if (tntBlock != null && tntBlock.getType() == Material.TNT) {
 			if (!added.contains(tntBlock.getLocation())) {
-				startTask();
 				todo.offer(tntBlock);
 				added.add(tntBlock.getLocation());
+				startTask();
 				return true;
 			}
 		}
 		return false;
 	}
-	
+		
 }
