@@ -41,7 +41,6 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.ENTITY_COMBUST, entityListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.EXPLOSION_PRIME, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.Monitor, this);
 		
 				

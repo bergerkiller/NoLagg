@@ -1,9 +1,13 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
+
+import net.minecraft.server.Packet60Explosion;
+import net.minecraft.server.ServerConfigurationManager;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -69,6 +73,39 @@ public class TnTHandler {
 			}
 		}
 		return false;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public static void createExplosion(Location at, List<Block> affectedBlocks, float yield) {
+		try {
+			WorldServer world = ((CraftWorld) at.getWorld()).getHandle();
+			
+			for (Block b : affectedBlocks) {
+				 
+				int id = b.getTypeId();
+				 
+	            if (id == Material.TNT.getId()) {
+					TnTHandler.detonate(b);
+	            } else {
+	    			int x = b.getLocation().getBlockX();
+	    			int y = b.getLocation().getBlockY();
+	    			int z = b.getLocation().getBlockZ();
+	            	if (id > 0 && id != Material.FIRE.getId()) {
+	            		net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
+	            		if (bb != null) {
+	            			bb.dropNaturally(world, x, y, z, world.getData(x, y, z), yield);
+	            		}
+	            	}
+	                world.setTypeId(x, y, z, 0);
+	            }
+			}
+			Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, new HashSet());
+			ServerConfigurationManager manager = world.server.serverConfigurationManager;
+			manager.sendPacketNearby(at.getX(), at.getY(), at.getZ(), 64.0D, world.dimension, packet);
+		} catch (Throwable t) {
+			System.out.println("[NoLagg] Warning: explosion did not go as planned!");
+			t.printStackTrace();
+		}
 	}
 		
 }

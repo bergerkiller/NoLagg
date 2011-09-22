@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
 
+import org.bukkit.Chunk;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
@@ -25,10 +26,37 @@ public class StackFormer {
 		}
 	}
 	
-	public static void update() {
-		if (!ItemHandler.formStacks) {
-			return;
+	public static void loadChunk(Chunk chunk) {
+		if (!ItemHandler.formStacks) return;
+		for (Entity e : chunk.getEntities()) {
+			if (e instanceof Item) {
+				watchedItems.add((Item) e);
+			}
 		}
+	}
+	public static void unloadChunk(Chunk chunk) {
+		if (!ItemHandler.formStacks) return;
+		int i = 0;
+		while (i < watchedItems.size()) {
+			Item item = watchedItems.get(i);
+			if (item.isDead()) {
+		    	watchedItems.remove(i);
+		    	continue;
+			}
+			int cx = item.getLocation().getBlockX() >> 4;
+			if (cx == chunk.getX()) {
+			    int cz = item.getLocation().getBlockZ() >> 4;
+			    if (cz == chunk.getZ()) {
+			    	watchedItems.remove(i);
+			    	continue;
+			    }
+			}
+			i++;
+		}
+	}
+	
+	public static void update() {
+		if (!ItemHandler.formStacks) return;
 		int i = 0;
 		while (i < watchedItems.size()) {
 			Item item = watchedItems.get(i);
