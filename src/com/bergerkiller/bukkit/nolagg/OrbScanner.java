@@ -17,7 +17,7 @@ public class OrbScanner {
 				combine();
 			}
 		};
-		id = NoLagg.plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(NoLagg.plugin, r, interval, interval);
+		id = NoLagg.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(NoLagg.plugin, r, interval, interval);
 		r.run();
 	}
 	public static void deinit() {
