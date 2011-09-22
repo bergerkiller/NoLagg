@@ -22,7 +22,13 @@ public class TnTHandler {
 	private static HashSet<Location> added = new HashSet<Location>();
 	private static int taskId = -1;
 	public static int interval = 1;
-	public static int rate = 1;
+	public static int rate = 10;
+	private static long explosionInterval = 20;
+	private static long lastExplosionTime = 0;
+	
+	public static void setExplosionRate(double ratePerSecond) {
+		explosionInterval = (long) (1000 / ratePerSecond);
+	}
 	
 	private static int nextRandom(World w, int n) {
 		net.minecraft.server.World world = ((CraftWorld) w).getHandle();
@@ -74,7 +80,7 @@ public class TnTHandler {
 		}
 		return false;
 	}
-	
+		
 	@SuppressWarnings("rawtypes")
 	public static void createExplosion(Location at, List<Block> affectedBlocks, float yield) {
 		try {
@@ -99,9 +105,13 @@ public class TnTHandler {
 	                world.setTypeId(x, y, z, 0);
 	            }
 			}
-			Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, new HashSet());
-			ServerConfigurationManager manager = world.server.serverConfigurationManager;
-			manager.sendPacketNearby(at.getX(), at.getY(), at.getZ(), 64.0D, world.dimension, packet);
+			long time = System.currentTimeMillis();
+			if ((time - lastExplosionTime) > explosionInterval) {
+				lastExplosionTime = time;
+				Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, new HashSet());
+				ServerConfigurationManager manager = world.server.serverConfigurationManager;
+				manager.sendPacketNearby(at.getX(), at.getY(), at.getZ(), 64.0D, world.dimension, packet);
+			}
 		} catch (Throwable t) {
 			System.out.println("[NoLagg] Warning: explosion did not go as planned!");
 			t.printStackTrace();

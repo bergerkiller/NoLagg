@@ -33,16 +33,17 @@ public class NoLagg extends JavaPlugin {
 		plugin = this;
 		
 		PluginManager pm = getServer().getPluginManager();
-		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Highest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.ENTITY_COMBUST, entityListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Highest, this);
 		
+		int explrate = 40;
 				
 		//General settings
 		Configuration config = getConfiguration();
@@ -54,6 +55,7 @@ public class NoLagg extends JavaPlugin {
 		AutoSaveChanger.newInterval = config.getInt("autoSaveInterval", 0);
 		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
 		updateInterval = config.getInt("updateInterval", updateInterval);
+		explrate = config.getInt("explosionRate", 40);
 		
 		//Spawn restrictions
 		List<String> tmplist = config.getKeys("spawnlimits.default");
@@ -85,8 +87,10 @@ public class NoLagg extends JavaPlugin {
 		config.setProperty("autoSaveInterval", AutoSaveChanger.newInterval);
 		config.setProperty("orbScannerInterval", OrbScanner.interval);
 		config.setProperty("updateInterval", updateInterval);
+		config.setProperty("explosionRate", explrate);
 		config.save(); 
 
+		TnTHandler.setExplosionRate(explrate);
 		ItemHandler.loadAll();
 		SpawnHandler.init();
 		OrbScanner.init();
