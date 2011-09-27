@@ -11,15 +11,7 @@ import org.bukkit.util.Vector;
 public class StackFormer {
 	private static ArrayList<Item> watchedItems = new ArrayList<Item>();
 	private static boolean ignorenext = false;
-	
-	private static Item update(Item item) {
-		item.remove();
-		ItemHandler.removeSpawnedItem(item);
-		item = item.getWorld().dropItem(item.getLocation(), item.getItemStack());
-		item.setVelocity(new Vector());
-		return item;
-	}
-			
+				
 	public static void add(Item item) {
 		if (!ignorenext && ItemHandler.formStacks) {
 			watchedItems.add(item);
@@ -79,14 +71,16 @@ public class StackFormer {
 									stack.setAmount(newamount);
 									ii.remove();
 									ItemHandler.removeSpawnedItem(item);
-								} else  {
+								} else if (stack2.getAmount() < maxsize) {
 									//set to max
 									stack.setAmount(maxsize);
 									//set prev. item
 									stack2.setAmount(newamount - maxsize);
+								} else {
+									continue;
 								}
 								ignorenext = true;
-								item = update(item);
+								item = ItemHandler.respawnItem(item, new Vector());
 								stack = item.getItemStack();
 								ignorenext = false;
 							}

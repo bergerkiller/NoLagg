@@ -33,15 +33,14 @@ public class NoLagg extends JavaPlugin {
 		plugin = this;
 		
 		PluginManager pm = getServer().getPluginManager();
-		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Highest, this);
-		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Normal, this);
+		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.ENTITY_DAMAGE, entityListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Highest, this);
+		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
 		
 		int explrate = 40;
 				
@@ -62,7 +61,14 @@ public class NoLagg extends JavaPlugin {
 		if (tmplist != null && tmplist.size() > 0) {
 			for (String deflimit : tmplist) {
 				String key = "spawnlimits.default." + deflimit;
-				SpawnHandler.setLimit(null, deflimit, config.getInt(key, -1));
+				SpawnHandler.setDefaultLimit(deflimit, config.getInt(key, -1));
+			}
+		}
+		tmplist = config.getKeys("spawnlimits.global");
+		if (tmplist != null && tmplist.size() > 0) {
+			for (String glimit : tmplist) {
+				String key = "spawnlimits.global." + glimit;
+				SpawnHandler.setDefaultLimit(glimit, config.getInt(key, -1));
 			}
 		}
 		tmplist = config.getKeys("spawnlimits.worlds");
@@ -70,7 +76,7 @@ public class NoLagg extends JavaPlugin {
 			for (String world : tmplist) {
 				for (String deflimit : config.getKeys("spawnlimits.worlds." + world)) {
 					String key = "spawnlimits.worlds." + world + "." + deflimit;
-					SpawnHandler.setLimit(world, deflimit, config.getInt(key, -1));
+					SpawnHandler.setWorldLimit(world, deflimit, config.getInt(key, -1));
 				}
 			}
 		}
@@ -92,13 +98,14 @@ public class NoLagg extends JavaPlugin {
 
 		TnTHandler.setExplosionRate(explrate);
 		ItemHandler.loadAll();
-		SpawnHandler.init();
 		OrbScanner.init();
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
 				ItemHandler.update();
 				StackFormer.update();
+				ChunkHandler.cleanUp();
+				SpawnHandler.update();
 			}
 		}, 0, updateInterval);
 		
@@ -112,7 +119,6 @@ public class NoLagg extends JavaPlugin {
 		getServer().getScheduler().cancelTask(updateID);
 		OrbScanner.deinit();
 		ItemHandler.unloadAll();
-		SpawnHandler.deinit();
 		AutoSaveChanger.deinit();
 		System.out.println("NoLagg disabled!");
 	}

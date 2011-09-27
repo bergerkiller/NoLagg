@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg;
 
 import org.bukkit.entity.Item;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.ItemSpawnEvent;
@@ -23,7 +24,11 @@ public class NLEntityListener extends EntityListener {
 	
 	@Override
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
-		SpawnHandler.handleSpawn(event);
+		if (event.getSpawnReason() != SpawnReason.NATURAL) {
+			SpawnHandler.ignoreSpawn(event.getEntity());
+		} else {
+			SpawnHandler.handleSpawn(event);
+		}
 	}
 							
 	@Override

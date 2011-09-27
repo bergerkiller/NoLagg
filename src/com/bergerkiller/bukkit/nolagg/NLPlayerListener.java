@@ -16,7 +16,7 @@ public class NLPlayerListener extends PlayerListener {
 	@Override
 	public void onPlayerMove(PlayerMoveEvent event) {
 		if (!event.isCancelled()) {
-			ChunkHandler.handleMove(event.getFrom(), event.getTo());
+			ChunkHandler.handleMove(event.getFrom(), event.getTo(), event.getPlayer());
 		}
 	}
 						

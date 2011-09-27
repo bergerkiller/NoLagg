@@ -6,10 +6,12 @@ import java.util.HashSet;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 public class ItemHandler {
 	public static int maxItemsPerChunk = 30;
@@ -38,11 +40,8 @@ public class ItemHandler {
 	}
 	public static void spawnHiddenItem(Chunk c, Item item) {
 		if (getHiddenItems(c).remove(item)) {
-			getSpawnedItems(c).add(spawnItem(item));
+			respawnItem(item);
 		}
-	}
-	public static Item spawnItem(Item item) {
-		return item.getWorld().dropItemNaturally(item.getLocation(), item.getItemStack());
 	}
 	public static void loadChunk(Chunk c) {
 		unloadChunk(c);
@@ -57,16 +56,17 @@ public class ItemHandler {
 	}
 	public static void unloadChunk(Chunk c) {
 		ignoreSpawn = true;
-		for (Item item : getHiddenItems(c)) {
-			getSpawnedItems(c).clear();
-			spawnItem(item);
+		ArrayList<Item> items = hiddenItems.remove(c);
+		if (items != null) {
+			for (Item item : items) {
+				respawnItem(item);
+			}
 		}
-		getHiddenItems(c).clear();
-		getSpawnedItems(c).clear();
+		spawnedItems.remove(c);
 		ignoreSpawn = false;
 	}
 	public static void unloadAll() {
-		for (Chunk c : hiddenItems.keySet()) {
+		for (Chunk c : hiddenItems.keySet().toArray(new Chunk[0])) {
 			unloadChunk(c);
 		}
 	}
@@ -139,6 +139,34 @@ public class ItemHandler {
 		ignoreSpawn = prev;
 	}
 	
+	public static Item respawnItem(Item item) {
+		return respawnItem(item, item.getVelocity(), true);
+	}
+	public static Item respawnItem(Item item, Vector velocity) {
+		return respawnItem(item, velocity, false);
+	}
+	public static Item respawnItem(Item item, Vector velocity, boolean naturally) {
+		ignoreSpawn = true;
+		if (!item.isDead()) {
+			item.remove();
+			removeSpawnedItem(item);
+		}
+		//Get required data
+		World w = item.getWorld();
+		Location l = item.getLocation();
+		ItemStack data = item.getItemStack();
+		//Respawn and set properties
+		if (naturally) {
+			item = w.dropItemNaturally(l, data);
+		} else {
+			item = w.dropItem(l, data);
+		}
+		item.setVelocity(velocity);
+		addSpawnedItem(item);
+		ignoreSpawn = false;
+		return item;
+	}
+	
 	public static void removeSpawnedItem(Item item) {
 		if (maxItemsPerChunk <= 0) return;
 		Chunk c = item.getLocation().getBlock().getChunk();
@@ -155,6 +183,11 @@ public class ItemHandler {
 				}
 			}
 		}
+	}
+	public static void addSpawnedItem(Item item) {
+		if (maxItemsPerChunk <= 0) return;
+		Chunk c = item.getLocation().getBlock().getChunk();
+		getSpawnedItems(c).add(item);
 	}
 
 	public static void clear() {
