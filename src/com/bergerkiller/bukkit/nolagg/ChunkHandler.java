@@ -31,8 +31,10 @@ public class ChunkHandler {
 	}
 	public static void handleLoad(ChunkLoadEvent event) {
 		touch(event.getChunk(), System.currentTimeMillis());
+		PlayerChunkLoader.clearAll(event.getChunk());
 	}
 	public static void handleUnload(ChunkUnloadEvent event) {
+		PlayerChunkLoader.clearAll(event.getChunk());
 		if (!event.isCancelled()) {
 			if (canUnload(event.getChunk())) {
 				waitingChunks.remove(event.getChunk());
@@ -53,6 +55,7 @@ public class ChunkHandler {
 				}
 			}
 			//Handle it
+			PlayerChunkLoader.update(forPlayer, cx, cz, to.getWorld());
 			int radius = Bukkit.getServer().getViewDistance();
 			cx -= radius;
 			cz -= radius;
@@ -64,14 +67,13 @@ public class ChunkHandler {
 					int chunkX = cx + a;
 					int chunkZ = cz + b;
 					if (w.isChunkLoaded(chunkX, chunkZ)) {
-						Chunk c = w.getChunkAt(chunkX, chunkZ);
-					    touch(c, time);
+					    touch(w.getChunkAt(chunkX, chunkZ), time);
 					}
 				}
 			}
 		}
 	}
-
+	
 	private static HashSet<Chunk> waitingChunks = new HashSet<Chunk>();
 	public static void cleanUp() {
 		if (waitingChunks.size() > 1) {

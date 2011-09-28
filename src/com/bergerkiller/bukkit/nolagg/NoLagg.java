@@ -34,6 +34,7 @@ public class NoLagg extends JavaPlugin {
 		
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_MOVE, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Normal, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
@@ -43,7 +44,8 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
 		
 		int explrate = 40;
-				
+		int chunkrate = 2;
+		
 		//General settings
 		Configuration config = getConfiguration();
 		TnTHandler.interval = config.getInt("tntDetonationInterval", TnTHandler.interval);
@@ -55,6 +57,7 @@ public class NoLagg extends JavaPlugin {
 		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
 		updateInterval = config.getInt("updateInterval", updateInterval);
 		explrate = config.getInt("explosionRate", 40);
+		chunkrate = config.getInt("chunkSendInterval", chunkrate);
 		
 		//Spawn restrictions
 		List<String> tmplist = config.getKeys("spawnlimits.default");
@@ -94,11 +97,13 @@ public class NoLagg extends JavaPlugin {
 		config.setProperty("orbScannerInterval", OrbScanner.interval);
 		config.setProperty("updateInterval", updateInterval);
 		config.setProperty("explosionRate", explrate);
+		config.setProperty("chunkSendInterval", chunkrate);
 		config.save(); 
 
 		TnTHandler.setExplosionRate(explrate);
 		ItemHandler.loadAll();
 		OrbScanner.init();
+		PlayerChunkLoader.init(chunkrate);
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
@@ -120,6 +125,7 @@ public class NoLagg extends JavaPlugin {
 		OrbScanner.deinit();
 		ItemHandler.unloadAll();
 		AutoSaveChanger.deinit();
+		PlayerChunkLoader.deinit();
 		System.out.println("NoLagg disabled!");
 	}
 	
