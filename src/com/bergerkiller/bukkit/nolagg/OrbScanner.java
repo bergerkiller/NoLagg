@@ -12,13 +12,15 @@ public class OrbScanner {
 	public static int interval;
 	
 	public static void init() {
-		Runnable r = new Runnable() {
-			public void run() {
-				combine();
-			}
-		};
-		id = NoLagg.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(NoLagg.plugin, r, interval, interval);
-		r.run();
+		if (interval > 0) {
+			Runnable r = new Runnable() {
+				public void run() {
+					combine();
+				}
+			};
+			id = NoLagg.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(NoLagg.plugin, r, interval, interval);
+			r.run();
+		}
 	}
 	public static void deinit() {
 		NoLagg.plugin.getServer().getScheduler().cancelTask(id);

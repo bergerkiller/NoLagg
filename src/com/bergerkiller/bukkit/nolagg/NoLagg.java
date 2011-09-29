@@ -19,6 +19,7 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
+import org.getspout.spoutapi.SpoutManager;
 
 public class NoLagg extends JavaPlugin {
 	public static NoLagg plugin;
@@ -26,12 +27,14 @@ public class NoLagg extends JavaPlugin {
 	private final NLPlayerListener playerListener = new NLPlayerListener();
 	private final NLEntityListener entityListener = new NLEntityListener();
 	private final NLWorldListener worldListener = new NLWorldListener();
+	private NLPacketListener packetListener;
 	private int updateID = -1;
 	private int updateInterval = 20;
-		
-	public void onEnable() {	
+			
+	public void onEnable() {		
 		plugin = this;
 		
+		//General registering
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
@@ -43,8 +46,16 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
 		
+		if (pm.isPluginEnabled("Spout")) {
+			//Spout packet registering
+			packetListener = new NLPacketListener();
+			SpoutManager.getPacketManager().addListenerUncompressedChunk(packetListener);
+			System.out.println("[NoLagg] Spout detected, world chunk package sending taken over!");
+		}
+				
 		int explrate = 40;
-		int chunkrate = 2;
+		int chunkrate = 1;
+		int chunkinter = 1;
 		
 		//General settings
 		Configuration config = getConfiguration();
@@ -57,7 +68,8 @@ public class NoLagg extends JavaPlugin {
 		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
 		updateInterval = config.getInt("updateInterval", updateInterval);
 		explrate = config.getInt("explosionRate", 40);
-		chunkrate = config.getInt("chunkSendInterval", chunkrate);
+		chunkrate = config.getInt("chunkSendRate", chunkrate);
+		chunkinter = config.getInt("chunkSendInterval", chunkinter);
 		
 		//Spawn restrictions
 		List<String> tmplist = config.getKeys("spawnlimits.default");
@@ -97,13 +109,14 @@ public class NoLagg extends JavaPlugin {
 		config.setProperty("orbScannerInterval", OrbScanner.interval);
 		config.setProperty("updateInterval", updateInterval);
 		config.setProperty("explosionRate", explrate);
+		config.setProperty("chunkSendRate", chunkinter);
 		config.setProperty("chunkSendInterval", chunkrate);
 		config.save(); 
 
 		TnTHandler.setExplosionRate(explrate);
 		ItemHandler.loadAll();
 		OrbScanner.init();
-		PlayerChunkLoader.init(chunkrate);
+		PlayerChunkLoader.init(chunkinter, chunkrate);
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {

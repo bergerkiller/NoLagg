@@ -19,24 +19,35 @@ public class PlayerChunkLoader {
 		PlayerChunkLoader loader = loaders.get(player);
 		if (loader == null) {
 			loader = new PlayerChunkLoader(player);
+			int cx = player.getLocation().getBlockX() >> 4;
+			int cz = player.getLocation().getBlockX() >> 4;
 			loaders.put(player, loader);
+			loader.updateChunk(cx, cz, player.getWorld());
+			//add chunks
+			for (int a = -view; a <= view; a++) {
+				for (int b = -view; b <= view; b++) {
+					loader.setSent(cx + a, cz + b);
+				}
+			}
 		}
 		return loader;
 	}
 	
 	private static int taskid = -1;
-	public static void init(int rate) {
+	private static int rate = 1;
+	public static void init(int sendinterval, int sendrate) {
+		rate = sendrate;
 		if (rate <= 0) return;
-		taskid = NoLagg.plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(NoLagg.plugin, new Runnable() {
+		taskid = NoLagg.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(NoLagg.plugin, new Runnable() {
 			public void run() {
 				for (World w : Bukkit.getServer().getWorlds()) {
 					for (org.bukkit.Chunk c : w.getLoadedChunks()) {
 						((CraftChunk) c).getHandle();
 					}
 				}
-				PlayerChunkLoader.sendAll(1);
+				PlayerChunkLoader.sendAll(rate);
 			}
-		}, 0, rate);
+		}, 0, sendinterval);
 	}
 	public static void deinit() {
 		if (taskid != -1) {
@@ -45,11 +56,13 @@ public class PlayerChunkLoader {
 	}
 	
 	
-	
 	public static void clearAll(org.bukkit.Chunk chunk) {
 		for (PlayerChunkLoader loader : loaders.values()) {
 			loader.clear(chunk);
 		}
+	}
+	public static void clear(Player player, int x, int z) {
+		get(player).clear(player.getWorld(), x, z);
 	}
 	public static void clear(Player player, org.bukkit.Chunk chunk) {
 		get(player).clear(chunk);
@@ -82,9 +95,9 @@ public class PlayerChunkLoader {
 		}
 	    @Override
 	    public int hashCode() {
-	        int hash = 7;
-	        hash = 63 * hash + (this.x ^ (this.x >> 16));
-	        hash = 63 * hash + (this.z ^ (this.z >> 16));
+	        int hash = 3;
+	        hash = 41 * hash + (this.x ^ (this.x >> 16));
+	        hash = 41 * hash + (this.z ^ (this.z >> 16));
 	        return hash;
 	    }	    
 	    @Override
@@ -143,6 +156,9 @@ public class PlayerChunkLoader {
 		}
 	}	
 	
+	private void setSent(int cx, int cz) {
+		sentChunks.add(new Chunk(cx, cz));
+	}
 	public boolean isSent(int cx, int cz) {
 		return sentChunks.contains(new Chunk(cx, cz));
 	}
@@ -150,7 +166,9 @@ public class PlayerChunkLoader {
 	public boolean send(int cx, int cz, Player to) {
 		if (to != null && !isSent(cx, cz)) {
 			Packet51MapChunk packet = new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, ((CraftWorld) world).getHandle());
+			NLPacketListener.allow = true;
 			((CraftPlayer) to).getHandle().netServerHandler.sendPacket(packet);
+			NLPacketListener.allow = false;
 			sentChunks.add(new Chunk(cx, cz));
 			return true;
 		} else {
@@ -163,6 +181,9 @@ public class PlayerChunkLoader {
 	}
 	public void clear(org.bukkit.Chunk chunk) {
 		sentChunks.remove(new Chunk(chunk.getX(), chunk.getZ()));
+	}
+	public void clear(World world, int x, int z) {
+		this.clear(world.getChunkAt(x, z));
 	}
 	
 	public void updateChunk(int cx, int cz, World world) {
@@ -249,6 +270,14 @@ public class PlayerChunkLoader {
 				}
 			}
 			
+			//remainder
+			for (int a = -view; a <= view; a++) {
+				for (int b = -view; b <= view; b++) {
+					if (this.send(cx + a, cz + b, to)) {
+						if (--sendcount == 0) return;
+					}
+				}
+			}
 		}
 	}
 	

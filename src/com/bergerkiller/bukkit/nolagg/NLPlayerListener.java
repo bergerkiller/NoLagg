@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import org.bukkit.block.Block;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -17,10 +18,11 @@ public class NLPlayerListener extends PlayerListener {
 	
 	@Override
 	public void onPlayerInteract(PlayerInteractEvent event) {
-		Block b = event.getClickedBlock();
-		if (b == null) b = event.getPlayer().getTargetBlock(null, 100);
-		if (b != null) {
-			PlayerChunkLoader.clear(event.getPlayer(), b.getChunk());
+		if (event.getAction() == Action.LEFT_CLICK_AIR) {
+			Block b = event.getPlayer().getTargetBlock(null, 100);
+			if (b != null) {
+				PlayerChunkLoader.clear(event.getPlayer(), b.getChunk());
+			}
 		}
 	}
 	
