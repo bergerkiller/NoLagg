@@ -48,6 +48,7 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
 						
 		int explrate = 40;
+		double sendinter = 5;
 		
 		//General settings
 		Configuration config = getConfiguration();
@@ -60,8 +61,19 @@ public class NoLagg extends JavaPlugin {
 		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
 		updateInterval = config.getInt("updateInterval", updateInterval);
 		explrate = config.getInt("explosionRate", 40);
-		chunkSendRate = config.getInt("chunkSendRate", chunkSendRate);
-		chunkSendInterval = config.getInt("chunkSendInterval", chunkSendInterval);
+		sendinter = config.getDouble("chunkSendInterval", sendinter);
+		
+		//Convert interval
+		if (sendinter >= 1) {
+			chunkSendInterval = (int) sendinter;
+			chunkSendRate = 1;
+		} else if (sendinter < 0.1) {
+			chunkSendInterval = 0;
+			chunkSendRate = 0;
+		} else {
+			chunkSendInterval = 1;
+			chunkSendRate = (int) (1 / sendinter);
+		}
 		
 		//Spawn restrictions
 		List<String> tmplist = config.getKeys("spawnlimits.default");
@@ -101,8 +113,7 @@ public class NoLagg extends JavaPlugin {
 		config.setProperty("orbScannerInterval", OrbScanner.interval);
 		config.setProperty("updateInterval", updateInterval);
 		config.setProperty("explosionRate", explrate);
-		config.setProperty("chunkSendInterval", chunkSendInterval);
-		config.setProperty("chunkSendRate", chunkSendRate);
+		config.setProperty("chunkSendInterval", sendinter);
 		config.save(); 
 
 		TnTHandler.setExplosionRate(explrate);

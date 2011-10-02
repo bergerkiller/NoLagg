@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.WeakHashMap;
 
 import net.minecraft.server.NetServerHandler;
+import net.minecraft.server.Packet;
 import net.minecraft.server.Packet50PreChunk;
 import net.minecraft.server.Packet51MapChunk;
 import net.minecraft.server.TileEntity;
@@ -101,20 +102,24 @@ public class ChunkHandler {
 	public static boolean send(Location location, Player to) {
 		return send(location.getBlockX() >> 4, location.getBlockZ() >> 4, to);
 	}
+	public static void send(NetServerHandler handler, Packet packet) {
+		if (packet != null) handler.sendPacket(packet);
+	}
 	public static boolean send(int cx, int cz, Player to) {
 		try {
+			//=============================Getting required objects=======================
 			net.minecraft.server.World world = ((CraftWorld) to.getWorld()).getHandle();
-			Packet51MapChunk packet = new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, world);
             net.minecraft.server.Chunk chunk = world.getChunkAt(cx, cz);
 			NetServerHandler handler = ((CraftPlayer) to).getHandle().netServerHandler;
+			//=============================================================================
+			
 			//Send pre-chunk
-			handler.sendPacket(new Packet50PreChunk(cx * 16, cz * 16, true));
+			send(handler, new Packet50PreChunk(cx * 16, cz * 16, true));
 			//Send chunk
-			handler.sendPacket(packet);
+			send(handler, new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, world));
 			//Send entities
 			for (Object o : chunk.tileEntities.values()) {
-				TileEntity entity = (TileEntity) o;
-				handler.sendPacket(entity.l());
+				send(handler, ((TileEntity) o).l());
 			}
 			return true;
 		} catch (Exception ex) {}
