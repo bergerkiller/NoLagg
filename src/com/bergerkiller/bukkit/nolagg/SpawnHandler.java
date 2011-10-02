@@ -6,8 +6,8 @@ import java.util.WeakHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.entity.EntityEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 
 public class SpawnHandler {
@@ -56,7 +56,7 @@ public class SpawnHandler {
 	}
 	public static boolean canSpawn(Entity entity) {
 		if (spawnIgnore.containsKey(entity)) {
-		    return true;	
+		    return true;
 		} else {
 			return canSpawn(entity.getWorld(), entity);
 		}
@@ -88,6 +88,24 @@ public class SpawnHandler {
 		removeSpawn(entity.getWorld(), entity);
 	}
 	
+	public static boolean handleSpawn(ItemSpawnEvent event) {
+		if (canSpawn(event.getEntity())) {
+			addSpawn(event.getEntity());
+			return true;
+		} else {
+			event.setCancelled(true);
+			return false;
+		}
+	}
+	public static boolean handleSpawn(CreatureSpawnEvent event) {
+		if (canSpawn(event.getEntity())) {
+			addSpawn(event.getEntity());
+			return true;
+		} else {
+			event.setCancelled(true);
+			return false;
+		}
+	}
 	public static boolean handleSpawn(Entity entity) {
 		if (!entity.isDead()) {
 			if (canSpawn(entity)) {
@@ -98,21 +116,6 @@ public class SpawnHandler {
 			}
 		}
 		return false;
-	}
-	public static boolean handleSpawn(EntityEvent event) {
-		if (event instanceof Cancellable) {
-			if (((Cancellable) event).isCancelled()) {
-				if (canSpawn(event.getEntity())) {
-					addSpawn(event.getEntity());
-					return true;
-				} else {
-					((Cancellable) event).setCancelled(true);
-				}
-			}
-			return false;
-		} else {
-			return handleSpawn(event.getEntity());
-		}
 	}
 	public static boolean handleSpawn(VehicleCreateEvent event) {
 		return handleSpawn(event.getVehicle());
