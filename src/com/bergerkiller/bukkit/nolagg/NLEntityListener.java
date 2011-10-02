@@ -24,7 +24,7 @@ public class NLEntityListener extends EntityListener {
 	
 	@Override
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
-		if (event.getSpawnReason() != SpawnReason.NATURAL) {
+		if (event.getSpawnReason() == SpawnReason.CUSTOM) {
 			SpawnHandler.ignoreSpawn(event.getEntity());
 		} else {
 			SpawnHandler.handleSpawn(event);

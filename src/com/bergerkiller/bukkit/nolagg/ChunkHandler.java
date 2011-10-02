@@ -3,13 +3,22 @@ package com.bergerkiller.bukkit.nolagg;
 import java.util.HashSet;
 import java.util.WeakHashMap;
 
+import net.minecraft.server.NetServerHandler;
+import net.minecraft.server.Packet50PreChunk;
+import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.TileEntity;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+
+import com.bergerkiller.bukkit.nolaggchunks.PlayerChunkLoader;
 
 public class ChunkHandler {
 	public static int chunkUnloadDelay = 10000;
@@ -46,7 +55,6 @@ public class ChunkHandler {
 	public static void handleMove(Location from, Location to, Player forPlayer) {
 		int cx = toChunk(to.getBlockX());
 		int cz = toChunk(to.getBlockZ());
-		PlayerChunkLoader.update(forPlayer, cx, cz, to.getWorld());
 		if (from.getWorld() == to.getWorld()) {
 			if (toChunk(from.getBlockX()) == cx) {
 				if (toChunk(from.getBlockZ()) == cz) {
@@ -57,7 +65,7 @@ public class ChunkHandler {
 			int radius = Bukkit.getServer().getViewDistance();
 			cx -= radius;
 			cz -= radius;
-			PlayerChunkLoader.clear(forPlayer, cx, cz);
+
 			radius *= 2;
 			World w = to.getWorld();
 			long time = System.currentTimeMillis();
@@ -86,6 +94,54 @@ public class ChunkHandler {
 				if (canUnload(c)) {
 					c.unload();
 				}
+			}
+		}
+	}
+
+	public static boolean send(Location location, Player to) {
+		return send(location.getBlockX() >> 4, location.getBlockZ() >> 4, to);
+	}
+	public static boolean send(int cx, int cz, Player to) {
+		try {
+			net.minecraft.server.World world = ((CraftWorld) to.getWorld()).getHandle();
+			Packet51MapChunk packet = new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, world);
+            net.minecraft.server.Chunk chunk = world.getChunkAt(cx, cz);
+			NetServerHandler handler = ((CraftPlayer) to).getHandle().netServerHandler;
+			//Send pre-chunk
+			handler.sendPacket(new Packet50PreChunk(cx * 16, cz * 16, true));
+			//Send chunk
+			handler.sendPacket(packet);
+			//Send entities
+			for (Object o : chunk.tileEntities.values()) {
+				TileEntity entity = (TileEntity) o;
+				handler.sendPacket(entity.l());
+			}
+			return true;
+		} catch (Exception ex) {}
+		return false;
+	}
+
+	public static boolean safeSend(Location location, Player to) {
+		return safeSend(location.getBlockX() >> 4, location.getBlockZ() >> 4, to);
+	}
+	public static boolean safeSend(int cx, int cz, Player to) {
+		if (Bukkit.getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
+			PlayerChunkLoader.clear(to, cx, cz);
+			return true;
+		} else {
+			return send(cx, cz, to);
+		}
+	}
+	
+	public static void safeSendAll(Location location) {
+		safeSendAll(location.getBlockX() >> 4, location.getBlockZ() >> 4, location.getWorld());
+	}
+	public static void safeSendAll(int cx, int cz, World world) {
+		if (Bukkit.getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
+			PlayerChunkLoader.clearAll(world.getChunkAt(cx, cz));
+		} else {
+			for (Player player : world.getPlayers()) {
+				send(cx, cz, player);
 			}
 		}
 	}

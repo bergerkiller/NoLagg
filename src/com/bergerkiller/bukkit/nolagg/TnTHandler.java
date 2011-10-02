@@ -92,7 +92,7 @@ public class TnTHandler {
 				 
 	            if (id == Material.TNT.getId()) {
 					TnTHandler.detonate(b);
-	            } else {
+	            } else if (id != Material.BEDROCK.getId() && id != Material.OBSIDIAN.getId()) {
 	    			int x = b.getLocation().getBlockX();
 	    			int y = b.getLocation().getBlockY();
 	    			int z = b.getLocation().getBlockZ();
