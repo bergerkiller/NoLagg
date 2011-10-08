@@ -46,25 +46,27 @@ public class ChunkHandler {
 	}
 	
 	private static boolean canUnload(Chunk c) {
-		boolean near = false;
-		//any players near?
-		int view = Bukkit.getServer().getViewDistance();
-		for (Player p : c.getWorld().getPlayers()) {
-			int cx = p.getLocation().getBlockX() >> 4;
-		    int cz = p.getLocation().getBlockX() >> 4;
-		    if (Math.abs(cx - c.getX()) > view) continue;
-		    if (Math.abs(cz - c.getZ()) > view) continue;
-		    near = true;
-		    break;
-		}
-		if (near) {
-			touch(c, System.currentTimeMillis());
-			return false;
-		} else if (!chunks.containsKey(c)) {
-			return true;
+		if (chunks.containsKey(c)) {
+			boolean near = false;
+			//any players near?
+			int view = 15;
+			for (Player p : c.getWorld().getPlayers()) {
+				int cx = p.getLocation().getBlockX() >> 4;
+			    int cz = p.getLocation().getBlockX() >> 4;
+			    if (Math.abs(cx - c.getX()) > view) continue;
+			    if (Math.abs(cz - c.getZ()) > view) continue;
+			    near = true;
+			    break;
+			}
+			if (near) {
+				touch(c, System.currentTimeMillis());
+				return false;
+			} else {
+				long expireTime = chunks.get(c) + chunkUnloadDelay;
+				return expireTime < System.currentTimeMillis();
+			}
 		} else {
-			long expireTime = chunks.get(c) + chunkUnloadDelay;
-			return expireTime < System.currentTimeMillis();
+			return true;
 		}
 	}
 	public static void handleLoad(ChunkLoadEvent event) {
@@ -98,15 +100,11 @@ public class ChunkHandler {
 					}
 				}
 				//Handle it
-				int radius = Bukkit.getServer().getViewDistance();
-				cx -= radius;
-				cz -= radius;
-
-				radius *= 2;
+				int view = Bukkit.getServer().getViewDistance();
 				World w = to.getWorld();
 				long time = System.currentTimeMillis();
-				for (int a = 0; a < radius; a++) {
-					for (int b = 0; b < radius; b++) {
+				for (int a = -view; a <= view; a++) {
+					for (int b = -view; b <= view; b++) {
 						int chunkX = cx + a;
 						int chunkZ = cz + b;
 						if (w.isChunkLoaded(chunkX, chunkZ)) {
@@ -124,9 +122,11 @@ public class ChunkHandler {
 			for (Chunk c : waitingChunks.toArray(new Chunk[0])) {
 				if (!c.isLoaded()) {
 					waitingChunks.remove(c);
+					chunks.remove(c);
 				} else if (canUnload(c)) {
 					ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) c.getWorld()).getHandle().chunkProvider;
 					provider.queueUnload(c.getX(), c.getZ());
+					waitingChunks.remove(c);
 				}
 			}
 		}
