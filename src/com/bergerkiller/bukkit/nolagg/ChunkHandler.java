@@ -3,79 +3,115 @@ package com.bergerkiller.bukkit.nolagg;
 import java.util.HashSet;
 import java.util.WeakHashMap;
 
-import net.minecraft.server.NetServerHandler;
-import net.minecraft.server.Packet;
-import net.minecraft.server.Packet50PreChunk;
-import net.minecraft.server.Packet51MapChunk;
-import net.minecraft.server.TileEntity;
+import net.minecraft.server.ChunkProviderServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
-
-import com.bergerkiller.bukkit.nolaggchunks.PlayerChunkLoader;
 
 public class ChunkHandler {
 	public static int chunkUnloadDelay = 10000;
 	
 	private static WeakHashMap<Chunk, Long> chunks = new WeakHashMap<Chunk, Long>();
 	private static void touch(Chunk chunk, long time) {
-		chunks.put(chunk, time);
-		waitingChunks.remove(chunk);
+		if (!isSpawnChunk(chunk)) {
+			chunks.put(chunk, time);
+			waitingChunks.remove(chunk);
+		}
 	}
 	
 	private static int toChunk(int value) {
 		return value >> 4;
 	}
 	
+	/**
+	 * Taken over from PerformanceTweaks with minor edit, credit goes to LexManos! :)
+	 * @param chunk
+	 * @return If this chunk is a spawn chunk
+	 */
+	private static boolean isSpawnChunk(Chunk chunk){
+		if (chunk.getWorld().getKeepSpawnInMemory()) {
+			Location spawn = chunk.getWorld().getSpawnLocation();
+			int x = chunk.getX() * 16 + 8 - spawn.getBlockX();
+			int z = chunk.getZ() * 16 + 8 - spawn.getBlockZ();
+			return (x > -128 && x < 128 && z > -128 && z < 128);
+		} else {
+			return false;
+		}
+	}
+	
 	private static boolean canUnload(Chunk c) {
-		if (!chunks.containsKey(c)) return true;
-		long expireTime = chunks.get(c) + chunkUnloadDelay;
-		return expireTime < System.currentTimeMillis();
+		boolean near = false;
+		//any players near?
+		int view = Bukkit.getServer().getViewDistance();
+		for (Player p : c.getWorld().getPlayers()) {
+			int cx = p.getLocation().getBlockX() >> 4;
+		    int cz = p.getLocation().getBlockX() >> 4;
+		    if (Math.abs(cx - c.getX()) > view) continue;
+		    if (Math.abs(cz - c.getZ()) > view) continue;
+		    near = true;
+		    break;
+		}
+		if (near) {
+			touch(c, System.currentTimeMillis());
+			return false;
+		} else if (!chunks.containsKey(c)) {
+			return true;
+		} else {
+			long expireTime = chunks.get(c) + chunkUnloadDelay;
+			return expireTime < System.currentTimeMillis();
+		}
 	}
 	public static void handleLoad(ChunkLoadEvent event) {
-		touch(event.getChunk(), System.currentTimeMillis());
+		if (NoLagg.useChunkUnloadDelay) {
+			touch(event.getChunk(), System.currentTimeMillis());
+		}
 	}
 	public static void handleUnload(ChunkUnloadEvent event) {
-		if (!event.isCancelled()) {
-			if (canUnload(event.getChunk())) {
-				waitingChunks.remove(event.getChunk());
-				chunks.remove(event.getChunk());
-			} else {
+		if (NoLagg.useChunkUnloadDelay) {
+			if (isSpawnChunk(event.getChunk())) {
 				event.setCancelled(true);
-				waitingChunks.add(event.getChunk());
+			} else if (!event.isCancelled()) {
+				if (canUnload(event.getChunk())) {
+					waitingChunks.remove(event.getChunk());
+					chunks.remove(event.getChunk());
+				} else {
+					event.setCancelled(true);
+					waitingChunks.add(event.getChunk());
+				}
 			}
 		}
 	}
 	public static void handleMove(Location from, Location to, Player forPlayer) {
-		int cx = toChunk(to.getBlockX());
-		int cz = toChunk(to.getBlockZ());
-		if (from.getWorld() == to.getWorld()) {
-			if (toChunk(from.getBlockX()) == cx) {
-				if (toChunk(from.getBlockZ()) == cz) {
-					return;
+		if (NoLagg.useChunkUnloadDelay) {
+			int cx = toChunk(to.getBlockX());
+			int cz = toChunk(to.getBlockZ());
+			if (from.getWorld() == to.getWorld()) {
+				if (toChunk(from.getBlockX()) == cx) {
+					if (toChunk(from.getBlockZ()) == cz) {
+						return;
+					}
 				}
-			}
-			//Handle it
-			int radius = Bukkit.getServer().getViewDistance();
-			cx -= radius;
-			cz -= radius;
+				//Handle it
+				int radius = Bukkit.getServer().getViewDistance();
+				cx -= radius;
+				cz -= radius;
 
-			radius *= 2;
-			World w = to.getWorld();
-			long time = System.currentTimeMillis();
-			for (int a = 0; a < radius; a++) {
-				for (int b = 0; b < radius; b++) {
-					int chunkX = cx + a;
-					int chunkZ = cz + b;
-					if (w.isChunkLoaded(chunkX, chunkZ)) {
-					    touch(w.getChunkAt(chunkX, chunkZ), time);
+				radius *= 2;
+				World w = to.getWorld();
+				long time = System.currentTimeMillis();
+				for (int a = 0; a < radius; a++) {
+					for (int b = 0; b < radius; b++) {
+						int chunkX = cx + a;
+						int chunkZ = cz + b;
+						if (w.isChunkLoaded(chunkX, chunkZ)) {
+						    touch(w.getChunkAt(chunkX, chunkZ), time);
+						}
 					}
 				}
 			}
@@ -84,70 +120,16 @@ public class ChunkHandler {
 	
 	private static HashSet<Chunk> waitingChunks = new HashSet<Chunk>();
 	public static void cleanUp() {
-		if (waitingChunks.size() > 1) {
+		if (NoLagg.useChunkUnloadDelay) {
 			for (Chunk c : waitingChunks.toArray(new Chunk[0])) {
-				if (canUnload(c)) {
-					c.unload();
-				}
-			}
-		} else {
-			for (Chunk c : waitingChunks) {
-				if (canUnload(c)) {
-					c.unload();
+				if (!c.isLoaded()) {
+					waitingChunks.remove(c);
+				} else if (canUnload(c)) {
+					ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) c.getWorld()).getHandle().chunkProvider;
+					provider.queueUnload(c.getX(), c.getZ());
 				}
 			}
 		}
 	}
 
-	public static boolean send(Location location, Player to) {
-		return send(location.getBlockX() >> 4, location.getBlockZ() >> 4, to);
-	}
-	public static void send(NetServerHandler handler, Packet packet) {
-		if (packet != null) handler.sendPacket(packet);
-	}
-	public static boolean send(int cx, int cz, Player to) {
-		try {
-			//=============================Getting required objects=======================
-			net.minecraft.server.World world = ((CraftWorld) to.getWorld()).getHandle();
-            net.minecraft.server.Chunk chunk = world.getChunkAt(cx, cz);
-			NetServerHandler handler = ((CraftPlayer) to).getHandle().netServerHandler;
-			//=============================================================================
-			
-			//Send pre-chunk
-			send(handler, new Packet50PreChunk(cx * 16, cz * 16, true));
-			//Send chunk
-			send(handler, new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, world));
-			//Send entities
-			for (Object o : chunk.tileEntities.values()) {
-				send(handler, ((TileEntity) o).l());
-			}
-			return true;
-		} catch (Exception ex) {}
-		return false;
-	}
-
-	public static boolean safeSend(Location location, Player to) {
-		return safeSend(location.getBlockX() >> 4, location.getBlockZ() >> 4, to);
-	}
-	public static boolean safeSend(int cx, int cz, Player to) {
-		if (Bukkit.getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
-			PlayerChunkLoader.clear(to, cx, cz);
-			return true;
-		} else {
-			return send(cx, cz, to);
-		}
-	}
-	
-	public static void safeSendAll(Location location) {
-		safeSendAll(location.getBlockX() >> 4, location.getBlockZ() >> 4, location.getWorld());
-	}
-	public static void safeSendAll(int cx, int cz, World world) {
-		if (Bukkit.getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
-			PlayerChunkLoader.clearAll(world.getChunkAt(cx, cz));
-		} else {
-			for (Player player : world.getPlayers()) {
-				send(cx, cz, player);
-			}
-		}
-	}
 }

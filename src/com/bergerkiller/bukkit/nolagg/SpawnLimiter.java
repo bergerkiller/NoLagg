@@ -121,6 +121,10 @@ public class SpawnLimiter {
 	}
 	
 	public void reset() {
+		if (animal != null) animal.count = 0;
+		if (monster != null) monster.count = 0;
+		if (mob != null) mob.count = 0;
+		if (item != null) item.count = 0;
 		for (SpawnInfo i : info.values()) {
 			i.count = 0;
 		}

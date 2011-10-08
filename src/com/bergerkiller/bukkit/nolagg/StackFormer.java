@@ -2,19 +2,82 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 public class StackFormer {
+	private static ArrayList<ExperienceOrb> watchedOrbs = new ArrayList<ExperienceOrb>();
 	private static ArrayList<Item> watchedItems = new ArrayList<Item>();
 	private static boolean ignorenext = false;
-				
+			
+	public static void init() {
+		for (World world : Bukkit.getServer().getWorlds()) {
+			init(world);
+		}
+	}
+	public static void init(World world) {
+		for (Entity entity : world.getEntities()) {
+			add(entity);
+		}
+	}
+	
+	public static void clear() {
+		watchedOrbs.clear();
+		watchedItems.clear();
+	}
+	public static void clear(World world) {
+		int i = 0;
+		while (i < watchedOrbs.size()) {
+			ExperienceOrb o = watchedOrbs.get(i);
+			if (o.getWorld() == world) {
+				watchedOrbs.remove(i);
+			} else {
+				i++;
+			}
+		}
+		i = 0;
+		while (i < watchedItems.size()) {
+			Item item = watchedItems.get(i);
+			if (item.getWorld() == world) {
+				watchedItems.remove(i);
+			} else {
+				i++;
+			}
+		}
+	}
+	
+	public static void add(Entity entity) {
+		if (entity instanceof Item) {
+			add((Item) entity);
+		} else if (NoLagg.isOrb(entity)) {
+			add((ExperienceOrb) entity);
+		}
+	}
 	public static void add(Item item) {
 		if (!ignorenext && ItemHandler.formStacks) {
 			watchedItems.add(item);
+		}
+	}
+	public static void add(ExperienceOrb orb) {
+		if (ItemHandler.formStacks) {
+			watchedOrbs.add(orb);
+		}
+	}
+	
+	private static void updateOrbs() {
+		watchedOrbs.clear();
+		for (World world : Bukkit.getServer().getWorlds()) {
+			for (Entity entity : world.getEntities()) {
+				if (NoLagg.isOrb(entity)) {
+					add((ExperienceOrb) entity);
+				}
+			}
 		}
 	}
 	
@@ -26,8 +89,14 @@ public class StackFormer {
 			}
 		}
 	}
+	
+	private static int orbUpdateCounter = 0;
 	public static void unloadChunk(Chunk chunk) {
 		if (!ItemHandler.formStacks) return;
+		if (orbUpdateCounter++ == 5) {
+			orbUpdateCounter = 0;
+			updateOrbs();
+		}
 		int i = 0;
 		while (i < watchedItems.size()) {
 			Item item = watchedItems.get(i);
@@ -50,6 +119,24 @@ public class StackFormer {
 	public static void update() {
 		if (!ItemHandler.formStacks) return;
 		int i = 0;
+		//Orbs
+		while (i < watchedOrbs.size()) {
+			ExperienceOrb orb = watchedOrbs.get(i);
+			if (orb.isDead()) {
+				watchedOrbs.remove(i);
+			} else {
+				for (Entity e : orb.getNearbyEntities(1, 0.5, 1)) {
+					if (e instanceof ExperienceOrb && e != orb && !e.isDead()) {
+						ExperienceOrb orb2 = (ExperienceOrb) e;
+						orb.setExperience(orb.getExperience() + orb2.getExperience());
+						orb2.remove();
+					}
+				}
+				i++;
+			}
+		}
+		//Items
+		i = 0;
 		while (i < watchedItems.size()) {
 			Item item = watchedItems.get(i);
 			if (item.isDead()) {

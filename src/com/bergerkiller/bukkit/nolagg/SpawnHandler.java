@@ -89,24 +89,33 @@ public class SpawnHandler {
 	}
 	
 	public static boolean handleSpawn(ItemSpawnEvent event) {
-		if (canSpawn(event.getEntity())) {
-			addSpawn(event.getEntity());
-			return true;
+		if (NoLagg.useSpawnLimits) {
+			if (canSpawn(event.getEntity())) {
+				addSpawn(event.getEntity());
+				return true;
+			} else {
+				event.setCancelled(true);
+				return false;
+			}
 		} else {
-			event.setCancelled(true);
-			return false;
+			return true;
 		}
 	}
 	public static boolean handleSpawn(CreatureSpawnEvent event) {
-		if (canSpawn(event.getEntity())) {
-			addSpawn(event.getEntity());
-			return true;
+		if (NoLagg.useSpawnLimits) {
+			if (canSpawn(event.getEntity())) {
+				addSpawn(event.getEntity());
+				return true;
+			} else {
+				event.setCancelled(true);
+				return false;
+			}
 		} else {
-			event.setCancelled(true);
-			return false;
+			return true;
 		}
 	}
 	public static boolean handleSpawn(Entity entity) {
+		if (!NoLagg.useSpawnLimits) return true;
 		if (!entity.isDead()) {
 			if (canSpawn(entity)) {
 				addSpawn(entity);
@@ -127,10 +136,9 @@ public class SpawnHandler {
 			limiter.reset();
 		}
 		globalLimits.reset();
-		defaultLimits.reset();
 		//Update spawned creatures
 		for (World w : Bukkit.getServer().getWorlds()) {
-			for (Entity e : w.getEntities().toArray(new Entity[0])) {
+			for (Entity e : w.getEntities()) {
 				handleSpawn(e);
 			}
 		}

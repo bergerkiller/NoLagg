@@ -29,9 +29,11 @@ public class NoLagg extends JavaPlugin {
 	private int updateID = -1;
 	private int updateInterval = 20;
 	
-	public static int chunkSendInterval = 5;
-	public static int chunkSendRate = 1;
-			
+	public static boolean bufferItems = true;
+	public static boolean bufferTNT = true;
+	public static boolean useSpawnLimits = true;
+	public static boolean useChunkUnloadDelay = true;
+				
 	public void onEnable() {		
 		plugin = this;
 		
@@ -44,10 +46,18 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Lowest, this);
-		pm.registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
+
+		
+		//Make sure our events fires last, we don't want plugins reading the event after changes!
+		getServer().getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
+			public void run() {
+				getServer().getPluginManager().registerEvent(Event.Type.ENTITY_EXPLODE, entityListener, Priority.Monitor, NoLagg.plugin);
+				getServer().getPluginManager().registerEvent(Event.Type.ENTITY_DEATH, entityListener, Priority.Monitor, NoLagg.plugin);
+			}
+		}, 1);
+		
 						
-		int explrate = 40;
 		double sendinter = 5;
 		
 		//General settings
@@ -58,44 +68,37 @@ public class NoLagg extends JavaPlugin {
 		ItemHandler.formStacks = config.getBoolean("formItemStacks", true);
 		ChunkHandler.chunkUnloadDelay = config.getInt("chunkUnloadDelay", 10000);
 		AutoSaveChanger.newInterval = config.getInt("autoSaveInterval", 0);
-		OrbScanner.interval = config.getInt("orbScannerInterval", 200);
 		updateInterval = config.getInt("updateInterval", updateInterval);
-		explrate = config.getInt("explosionRate", 40);
+		TnTHandler.explosionRate = config.getInt("explosionRate", TnTHandler.explosionRate);
 		sendinter = config.getDouble("chunkSendInterval", sendinter);
-		
-		//Convert interval
-		if (sendinter >= 1) {
-			chunkSendInterval = (int) sendinter;
-			chunkSendRate = 1;
-		} else if (sendinter < 0.1) {
-			chunkSendInterval = 0;
-			chunkSendRate = 0;
-		} else {
-			chunkSendInterval = 1;
-			chunkSendRate = (int) (1 / sendinter);
-		}
-		
-		//Spawn restrictions
-		List<String> tmplist = config.getKeys("spawnlimits.default");
-		if (tmplist != null && tmplist.size() > 0) {
-			for (String deflimit : tmplist) {
-				String key = "spawnlimits.default." + deflimit;
-				SpawnHandler.setDefaultLimit(deflimit, config.getInt(key, -1));
+		bufferItems = config.getBoolean("bufferItems", bufferItems);
+		bufferTNT = config.getBoolean("bufferTNT", bufferTNT);
+		useSpawnLimits = config.getBoolean("useSpawnLimits", useSpawnLimits);
+		useChunkUnloadDelay = config.getBoolean("useChunkUnloadDelay", useChunkUnloadDelay);
+				
+		if (useSpawnLimits) {
+			//Spawn restrictions
+			List<String> tmplist = config.getKeys("spawnlimits.default");
+			if (tmplist != null && tmplist.size() > 0) {
+				for (String deflimit : tmplist) {
+					String key = "spawnlimits.default." + deflimit;
+					SpawnHandler.setDefaultLimit(deflimit, config.getInt(key, -1));
+				}
 			}
-		}
-		tmplist = config.getKeys("spawnlimits.global");
-		if (tmplist != null && tmplist.size() > 0) {
-			for (String glimit : tmplist) {
-				String key = "spawnlimits.global." + glimit;
-				SpawnHandler.setDefaultLimit(glimit, config.getInt(key, -1));
+			tmplist = config.getKeys("spawnlimits.global");
+			if (tmplist != null && tmplist.size() > 0) {
+				for (String glimit : tmplist) {
+					String key = "spawnlimits.global." + glimit;
+					SpawnHandler.setDefaultLimit(glimit, config.getInt(key, -1));
+				}
 			}
-		}
-		tmplist = config.getKeys("spawnlimits.worlds");
-		if (tmplist != null && tmplist.size() > 0) {
-			for (String world : tmplist) {
-				for (String deflimit : config.getKeys("spawnlimits.worlds." + world)) {
-					String key = "spawnlimits.worlds." + world + "." + deflimit;
-					SpawnHandler.setWorldLimit(world, deflimit, config.getInt(key, -1));
+			tmplist = config.getKeys("spawnlimits.worlds");
+			if (tmplist != null && tmplist.size() > 0) {
+				for (String world : tmplist) {
+					for (String deflimit : config.getKeys("spawnlimits.worlds." + world)) {
+						String key = "spawnlimits.worlds." + world + "." + deflimit;
+						SpawnHandler.setWorldLimit(world, deflimit, config.getInt(key, -1));
+					}
 				}
 			}
 		}
@@ -110,15 +113,19 @@ public class NoLagg extends JavaPlugin {
 		config.setProperty("formItemStacks", ItemHandler.formStacks);
 		config.setProperty("chunkUnloadDelay", ChunkHandler.chunkUnloadDelay);
 		config.setProperty("autoSaveInterval", AutoSaveChanger.newInterval);
-		config.setProperty("orbScannerInterval", OrbScanner.interval);
 		config.setProperty("updateInterval", updateInterval);
-		config.setProperty("explosionRate", explrate);
+		config.setProperty("explosionRate", TnTHandler.explosionRate);
 		config.setProperty("chunkSendInterval", sendinter);
+		config.setProperty("bufferItems", bufferItems);
+        config.setProperty("bufferTNT", bufferTNT);
+        config.setProperty("useSpawnLimits", useSpawnLimits);
+        config.setProperty("useChunkUnloadDelay", useChunkUnloadDelay);
+		
 		config.save(); 
 
-		TnTHandler.setExplosionRate(explrate);
+		TnTHandler.init();
 		ItemHandler.loadAll();
-		OrbScanner.init();
+		StackFormer.init();
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
@@ -137,9 +144,9 @@ public class NoLagg extends JavaPlugin {
 	}
 	public void onDisable() {
 		getServer().getScheduler().cancelTask(updateID);
-		OrbScanner.deinit();
 		ItemHandler.unloadAll();
 		AutoSaveChanger.deinit();
+		TnTHandler.deinit();
 		System.out.println("NoLagg disabled!");
 	}
 	

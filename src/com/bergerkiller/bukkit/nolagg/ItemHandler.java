@@ -89,7 +89,7 @@ public class ItemHandler {
 		}
 	}
 	public static boolean handleItemSpawn(Item item) {
-		if (ignoreSpawn) return true;
+		if (ignoreSpawn || !NoLagg.bufferItems) return true;
 		if (maxItemsPerChunk == 0) return false;
 		if (maxItemsPerChunk < 0) return true;
 		Chunk c = item.getLocation().getBlock().getChunk();
@@ -155,6 +155,10 @@ public class ItemHandler {
 		World w = item.getWorld();
 		Location l = item.getLocation();
 		ItemStack data = item.getItemStack();
+		int pickupdelay = -1;
+		try {
+			pickupdelay = item.getPickupDelay();
+		} catch (Exception ex) {}
 		//Respawn and set properties
 		if (naturally) {
 			item = w.dropItemNaturally(l, data);
@@ -162,6 +166,9 @@ public class ItemHandler {
 			item = w.dropItem(l, data);
 		}
 		item.setVelocity(velocity);
+		if (pickupdelay != -1) {
+			item.setPickupDelay(pickupdelay);
+		}
 		addSpawnedItem(item);
 		ignoreSpawn = false;
 		return item;
@@ -196,25 +203,28 @@ public class ItemHandler {
 	}
 	
 	public static void clear(World world) {
-		HashSet<Chunk> toremove = new HashSet<Chunk>();
-		for (Chunk c : spawnedItems.keySet()) {
-			if (c.getWorld() == world) {
-				toremove.add(c);
+		if (spawnedItems.size() + hiddenItems.size() > 0) {
+			HashSet<Chunk> toremove = new HashSet<Chunk>();
+			for (Chunk c : spawnedItems.keySet()) {
+				if (c.getWorld() == world) {
+					toremove.add(c);
+				}
 			}
-		}
-		for (Chunk c : hiddenItems.keySet()) {
-			if (c.getWorld() == world) {
-				toremove.add(c);
+			for (Chunk c : hiddenItems.keySet()) {
+				if (c.getWorld() == world) {
+					toremove.add(c);
+				}
 			}
-		}
-		for (Chunk c : toremove) {
-			spawnedItems.remove(c);
-			hiddenItems.remove(c);
+			for (Chunk c : toremove) {
+				spawnedItems.remove(c);
+				hiddenItems.remove(c);
+			}
 		}
 	}
 	
 	public static void update() {
-		if (maxItemsPerChunk == -1) return;
+		if (maxItemsPerChunk < 0) return;
+		if (!NoLagg.bufferItems) return;
 		for (ArrayList<Item> list : spawnedItems.values()) {
 			int i = 0;
 			while (i < list.size()) {

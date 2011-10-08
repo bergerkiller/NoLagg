@@ -30,12 +30,14 @@ public class NLEntityListener extends EntityListener {
 			SpawnHandler.handleSpawn(event);
 		}
 	}
-							
+				
 	@Override
 	public void onEntityExplode(EntityExplodeEvent event) {
 		if (!event.isCancelled()) {
-			TnTHandler.createExplosion(event.getLocation(), event.blockList(), event.getYield());
-			event.setCancelled(true);
+			if (TnTHandler.createExplosion(event)) {
+				//I know, we monitor, but the end result is the same anyway!
+				event.setCancelled(true);
+			}
 		}
 	}
 	
