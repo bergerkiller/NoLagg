@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import java.util.HashSet;
 import java.util.WeakHashMap;
 
 import net.minecraft.server.ChunkProviderServer;
@@ -15,13 +14,12 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
 public class ChunkHandler {
-	public static int chunkUnloadDelay = 10000;
+	public static int chunkUnloadDelay;
 	
 	private static WeakHashMap<Chunk, Long> chunks = new WeakHashMap<Chunk, Long>();
 	private static void touch(Chunk chunk, long time) {
 		if (!isSpawnChunk(chunk)) {
 			chunks.put(chunk, time);
-			waitingChunks.remove(chunk);
 		}
 	}
 	
@@ -47,18 +45,18 @@ public class ChunkHandler {
 	
 	private static boolean canUnload(Chunk c) {
 		if (chunks.containsKey(c)) {
-			boolean near = false;
+			boolean denied = false;
 			//any players near?
 			int view = 15;
 			for (Player p : c.getWorld().getPlayers()) {
-				int cx = p.getLocation().getBlockX() >> 4;
-			    int cz = p.getLocation().getBlockX() >> 4;
+				int cx = toChunk(p.getLocation().getBlockX());
+			    int cz = toChunk(p.getLocation().getBlockZ());
 			    if (Math.abs(cx - c.getX()) > view) continue;
 			    if (Math.abs(cz - c.getZ()) > view) continue;
-			    near = true;
+			    denied = true;
 			    break;
 			}
-			if (near) {
+			if (denied) {
 				touch(c, System.currentTimeMillis());
 				return false;
 			} else {
@@ -80,11 +78,12 @@ public class ChunkHandler {
 				event.setCancelled(true);
 			} else if (!event.isCancelled()) {
 				if (canUnload(event.getChunk())) {
-					waitingChunks.remove(event.getChunk());
 					chunks.remove(event.getChunk());
 				} else {
 					event.setCancelled(true);
-					waitingChunks.add(event.getChunk());
+					if (!chunks.containsKey(event.getChunk())) {
+						touch(event.getChunk(), System.currentTimeMillis());
+					}
 				}
 			}
 		}
@@ -107,29 +106,40 @@ public class ChunkHandler {
 					for (int b = -view; b <= view; b++) {
 						int chunkX = cx + a;
 						int chunkZ = cz + b;
-						if (w.isChunkLoaded(chunkX, chunkZ)) {
-						    touch(w.getChunkAt(chunkX, chunkZ), time);
-						}
+						touch(w.getChunkAt(chunkX, chunkZ), time);
 					}
 				}
 			}
 		}
 	}
 	
-	private static HashSet<Chunk> waitingChunks = new HashSet<Chunk>();
+	private static void queueUnload(Chunk chunk) {
+		ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) chunk.getWorld()).getHandle().chunkProvider;
+		provider.queueUnload(chunk.getX(), chunk.getZ());
+	}
+
 	public static void cleanUp() {
-		if (NoLagg.useChunkUnloadDelay) {
-			for (Chunk c : waitingChunks.toArray(new Chunk[0])) {
+		if (NoLagg.useChunkUnloadDelay) {			
+			//Unload invisible chunks
+			for (Chunk c : chunks.keySet().toArray(new Chunk[0])) {
 				if (!c.isLoaded()) {
-					waitingChunks.remove(c);
 					chunks.remove(c);
 				} else if (canUnload(c)) {
-					ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) c.getWorld()).getHandle().chunkProvider;
-					provider.queueUnload(c.getX(), c.getZ());
-					waitingChunks.remove(c);
+					queueUnload(c);
 				}
 			}
 		}
 	}
 
+	public static void init() {
+		long time = System.currentTimeMillis();
+		for(org.bukkit.World world : Bukkit.getServer().getWorlds()){
+			for(Chunk chunk : world.getLoadedChunks()){
+				if (!canUnload(chunk)) {
+					touch(chunk, time);
+				}
+			}
+		}
+	}
+	
 }

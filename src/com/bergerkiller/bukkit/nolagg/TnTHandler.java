@@ -23,9 +23,9 @@ public class TnTHandler {
 	private static Queue<Block> todo = new LinkedList<Block>();
 	private static HashSet<Location> added = new HashSet<Location>();
 	private static int taskId = -1;
-	public static int interval = 1;
-	public static int rate = 10;
-	public static int explosionRate = 5;
+	public static int interval;
+	public static int rate;
+	public static int explosionRate;
 	private static long sentExplosions = 0;
 	private static long intervalCounter = 0;
 		
@@ -99,6 +99,8 @@ public class TnTHandler {
 		return false;
 	}
 			
+	private static final int[] deniedIds = new int[] {0, Material.BEDROCK.getId(), Material.OBSIDIAN.getId(), Material.MOB_SPAWNER.getId(), Material.FIRE.getId()};
+	
 	public static boolean createExplosion(EntityExplodeEvent event) {
 		return createExplosion(event.getLocation(), event.blockList(), event.getYield());
 	}
@@ -110,20 +112,27 @@ public class TnTHandler {
 					for (Block b : affectedBlocks) {
 						 
 						int id = b.getTypeId();
-						 
+			
 			            if (id == Material.TNT.getId()) {
 							TnTHandler.detonate(b);
-			            } else if (id != Material.BEDROCK.getId() && id != Material.OBSIDIAN.getId()) {
-			    			int x = b.getLocation().getBlockX();
-			    			int y = b.getLocation().getBlockY();
-			    			int z = b.getLocation().getBlockZ();
-			            	if (id > 0 && id != Material.FIRE.getId()) {
+			            } else {
+			            	boolean allow = true;
+			            	for (int did : deniedIds) {
+			            		if (did == id) { 
+			            			allow = false;
+			            			break;
+			            		}
+			            	}
+			            	if (allow) {
+				    			int x = b.getLocation().getBlockX();
+				    			int y = b.getLocation().getBlockY();
+				    			int z = b.getLocation().getBlockZ();
 			            		net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
 			            		if (bb != null) {
 			            			bb.dropNaturally(world, x, y, z, world.getData(x, y, z), yield);
 			            		}
+				                world.setTypeId(x, y, z, 0);
 			            	}
-			                world.setTypeId(x, y, z, 0);
 			            }
 					}
 					if (sentExplosions < explosionRate) {

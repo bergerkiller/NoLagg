@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.WeakHashMap;
 
 import org.bukkit.Bukkit;
@@ -138,7 +140,9 @@ public class SpawnHandler {
 		globalLimits.reset();
 		//Update spawned creatures
 		for (World w : Bukkit.getServer().getWorlds()) {
-			for (Entity e : w.getEntities()) {
+			List<Entity> entities = w.getEntities();
+			Collections.reverse(entities);
+			for (Entity e : entities) {
 				handleSpawn(e);
 			}
 		}

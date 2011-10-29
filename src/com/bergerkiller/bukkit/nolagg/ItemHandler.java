@@ -13,9 +13,11 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
+import com.narrowtux.showcase.Showcase;
+
 public class ItemHandler {
-	public static int maxItemsPerChunk = 30;
-	public static boolean formStacks = true;
+	public static int maxItemsPerChunk;
+	public static boolean formStacks;
 	private static boolean ignoreSpawn = false;
 	private static HashMap<Chunk, ArrayList<Item>> spawnedItems = new HashMap<Chunk, ArrayList<Item>>();
 	private static HashMap<Chunk, ArrayList<Item>> hiddenItems = new HashMap<Chunk, ArrayList<Item>>();
@@ -42,6 +44,18 @@ public class ItemHandler {
 		if (getHiddenItems(c).remove(item)) {
 			respawnItem(item);
 		}
+	}
+	public static boolean isShowcased(Item item) {
+		if (NoLagg.isShowcaseEnabled) {
+			try {
+		        return Showcase.instance.getItemByDrop(item) != null;
+			} catch (Throwable t) {
+				System.out.println("[NoLagg] Showcase item verification failed, contact the authors!");
+				t.printStackTrace();
+				NoLagg.isShowcaseEnabled = false;
+			}
+		}
+		return false;
 	}
 	public static void loadChunk(Chunk c) {
 		unloadChunk(c);
@@ -95,6 +109,7 @@ public class ItemHandler {
 		Chunk c = item.getLocation().getBlock().getChunk();
 		int currentcount = ItemHandler.getSpawnedItemCount(c);
 		if (currentcount > ItemHandler.maxItemsPerChunk) {
+			if (isShowcased(item)) return true;
 			if (formStacks) {
 				//can we add to an existing stack or is a new item required?
 				ItemStack main = item.getItemStack();
@@ -158,7 +173,7 @@ public class ItemHandler {
 		int pickupdelay = -1;
 		try {
 			pickupdelay = item.getPickupDelay();
-		} catch (Exception ex) {}
+		} catch (Throwable t) {}
 		//Respawn and set properties
 		if (naturally) {
 			item = w.dropItemNaturally(l, data);

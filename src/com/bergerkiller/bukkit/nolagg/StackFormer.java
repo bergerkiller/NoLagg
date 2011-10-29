@@ -15,6 +15,7 @@ public class StackFormer {
 	private static ArrayList<ExperienceOrb> watchedOrbs = new ArrayList<ExperienceOrb>();
 	private static ArrayList<Item> watchedItems = new ArrayList<Item>();
 	private static boolean ignorenext = false;
+	public static double stackRadius;
 			
 	public static void init() {
 		for (World world : Bukkit.getServer().getWorlds()) {
@@ -60,7 +61,7 @@ public class StackFormer {
 		}
 	}
 	public static void add(Item item) {
-		if (!ignorenext && ItemHandler.formStacks) {
+		if (!ignorenext && ItemHandler.formStacks && !ItemHandler.isShowcased(item)) {
 			watchedItems.add(item);
 		}
 	}
@@ -125,7 +126,7 @@ public class StackFormer {
 			if (orb.isDead()) {
 				watchedOrbs.remove(i);
 			} else {
-				for (Entity e : orb.getNearbyEntities(1, 0.5, 1)) {
+				for (Entity e : orb.getNearbyEntities(stackRadius, stackRadius, stackRadius)) {
 					if (e instanceof ExperienceOrb && e != orb && !e.isDead()) {
 						ExperienceOrb orb2 = (ExperienceOrb) e;
 						orb.setExperience(orb.getExperience() + orb2.getExperience());
@@ -139,37 +140,39 @@ public class StackFormer {
 		i = 0;
 		while (i < watchedItems.size()) {
 			Item item = watchedItems.get(i);
-			if (item.isDead()) {
+			if (item.isDead() || ItemHandler.isShowcased(item)) {
 				watchedItems.remove(i);
 				ItemHandler.removeSpawnedItem(item);
 			} else {
 				//check for nearby items
 				ItemStack stack = item.getItemStack();
 				int maxsize = stack.getType().getMaxStackSize();
-				for (Entity e : item.getNearbyEntities(1, 0.5, 1)) {
+				for (Entity e : item.getNearbyEntities(stackRadius, stackRadius, stackRadius)) {
 					if (e instanceof Item && e != item && !e.isDead()) {
 						Item ii = (Item) e;
 						ItemStack stack2 = ii.getItemStack();
 						if (stack2.getType() == stack.getType()) {
 							if (stack.getDurability() == stack2.getDurability()) {
-								//Validated!
-								int newamount = stack.getAmount() + stack2.getAmount();
-								if (newamount <= maxsize) {
-									stack.setAmount(newamount);
-									ii.remove();
-									ItemHandler.removeSpawnedItem(item);
-								} else if (stack2.getAmount() < maxsize) {
-									//set to max
-									stack.setAmount(maxsize);
-									//set prev. item
-									stack2.setAmount(newamount - maxsize);
-								} else {
-									continue;
+								if (!ItemHandler.isShowcased(ii)) {
+									//Validated!
+									int newamount = stack.getAmount() + stack2.getAmount();
+									if (newamount <= maxsize) {
+										stack.setAmount(newamount);
+										ii.remove();
+										ItemHandler.removeSpawnedItem(item);
+									} else if (stack2.getAmount() < maxsize) {
+										//set to max
+										stack.setAmount(maxsize);
+										//set prev. item
+										stack2.setAmount(newamount - maxsize);
+									} else {
+										continue;
+									}
+									ignorenext = true;
+									item = ItemHandler.respawnItem(item, new Vector());
+									stack = item.getItemStack();
+									ignorenext = false;
 								}
-								ignorenext = true;
-								item = ItemHandler.respawnItem(item, new Vector());
-								stack = item.getItemStack();
-								ignorenext = false;
 							}
 						}
 					}
