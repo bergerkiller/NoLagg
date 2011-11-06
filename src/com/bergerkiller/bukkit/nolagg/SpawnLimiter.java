@@ -41,10 +41,10 @@ public class SpawnLimiter {
 		}
 	}
 	
-	private static boolean isAnimal(String name) {
+	public static boolean isAnimal(String name) {
 		return in(name, "cow", "pig", "sheep", "chicken", "wolf", "squid");
 	}
-	private static boolean isMonster(String name) {
+	public static boolean isMonster(String name) {
 		return in(name, "creeper", "skeleton", "zombie", "slime", "skeleton", "pigzombie", "spider", "giant", "ghast", "enderman", "cavespider");
 	}
 	private static boolean in(String item, String... items) {
@@ -138,6 +138,7 @@ public class SpawnLimiter {
 		if (animal != null) l.animal = new SpawnInfo(animal.limit);
 		if (monster != null) l.monster = new SpawnInfo(monster.limit);
 		if (mob != null) l.mob = new SpawnInfo(mob.limit);
+		if (item != null) l.item = new SpawnInfo(item.limit);
 		return l;
 	}
 }

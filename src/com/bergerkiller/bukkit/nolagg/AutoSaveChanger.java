@@ -20,7 +20,7 @@ public class AutoSaveChanger {
 				for (World world : Bukkit.getServer().getWorlds()) {
 					defaultInterval = saveInterval.getInt(getNative(world));
 					if (defaultInterval == checkvalue) {
-						if (newInterval == 0) {
+						if (newInterval <= 0) {
 							newInterval = defaultInterval;
 						}
 						return true;
@@ -47,6 +47,7 @@ public class AutoSaveChanger {
 		if (saveInterval != null) {
 			setAll(defaultInterval);
 		}
+		saveInterval = null;
 	}
 	
 	private static void setAll(int value) {

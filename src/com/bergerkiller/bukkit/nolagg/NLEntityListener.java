@@ -15,9 +15,6 @@ public class NLEntityListener extends EntityListener {
 		if (!event.isCancelled()) {
 			if (!ItemHandler.handleItemSpawn((Item) event.getEntity())) {
 				event.setCancelled(true);
-			} else {
-				Item item = (Item) event.getEntity();
-				StackFormer.add(item);
 			}
 		}
 	}

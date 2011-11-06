@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -18,10 +19,11 @@ import com.narrowtux.showcase.Showcase;
 public class ItemHandler {
 	public static int maxItemsPerChunk;
 	public static boolean formStacks;
-	private static boolean ignoreSpawn = false;
+	public static boolean ignoreSpawn = false;
 	private static HashMap<Chunk, ArrayList<Item>> spawnedItems = new HashMap<Chunk, ArrayList<Item>>();
 	private static HashMap<Chunk, ArrayList<Item>> hiddenItems = new HashMap<Chunk, ArrayList<Item>>();
 	public static ArrayList<Item> getSpawnedItems(Chunk c) {
+		if (spawnedItems == null) return new ArrayList<Item>();
 		ArrayList<Item> items = spawnedItems.get(c);
 		if (items == null) {
 			items = new ArrayList<Item>();
@@ -30,6 +32,7 @@ public class ItemHandler {
 		return items;	
 	}
 	public static ArrayList<Item> getHiddenItems(Chunk c) {
+		if (hiddenItems == null) return new ArrayList<Item>();
 		ArrayList<Item> items = hiddenItems.get(c);
 		if (items == null) {
 			items = new ArrayList<Item>();
@@ -37,14 +40,22 @@ public class ItemHandler {
 		}
 		return items;
 	}
-	public static int getSpawnedItemCount(Chunk c) {
-		return getSpawnedItems(c).size();
-	}
-	public static void spawnHiddenItem(Chunk c, Item item) {
-		if (getHiddenItems(c).remove(item)) {
-			respawnItem(item);
+	
+	private static void spawnInChunk(Chunk c, ArrayList<Item> hiddenitems) {
+		for (int i = getSpawnedItems(c).size(); i <= maxItemsPerChunk && hiddenitems.size() > 0; i++) {
+			respawnItem(hiddenitems.remove(0));
 		}
 	}
+	public static void spawnInChunk(Chunk c) {
+		spawnInChunk(c, getHiddenItems(c));
+	}
+	public static void spawnInAllChunks() {
+		if (hiddenItems == null) return;
+		for (Map.Entry<Chunk, ArrayList<Item>> entry : hiddenItems.entrySet()) {
+			spawnInChunk(entry.getKey(), entry.getValue());
+		}
+	}
+	
 	public static boolean isShowcased(Item item) {
 		if (NoLagg.isShowcaseEnabled) {
 			try {
@@ -61,14 +72,14 @@ public class ItemHandler {
 		unloadChunk(c);
 		for (Entity e : c.getEntities().clone()) {
 			if (e instanceof Item) {
-				Item item = (Item) e;
-				if (!handleItemSpawn(item)) {
-					item.remove();
+				if (!handleItemSpawn((Item) e)) {
+					e.remove();
 				}
 			}
 		}
 	}
 	public static void unloadChunk(Chunk c) {
+		if (hiddenItems == null) return;
 		ignoreSpawn = true;
 		ArrayList<Item> items = hiddenItems.remove(c);
 		if (items != null) {
@@ -80,6 +91,7 @@ public class ItemHandler {
 		ignoreSpawn = false;
 	}
 	public static void unloadAll() {
+		if (hiddenItems == null) return;
 		for (Chunk c : hiddenItems.keySet().toArray(new Chunk[0])) {
 			unloadChunk(c);
 		}
@@ -91,23 +103,15 @@ public class ItemHandler {
 			}
 		}
 	}
-	public static void spawnInChunk(Chunk c) {
-		ArrayList<Item> items = getHiddenItems(c);
-		for (int i = getSpawnedItemCount(c); i <= maxItemsPerChunk && items.size() > 0; i++) {
-			spawnHiddenItem(c, items.get(0));
-		}
-	}
-	public static void spawnInAllChunks() {
-		for (Chunk c : hiddenItems.keySet()) {
-			spawnInChunk(c);
-		}
-	}
+	
 	public static boolean handleItemSpawn(Item item) {
 		if (ignoreSpawn || !NoLagg.bufferItems) return true;
 		if (maxItemsPerChunk == 0) return false;
 		if (maxItemsPerChunk < 0) return true;
+		if (spawnedItems == null || hiddenItems == null) return true;
+		if (isShowcased(item)) return true;
 		Chunk c = item.getLocation().getBlock().getChunk();
-		int currentcount = ItemHandler.getSpawnedItemCount(c);
+		int currentcount = ItemHandler.getSpawnedItems(c).size();
 		if (currentcount > ItemHandler.maxItemsPerChunk) {
 			if (isShowcased(item)) return true;
 			if (formStacks) {
@@ -146,12 +150,24 @@ public class ItemHandler {
 		}
 	}
 	
+	public static void deinit() {
+		unloadAll();
+		spawnedItems.clear();
+		hiddenItems.clear();
+		spawnedItems = null;
+		hiddenItems = null;
+	}
+	
 	public static void setItem(Item item, ItemStack data) {
 		boolean prev = ignoreSpawn;
 		ignoreSpawn = true;
 		item.remove();
 		item.getWorld().dropItem(item.getLocation(), data);
 		ignoreSpawn = prev;
+	}
+	
+	private static Chunk getChunk(Entity e) {
+		return e.getWorld().getChunkAt(e.getLocation());
 	}
 	
 	public static Item respawnItem(Item item) {
@@ -161,11 +177,11 @@ public class ItemHandler {
 		return respawnItem(item, velocity, false);
 	}
 	public static Item respawnItem(Item item, Vector velocity, boolean naturally) {
+		if (item.isDead()) return item;
 		ignoreSpawn = true;
-		if (!item.isDead()) {
-			item.remove();
-			removeSpawnedItem(item);
-		}
+		item.remove();
+		ArrayList<Item> items = getSpawnedItems(getChunk(item));
+		items.remove(item);
 		//Get required data
 		World w = item.getWorld();
 		Location l = item.getLocation();
@@ -184,13 +200,14 @@ public class ItemHandler {
 		if (pickupdelay != -1) {
 			item.setPickupDelay(pickupdelay);
 		}
-		addSpawnedItem(item);
+		items.add(item);
 		ignoreSpawn = false;
 		return item;
 	}
 	
 	public static void removeSpawnedItem(Item item) {
 		if (maxItemsPerChunk <= 0) return;
+		if (spawnedItems == null) return;
 		Chunk c = item.getLocation().getBlock().getChunk();
 		if (getSpawnedItems(c).remove(item)) {
 			spawnInChunk(c);
@@ -213,11 +230,13 @@ public class ItemHandler {
 	}
 
 	public static void clear() {
+		if (spawnedItems == null || hiddenItems == null) return;
 		spawnedItems.clear();
 		hiddenItems.clear();
 	}
 	
 	public static void clear(World world) {
+		if (spawnedItems == null || hiddenItems == null) return;
 		if (spawnedItems.size() + hiddenItems.size() > 0) {
 			HashSet<Chunk> toremove = new HashSet<Chunk>();
 			for (Chunk c : spawnedItems.keySet()) {
@@ -240,6 +259,7 @@ public class ItemHandler {
 	public static void update() {
 		if (maxItemsPerChunk < 0) return;
 		if (!NoLagg.bufferItems) return;
+		if (spawnedItems == null) return;
 		for (ArrayList<Item> list : spawnedItems.values()) {
 			int i = 0;
 			while (i < list.size()) {

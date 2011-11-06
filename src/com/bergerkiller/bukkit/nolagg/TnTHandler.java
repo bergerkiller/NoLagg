@@ -46,13 +46,15 @@ public class TnTHandler {
 								Block next = todo.poll();
 								Location l = next.getLocation();
 								added.remove(l);
-								if (next.getType() == Material.TNT) {
-									next.setTypeId(0);
-									TNTPrimed tnt = l.getWorld().spawn(l.add(0.5, 0.5, 0.5), TNTPrimed.class);
-									int fuse = tnt.getFuseTicks();
-									fuse = nextRandom(tnt.getWorld(), fuse / 4) + fuse / 8;
-									//entitytntprimed.fuseTicks = world.random.nextInt(entitytntprimed.fuseTicks / 4) + entitytntprimed.fuseTicks / 8;
-									tnt.setFuseTicks(fuse);
+								if (l.getWorld().isChunkLoaded(l.getBlockX() >> 4, l.getBlockZ() >> 4)) {
+									if (next.getType() == Material.TNT) {
+										next.setTypeId(0);
+										TNTPrimed tnt = l.getWorld().spawn(l.add(0.5, 0.5, 0.5), TNTPrimed.class);
+										int fuse = tnt.getFuseTicks();
+										fuse = nextRandom(tnt.getWorld(), fuse / 4) + fuse / 8;
+										//entitytntprimed.fuseTicks = world.random.nextInt(entitytntprimed.fuseTicks / 4) + entitytntprimed.fuseTicks / 8;
+										tnt.setFuseTicks(fuse);
+									}
 								}
 								sentExplosions = 0;
 							}
@@ -68,6 +70,10 @@ public class TnTHandler {
 		if (taskId != -1) {
 			NoLagg.plugin.getServer().getScheduler().cancelTask(taskId);
 		}
+		added.clear();
+		added = null;
+		todo.clear();
+		todo = null;
 	}
 	
 	private static int nextRandom(World w, int n) {
@@ -75,7 +81,7 @@ public class TnTHandler {
 		return world.random.nextInt(n);
 	}
 		
-	private static int denyExplosionsCounter = 0;
+	private static int denyExplosionsCounter = 0; //tick countdown to deny explosions
 	public static void clear() {
 		todo.clear();
 		added.clear();
@@ -100,7 +106,8 @@ public class TnTHandler {
 	}
 			
 	private static final int[] deniedIds = new int[] {0, Material.BEDROCK.getId(), Material.OBSIDIAN.getId(), Material.MOB_SPAWNER.getId(), Material.FIRE.getId()};
-	
+	private static boolean allowdrops = true;
+		
 	public static boolean createExplosion(EntityExplodeEvent event) {
 		return createExplosion(event.getLocation(), event.blockList(), event.getYield());
 	}
@@ -114,7 +121,7 @@ public class TnTHandler {
 						int id = b.getTypeId();
 			
 			            if (id == Material.TNT.getId()) {
-							TnTHandler.detonate(b);
+							detonate(b);
 			            } else {
 			            	boolean allow = true;
 			            	for (int did : deniedIds) {
@@ -128,8 +135,14 @@ public class TnTHandler {
 				    			int y = b.getLocation().getBlockY();
 				    			int z = b.getLocation().getBlockZ();
 			            		net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
-			            		if (bb != null) {
-			            			bb.dropNaturally(world, x, y, z, world.getData(x, y, z), yield);
+			            		if (bb != null && allowdrops) {
+			            			try {
+			            				bb.dropNaturally(world, x, y, z, b.getData(), yield);
+			            			} catch (Throwable t) {
+		            				    System.out.println("[NoLagg] Failed to spawn block drops during explosions!");
+		            				    t.printStackTrace();
+		            				    allowdrops = false;
+			            			}
 			            		}
 				                world.setTypeId(x, y, z, 0);
 			            	}

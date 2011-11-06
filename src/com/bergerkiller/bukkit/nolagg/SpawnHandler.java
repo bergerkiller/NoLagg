@@ -19,6 +19,13 @@ public class SpawnHandler {
 	private static SpawnLimiter defaultLimits = new SpawnLimiter();
 	private static SpawnLimiter globalLimits = new SpawnLimiter();
 
+	public static void deinit() {
+		worldLimits.clear();
+		worldLimits = null;
+		defaultLimits = null;
+		globalLimits = null;
+	}
+	
 	private static SpawnLimiter getWorldLimits(String worldname) {
 		if (worldname == null) {
 			return null;

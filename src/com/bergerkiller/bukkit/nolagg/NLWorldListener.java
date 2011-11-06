@@ -11,7 +11,6 @@ public class NLWorldListener extends WorldListener {
 	public void onChunkLoad(ChunkLoadEvent event) {
 		ChunkHandler.handleLoad(event);
 		ItemHandler.loadChunk(event.getChunk());
-		StackFormer.loadChunk(event.getChunk());
 	}
 	
 	@Override
@@ -19,7 +18,6 @@ public class NLWorldListener extends WorldListener {
 		ChunkHandler.handleUnload(event);
 		if (!event.isCancelled()) {
 			ItemHandler.unloadChunk(event.getChunk());
-			StackFormer.unloadChunk(event.getChunk());
 		}
 	}
 	

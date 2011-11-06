@@ -7,7 +7,6 @@ import net.minecraft.server.ChunkProviderServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Player;
 import org.bukkit.event.world.ChunkLoadEvent;
@@ -27,16 +26,11 @@ public class ChunkHandler {
 		return value >> 4;
 	}
 	
-	/**
-	 * Taken over from PerformanceTweaks with minor edit, credit goes to LexManos! :)
-	 * @param chunk
-	 * @return If this chunk is a spawn chunk
-	 */
 	private static boolean isSpawnChunk(Chunk chunk){
 		if (chunk.getWorld().getKeepSpawnInMemory()) {
 			Location spawn = chunk.getWorld().getSpawnLocation();
-			int x = chunk.getX() * 16 + 8 - spawn.getBlockX();
-			int z = chunk.getZ() * 16 + 8 - spawn.getBlockZ();
+			int x = chunk.getX() - (spawn.getBlockX() >> 4);
+			int z = chunk.getZ() - (spawn.getBlockZ() >> 4);
 			return (x > -128 && x < 128 && z > -128 && z < 128);
 		} else {
 			return false;
@@ -57,7 +51,6 @@ public class ChunkHandler {
 			    break;
 			}
 			if (denied) {
-				touch(c, System.currentTimeMillis());
 				return false;
 			} else {
 				long expireTime = chunks.get(c) + chunkUnloadDelay;
@@ -68,7 +61,7 @@ public class ChunkHandler {
 		}
 	}
 	public static void handleLoad(ChunkLoadEvent event) {
-		if (NoLagg.useChunkUnloadDelay) {
+		if (NoLagg.useChunkUnloadDelay && !isSpawnChunk(event.getChunk())) {
 			touch(event.getChunk(), System.currentTimeMillis());
 		}
 	}
@@ -88,30 +81,6 @@ public class ChunkHandler {
 			}
 		}
 	}
-	public static void handleMove(Location from, Location to, Player forPlayer) {
-		if (NoLagg.useChunkUnloadDelay) {
-			int cx = toChunk(to.getBlockX());
-			int cz = toChunk(to.getBlockZ());
-			if (from.getWorld() == to.getWorld()) {
-				if (toChunk(from.getBlockX()) == cx) {
-					if (toChunk(from.getBlockZ()) == cz) {
-						return;
-					}
-				}
-				//Handle it
-				int view = Bukkit.getServer().getViewDistance();
-				World w = to.getWorld();
-				long time = System.currentTimeMillis();
-				for (int a = -view; a <= view; a++) {
-					for (int b = -view; b <= view; b++) {
-						int chunkX = cx + a;
-						int chunkZ = cz + b;
-						touch(w.getChunkAt(chunkX, chunkZ), time);
-					}
-				}
-			}
-		}
-	}
 	
 	private static void queueUnload(Chunk chunk) {
 		ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) chunk.getWorld()).getHandle().chunkProvider;
@@ -121,11 +90,16 @@ public class ChunkHandler {
 	public static void cleanUp() {
 		if (NoLagg.useChunkUnloadDelay) {			
 			//Unload invisible chunks
+			long time = System.currentTimeMillis();
 			for (Chunk c : chunks.keySet().toArray(new Chunk[0])) {
 				if (!c.isLoaded()) {
 					chunks.remove(c);
 				} else if (canUnload(c)) {
+					chunks.remove(c);
 					queueUnload(c);
+				} else {
+					//can not unload: touch it
+					touch(c, time);
 				}
 			}
 		}
@@ -140,6 +114,10 @@ public class ChunkHandler {
 				}
 			}
 		}
+	}
+	public static void deinit() {
+		chunks.clear();
+		chunks = null;
 	}
 	
 }
