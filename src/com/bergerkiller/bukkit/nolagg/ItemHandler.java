@@ -186,6 +186,7 @@ public class ItemHandler {
 		World w = item.getWorld();
 		Location l = item.getLocation();
 		ItemStack data = item.getItemStack();
+		if (data == null) data = new ItemStack(5, 1);
 		int pickupdelay = -1;
 		try {
 			pickupdelay = item.getPickupDelay();

@@ -16,7 +16,12 @@ import org.bukkit.util.Vector;
 public class StackFormer {
 	public static double stackRadius;
 	public static int stackThreshold = 2;
-				
+	private static Chunk[] tmpchunks = new Chunk[9]; //used to optimize chunk returning
+			
+	private static void clearTmpChunks() {
+		for (int i = 0; i < 9; i++) tmpchunks[i] = null;
+	}
+	
 	private static Chunk getChunk(World world, int x, int z) {
 		if (world.isChunkLoaded(x, z)) {
 			return world.getChunkAt(x, z);
@@ -29,8 +34,8 @@ public class StackFormer {
 	private static Chunk[] getNearChunks(World world, int locx, int locz) {
 		int cx = locx >> 4;
 		int cz = locz >> 4;
-    	Chunk[] chunks = new Chunk[9];
-    	chunks[8] = getChunk(world, cx, cz);
+		clearTmpChunks();
+		tmpchunks[8] = getChunk(world, cx, cz);
     	//Get the 4 mid-corner locations
     	int xleft = cx * 16;
     	int xright = xleft + 16;
@@ -42,18 +47,18 @@ public class StackFormer {
     	boolean top = locz - ztop <= stackRadius;
     	boolean bottom = zbottom - locz <= stackRadius;
     	if (left) {
-    		chunks[0] = getChunk(world, cx - 1, cz);
-    		if (top) chunks[4] = getChunk(world, cx - 1, cz - 1);
-    		if (bottom) chunks[5] = getChunk(world, cx - 1, cz + 1);
+    		tmpchunks[0] = getChunk(world, cx - 1, cz);
+    		if (top) tmpchunks[4] = getChunk(world, cx - 1, cz - 1);
+    		if (bottom) tmpchunks[5] = getChunk(world, cx - 1, cz + 1);
     	}
     	if (right) {
-    		chunks[1] = getChunk(world, cx + 1, cz);
-    		if (top) chunks[6] = getChunk(world, cx + 1, cz - 1);
-    		if (bottom) chunks[7] = getChunk(world, cx + 1, cz + 1);
+    		tmpchunks[1] = getChunk(world, cx + 1, cz);
+    		if (top) tmpchunks[6] = getChunk(world, cx + 1, cz - 1);
+    		if (bottom) tmpchunks[7] = getChunk(world, cx + 1, cz + 1);
     	}
-    	if (top) chunks[2] = getChunk(world, cx, cz - 1);
-    	if (bottom) chunks[3] = getChunk(world, cx, cz + 1);
-    	return chunks;
+    	if (top) tmpchunks[2] = getChunk(world, cx, cz - 1);
+    	if (bottom) tmpchunks[3] = getChunk(world, cx, cz + 1);
+    	return tmpchunks;
 	}
 	
 	private static boolean checkItem(Entity item) {
@@ -81,7 +86,7 @@ public class StackFormer {
     		for (Entity e : chunk.getEntities()) {
     			if (e != entity && !e.isDead()) {
     				//compare
-    				if (item && e instanceof Item) {
+    				if (item && checkItem(e)) {
     					Item ie = (Item) e;
     					ItemStack instack = ((Item) entity).getItemStack();
     					ItemStack stack = ie.getItemStack();
@@ -168,6 +173,7 @@ public class StackFormer {
 				}
 			}
 		}
+		clearTmpChunks();
 	}
 	
 }

@@ -37,6 +37,7 @@ public class TnTHandler {
 					if (denyExplosionsCounter > 0) {
 						--denyExplosionsCounter;
 					}
+					sentExplosions = 0;
 					if (intervalCounter == interval) {
 						intervalCounter = 1;
 						for (int i = 0; i < rate; i++) {
@@ -56,7 +57,6 @@ public class TnTHandler {
 										tnt.setFuseTicks(fuse);
 									}
 								}
-								sentExplosions = 0;
 							}
 						}
 					} else {

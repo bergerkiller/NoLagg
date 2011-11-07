@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.Map;
 import java.util.WeakHashMap;
 
 import net.minecraft.server.ChunkProviderServer;
@@ -17,9 +18,7 @@ public class ChunkHandler {
 	
 	private static WeakHashMap<Chunk, Long> chunks = new WeakHashMap<Chunk, Long>();
 	private static void touch(Chunk chunk, long time) {
-		if (!isSpawnChunk(chunk)) {
-			chunks.put(chunk, time);
-		}
+		chunks.put(chunk, time);
 	}
 	
 	private static int toChunk(int value) {
@@ -31,33 +30,39 @@ public class ChunkHandler {
 			Location spawn = chunk.getWorld().getSpawnLocation();
 			int x = chunk.getX() - (spawn.getBlockX() >> 4);
 			int z = chunk.getZ() - (spawn.getBlockZ() >> 4);
-			return (x > -128 && x < 128 && z > -128 && z < 128);
+			return (x > -8 && x < 8 && z > -8 && z < 8);
 		} else {
 			return false;
 		}
 	}
 	
+	private static boolean isPlayerNear(Chunk chunk) {
+		int view = Bukkit.getServer().getViewDistance();
+		for (Player p : chunk.getWorld().getPlayers()) {
+			int x = toChunk(p.getLocation().getBlockX()) - chunk.getX();
+		    int z = toChunk(p.getLocation().getBlockZ()) - chunk.getZ();
+		    if (x > view) continue;
+		    if (x < -view) continue;
+		    if (z > view) continue;
+		    if (z < -view) continue;
+		    return true;
+		}
+		return false;
+	}
+	
+	private static boolean isExpired(long time, long currenttime) {
+		return time + chunkUnloadDelay < currenttime;
+	}
+	
 	private static boolean canUnload(Chunk c) {
 		if (chunks.containsKey(c)) {
-			boolean denied = false;
-			//any players near?
-			int view = 15;
-			for (Player p : c.getWorld().getPlayers()) {
-				int cx = toChunk(p.getLocation().getBlockX());
-			    int cz = toChunk(p.getLocation().getBlockZ());
-			    if (Math.abs(cx - c.getX()) > view) continue;
-			    if (Math.abs(cz - c.getZ()) > view) continue;
-			    denied = true;
-			    break;
-			}
-			if (denied) {
+			if (isPlayerNear(c)) {
 				return false;
 			} else {
-				long expireTime = chunks.get(c) + chunkUnloadDelay;
-				return expireTime < System.currentTimeMillis();
+				return isExpired(chunks.get(c), System.currentTimeMillis());
 			}
 		} else {
-			return true;
+			return false;
 		}
 	}
 	public static void handleLoad(ChunkLoadEvent event) {
@@ -66,18 +71,14 @@ public class ChunkHandler {
 		}
 	}
 	public static void handleUnload(ChunkUnloadEvent event) {
-		if (NoLagg.useChunkUnloadDelay) {
+		if (NoLagg.useChunkUnloadDelay && !event.isCancelled()) {
 			if (isSpawnChunk(event.getChunk())) {
 				event.setCancelled(true);
-			} else if (!event.isCancelled()) {
-				if (canUnload(event.getChunk())) {
-					chunks.remove(event.getChunk());
-				} else {
-					event.setCancelled(true);
-					if (!chunks.containsKey(event.getChunk())) {
-						touch(event.getChunk(), System.currentTimeMillis());
-					}
-				}
+			} else if (canUnload(event.getChunk())) {
+				chunks.remove(event.getChunk());
+			} else {
+				event.setCancelled(true);
+				touch(event.getChunk(), System.currentTimeMillis());
 			}
 		}
 	}
@@ -91,15 +92,12 @@ public class ChunkHandler {
 		if (NoLagg.useChunkUnloadDelay) {			
 			//Unload invisible chunks
 			long time = System.currentTimeMillis();
-			for (Chunk c : chunks.keySet().toArray(new Chunk[0])) {
-				if (!c.isLoaded()) {
-					chunks.remove(c);
-				} else if (canUnload(c)) {
-					chunks.remove(c);
+			for (Map.Entry<Chunk, Long> entry : chunks.entrySet()) {
+				Chunk c = entry.getKey();
+				if (isPlayerNear(c)) {
+					entry.setValue(time);
+				} else if (isExpired(entry.getValue(), time)) {
 					queueUnload(c);
-				} else {
-					//can not unload: touch it
-					touch(c, time);
 				}
 			}
 		}
@@ -109,7 +107,7 @@ public class ChunkHandler {
 		long time = System.currentTimeMillis();
 		for(org.bukkit.World world : Bukkit.getServer().getWorlds()){
 			for(Chunk chunk : world.getLoadedChunks()){
-				if (!canUnload(chunk)) {
+				if (isPlayerNear(chunk) && !isSpawnChunk(chunk)) {
 					touch(chunk, time);
 				}
 			}
