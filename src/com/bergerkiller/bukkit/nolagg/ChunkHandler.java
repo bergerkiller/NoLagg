@@ -1,20 +1,20 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import net.minecraft.server.ChunkProviderServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 
 public class ChunkHandler {
 	public static int chunkUnloadDelay;
+	private static final boolean debugMode = false;
 	
 	private static WeakHashMap<Chunk, Long> chunks = new WeakHashMap<Chunk, Long>();
 	private static void touch(Chunk chunk, long time) {
@@ -53,52 +53,83 @@ public class ChunkHandler {
 	private static boolean isExpired(long time, long currenttime) {
 		return time + chunkUnloadDelay < currenttime;
 	}
-	
-	private static boolean canUnload(Chunk c) {
-		if (chunks.containsKey(c)) {
-			if (isPlayerNear(c)) {
-				return false;
-			} else {
-				return isExpired(chunks.get(c), System.currentTimeMillis());
-			}
-		} else {
-			return false;
-		}
+	private static boolean isExpired(Chunk c, long currenttime) {
+		return isExpired(chunks.get(c), currenttime);
 	}
+	
+	private static long loadcount = 0;
+	private static long unloadcount = 0;
+		
 	public static void handleLoad(ChunkLoadEvent event) {
 		if (NoLagg.useChunkUnloadDelay && !isSpawnChunk(event.getChunk())) {
 			touch(event.getChunk(), System.currentTimeMillis());
+			if (debugMode) loadcount++;
 		}
 	}
 	public static void handleUnload(ChunkUnloadEvent event) {
 		if (NoLagg.useChunkUnloadDelay && !event.isCancelled()) {
-			if (isSpawnChunk(event.getChunk())) {
+			Chunk c = event.getChunk();
+			if (isSpawnChunk(c)) {
 				event.setCancelled(true);
-			} else if (canUnload(event.getChunk())) {
-				chunks.remove(event.getChunk());
+			} else if (isPlayerNear(c)) {
+				event.setCancelled(true);
+				touch(c, System.currentTimeMillis());
+			} else if (chunks.containsKey(c)) {
+				if (!isExpired(c, System.currentTimeMillis())) {
+					event.setCancelled(true);
+				} else {
+					handleUnload(c);
+				}
 			} else {
-				event.setCancelled(true);
-				touch(event.getChunk(), System.currentTimeMillis());
+				handleUnload(c);
 			}
 		}
 	}
 	
-	private static void queueUnload(Chunk chunk) {
-		ChunkProviderServer provider = (ChunkProviderServer) ((CraftWorld) chunk.getWorld()).getHandle().chunkProvider;
-		provider.queueUnload(chunk.getX(), chunk.getZ());
+	private static void handleUnload(Chunk chunk) {
+		chunks.remove(chunk);
+		if (debugMode) unloadcount++;	
+	}
+	
+	public static void unload(Chunk chunk) {
+		if (AsyncSaving.enabled) {
+			AsyncSaving.scheduleSave(chunk);
+			if (chunk.unload(false)) {
+				chunks.remove(chunk);
+			}
+		} else if (chunk.unload()) {
+			chunks.remove(chunk);
+		}
 	}
 
 	public static void cleanUp() {
 		if (NoLagg.useChunkUnloadDelay) {			
 			//Unload invisible chunks
 			long time = System.currentTimeMillis();
+			
+			ArrayList<Chunk> toUnload = new ArrayList<Chunk>();
 			for (Map.Entry<Chunk, Long> entry : chunks.entrySet()) {
 				Chunk c = entry.getKey();
 				if (isPlayerNear(c)) {
 					entry.setValue(time);
 				} else if (isExpired(entry.getValue(), time)) {
-					queueUnload(c);
+					//queueUnload(c);
+					toUnload.add(c);
 				}
+			}
+			for (Chunk c : toUnload) {
+				unload(c);
+			}
+			
+			if (debugMode) {
+				long totalchunks = 0;
+				for (World world : Bukkit.getServer().getWorlds()) {
+					totalchunks += world.getLoadedChunks().length;
+				}
+				long buffcount = chunks.size();
+				Bukkit.getServer().broadcastMessage("[Total=" + totalchunks + "][Buffered=" + buffcount + "][Loaded=" + loadcount + "][Unloaded=" + unloadcount + "]");
+				loadcount = 0;
+				unloadcount = 0;
 			}
 		}
 	}
@@ -107,8 +138,11 @@ public class ChunkHandler {
 		long time = System.currentTimeMillis();
 		for(org.bukkit.World world : Bukkit.getServer().getWorlds()){
 			for(Chunk chunk : world.getLoadedChunks()){
-				if (isPlayerNear(chunk) && !isSpawnChunk(chunk)) {
+				if (isSpawnChunk(chunk)) continue;
+				if (isPlayerNear(chunk)) {
 					touch(chunk, time);
+				} else {
+					unload(chunk);
 				}
 			}
 		}

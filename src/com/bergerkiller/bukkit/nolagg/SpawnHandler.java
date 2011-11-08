@@ -8,6 +8,7 @@ import java.util.WeakHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
@@ -148,9 +149,16 @@ public class SpawnHandler {
 		//Update spawned creatures
 		for (World w : Bukkit.getServer().getWorlds()) {
 			List<Entity> entities = w.getEntities();
+			for (Entity e : entities) {
+				if (e instanceof LivingEntity) {
+					handleSpawn(e);
+				}
+			}
 			Collections.reverse(entities);
 			for (Entity e : entities) {
-				handleSpawn(e);
+				if (!(e instanceof LivingEntity)) {
+					handleSpawn(e);
+				}
 			}
 		}
 	}

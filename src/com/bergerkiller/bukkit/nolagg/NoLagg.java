@@ -77,6 +77,7 @@ public class NoLagg extends JavaPlugin {
 		updateInterval = config.parse("updateInterval", 20);
 		StackFormer.stackRadius = config.parse("stackRadius", 1.0);
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
+        AsyncSaving.enabled = config.parse("chunkUnloadAsyncSave", true);
 		if (useSpawnLimits) {
 			//Spawn restrictions
 			ConfigurationSection slimits = config.getConfigurationSection("spawnlimits");
@@ -136,6 +137,8 @@ public class NoLagg extends JavaPlugin {
 			}
 		}, 0, updateInterval);
 				
+		if (AsyncSaving.enabled) AsyncSaving.startSaving();
+		
 		getCommand("nolagg").setExecutor(this);
 		
         //final msg
@@ -149,6 +152,7 @@ public class NoLagg extends JavaPlugin {
 		TnTHandler.deinit();
 		ChunkHandler.deinit();
 		SpawnHandler.deinit();
+		if (AsyncSaving.enabled) AsyncSaving.stopSaving();
 		System.out.println("NoLagg disabled!");
 	}
 	
