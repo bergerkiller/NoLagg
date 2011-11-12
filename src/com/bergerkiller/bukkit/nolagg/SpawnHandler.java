@@ -25,10 +25,12 @@ public class SpawnHandler {
 		worldLimits = null;
 		defaultLimits = null;
 		globalLimits = null;
+		spawnIgnore.clear();
+		spawnIgnore = null;
 	}
 	
 	private static SpawnLimiter getWorldLimits(String worldname) {
-		if (worldname == null) {
+		if (worldname == null || worldLimits == null) {
 			return null;
 		} else {
 			worldname = worldname.toLowerCase();
@@ -59,13 +61,15 @@ public class SpawnHandler {
 	}
 	
 	public static boolean canSpawn(String worldname, Object object) {
+		if (globalLimits == null) return true;
+		if (worldLimits == null) return true;
 		return globalLimits.canSpawn(object) && getWorldLimits(worldname).canSpawn(object);
 	}
 	public static boolean canSpawn(World world, Object object) {
 		return canSpawn(world.getName(), object);
 	}
 	public static boolean canSpawn(Entity entity) {
-		if (spawnIgnore.containsKey(entity)) {
+		if (spawnIgnore != null && spawnIgnore.containsKey(entity)) {
 		    return true;
 		} else {
 			return canSpawn(entity.getWorld(), entity);
@@ -73,6 +77,7 @@ public class SpawnHandler {
 	}
 	
 	public static void addSpawn(String worldname, Object object) {
+		if (worldLimits == null || globalLimits == null) return;
 		getWorldLimits(worldname).addSpawn(object);
 		globalLimits.addSpawn(object);
 	}
@@ -84,10 +89,12 @@ public class SpawnHandler {
 	}
 	
 	public static void ignoreSpawn(Entity entity) {
+		if (spawnIgnore == null) return;
 		spawnIgnore.put(entity, true);
 	}
 	
 	public static void removeSpawn(String worldname, Object object) {
+		if (worldLimits == null || globalLimits == null) return;
 		getWorldLimits(worldname).removeSpawn(object);
 		globalLimits.removeSpawn(object);
 	}
@@ -141,6 +148,7 @@ public class SpawnHandler {
 	}
 		
 	public static void update() {
+		if (worldLimits == null || globalLimits == null) return;
 		//Clear old limit counts
 		for (SpawnLimiter limiter : worldLimits.values()) {
 			limiter.reset();

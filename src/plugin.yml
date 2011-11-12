@@ -14,3 +14,12 @@ permissions:
     nolagg.clear:
         description: Allows a player to clear all items at the server
         default: op
+    nolagg.monitor:
+        description: Allows a player to monitor server stats
+        default: op
+    nolagg.log:
+        description: Allows a player to toggle server stats being written to a log file
+        default: op
+    nolagg.clearlog:
+        description: Allows a player to clear the NoLagg log file
+        default: op

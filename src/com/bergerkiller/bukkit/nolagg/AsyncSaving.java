@@ -2,11 +2,10 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.logging.Level;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkProviderServer;
-
-import org.bukkit.craftbukkit.CraftChunk;
 
 public class AsyncSaving extends Thread {
 	
@@ -20,19 +19,38 @@ public class AsyncSaving extends Thread {
 		thread.start();
 	}
 	public static void stopSaving() {
+		NoLagg.log(Level.INFO, "Async saving disabled!");
 		saving = false;
 	}
-		
-	private static Queue<Chunk> toUnload = new LinkedList<Chunk>();	
-	public static void scheduleSave(org.bukkit.Chunk chunk) {
-		synchronized (toUnload) {
-			Chunk c = ((CraftChunk) chunk).getHandle();
-			toUnload.add(c);
+	
+	public static void fixChunk(org.bukkit.Chunk c) {
+		fixChunk(ChunkHandler.getNative(c));
+	}
+	public static void fixChunk(Chunk c) {
+		synchronized (toSave) {
+			for (Chunk cc : toSave) {
+				if (cc.x == c.x && cc.z == c.z && cc.world == c.world) {
+					//time to fix this chunk up!
+				    //ignore entities, as they were cleared previously
+					if (ChunkHandler.transferData(cc, c)) {
+						toSave.remove(cc);
+						NoLagg.log(Level.WARNING, "Chunk [" + c.x + "/" + c.z + "/" + c.world.getWorld().getName() + "] was restored from the chunk saving queue!");
+					}
+					return;
+				}
+			}
 		}
-	}	
+	}
+	
+	private static Queue<Chunk> toSave = new LinkedList<Chunk>();	
+	public static void scheduleSave(Chunk chunk) {
+		synchronized (toSave) {
+           toSave.add(chunk);
+		}
+	}
 	private static Chunk poll() {
-		synchronized (toUnload) {
-			return toUnload.poll();
+		synchronized (toSave) {
+			return toSave.poll();
 		}
 	}
 	
@@ -48,16 +66,19 @@ public class AsyncSaving extends Thread {
 					ChunkProviderServer cps = (ChunkProviderServer) c.world.chunkProvider;
 					//save async
 					cps.saveChunk(c);
+					cps.saveChunkNOP(c);
 				}
 			} catch (InterruptedException ex) {
-				System.out.println("[NoLagg] Async saving was interrupted!");
+				NoLagg.log(Level.SEVERE, "Async chunk saving was interrupted!");
 			} catch (Exception ex) {
-				System.out.println("[NoLagg] An error occured while saving chunks Async:");
+				NoLagg.log(Level.SEVERE, "An error occured while saving a chunk async:");
 				ex.printStackTrace();
 			}
 		}
-		System.out.println("[NoLagg] Async saving disabled!");
-		enabled = false;
+		if (saving) {
+			NoLagg.log(Level.INFO, "Async saving disabled!");
+			saving = false;
+		}
 		thread = null;
 	}
 

@@ -29,6 +29,10 @@ public class TnTHandler {
 	private static long sentExplosions = 0;
 	private static long intervalCounter = 0;
 		
+	public static int getBufferCount() {
+		return todo.size();
+	}
+	
 	public static void init() {
 		//start the task
 		if (NoLagg.bufferTNT && interval > 0) {

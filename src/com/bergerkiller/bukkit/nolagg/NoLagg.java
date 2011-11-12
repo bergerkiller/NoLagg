@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.minecraft.server.Packet29DestroyEntity;
 
@@ -36,6 +38,11 @@ public class NoLagg extends JavaPlugin {
 	public static boolean useChunkUnloadDelay;
 	public static boolean isShowcaseEnabled = false;
 					
+	private static Logger logger = Logger.getLogger("Minecraft");
+	public static void log(Level level, String message) {
+		logger.log(level, "[NoLagg] " + message);
+	}
+	
 	public void onEnable() {		
 		plugin = this;
 		
@@ -46,6 +53,7 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Normal, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.WORLD_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.CREATURE_SPAWN, entityListener, Priority.Lowest, this);
 		
@@ -73,11 +81,11 @@ public class NoLagg extends JavaPlugin {
 		ItemHandler.maxItemsPerChunk = config.parse("maxItemsPerChunk", 40);
 		ItemHandler.formStacks = config.parse("formItemStacks", true);
 		ChunkHandler.chunkUnloadDelay = config.parse("chunkUnloadDelay", 10000);
-		AutoSaveChanger.newInterval = config.parse("autoSaveInterval", 40);
+		AutoSaveChanger.newInterval = config.parse("autoSaveInterval", 200);
 		updateInterval = config.parse("updateInterval", 20);
 		StackFormer.stackRadius = config.parse("stackRadius", 1.0);
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
-        AsyncSaving.enabled = config.parse("chunkUnloadAsyncSave", true);
+        AsyncSaving.enabled = config.parse("useAsyncChunkSaving", true);
 		if (useSpawnLimits) {
 			//Spawn restrictions
 			ConfigurationSection slimits = config.getConfigurationSection("spawnlimits");
@@ -117,16 +125,17 @@ public class NoLagg extends JavaPlugin {
 				}
 			}
 		}
-		
-		//init it to write out correctly
-		AutoSaveChanger.init();
-				
+
 		//Write out data
 		config.save(); 
 
 		TnTHandler.init();
 		ItemHandler.loadAll();
 		ChunkHandler.init();
+		AsyncAutoSave.init();
+		AutoSaveChanger.init();
+		PerformanceMonitor.init();
+		
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
@@ -148,10 +157,12 @@ public class NoLagg extends JavaPlugin {
 	public void onDisable() {
 		getServer().getScheduler().cancelTask(updateID);
 		ItemHandler.deinit();
+		AsyncAutoSave.deinit();
 		AutoSaveChanger.deinit();
 		TnTHandler.deinit();
 		ChunkHandler.deinit();
 		SpawnHandler.deinit();
+		PerformanceMonitor.deinit();
 		if (AsyncSaving.enabled) AsyncSaving.stopSaving();
 		System.out.println("NoLagg disabled!");
 	}
@@ -182,7 +193,6 @@ public class NoLagg extends JavaPlugin {
 				} else {
 					all = true;
 				}
-				TnTHandler.clear();
 				//fix and partly read args
 				boolean tnt = args.length == 1;
 				boolean items = tnt;
@@ -271,10 +281,57 @@ public class NoLagg extends JavaPlugin {
 					sender.sendMessage(ChatColor.YELLOW + "This world has been cleared: " + remcount + " entities removed!");
 				}
 				ItemHandler.loadAll();
-				return true;
+			} else if (args[0].equalsIgnoreCase("monitor")) {
+				if (sender instanceof Player) {
+					Player p = (Player) sender;
+					if (!p.hasPermission("nolagg.monitor")) {
+						sender.sendMessage(ChatColor.DARK_RED + "You don't have permission to use this command!");
+						return true;
+					}
+					if (PerformanceMonitor.recipients.remove(p.getName())) {
+						p.sendMessage("You are no longer monitoring this server.");
+					} else {
+						PerformanceMonitor.recipients.add(p.getName());
+						p.sendMessage("You are now monitoring this server.");
+					}
+				} else {
+					if (PerformanceMonitor.sendConsole) {
+						PerformanceMonitor.sendConsole = false;
+						sender.sendMessage("You are now monitoring this server.");
+					} else {
+						PerformanceMonitor.sendConsole = true;
+						sender.sendMessage("You are no longer monitoring this server.");
+					}
+				}
+			} else if (args[0].equalsIgnoreCase("log")) {
+				if (sender instanceof Player) {
+					if (!((Player) sender).hasPermission("nolagg.log")) {
+						sender.sendMessage(ChatColor.DARK_RED + "You don't have permission to use this command!");
+						return true;
+					}
+				}
+				if (PerformanceMonitor.sendLog) {
+					PerformanceMonitor.sendLog = false;
+					sender.sendMessage("Server stats are no longer logged to file.");
+				} else {
+					PerformanceMonitor.sendLog = true;
+					sender.sendMessage("Server stats are now logged to file.");
+				}
+			} else if (args[0].equalsIgnoreCase("clearlog")) {
+				if (sender instanceof Player) {
+					if (!((Player) sender).hasPermission("nolagg.clearlog")) {
+						sender.sendMessage(ChatColor.DARK_RED + "You don't have permission to use this command!");
+						return true;
+					}
+				}
+				if (PerformanceMonitor.clearLog()) {
+					sender.sendMessage("Server log cleared");
+				} else {
+					sender.sendMessage("Failed to clear the server log");
+				}
 			}
 		}
-		return false;
+		return true;
 	}
 	
 }

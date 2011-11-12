@@ -41,6 +41,14 @@ public class ItemHandler {
 		return items;
 	}
 	
+	public static int getHiddenCount() {
+		int count = 0;
+		for (ArrayList<Item> buffer : hiddenItems.values()) {
+			count += buffer.size();
+		}
+		return count;
+	}
+	
 	private static void spawnInChunk(Chunk c, ArrayList<Item> hiddenitems) {
 		for (int i = getSpawnedItems(c).size(); i <= maxItemsPerChunk && hiddenitems.size() > 0; i++) {
 			respawnItem(hiddenitems.remove(0));
@@ -152,10 +160,14 @@ public class ItemHandler {
 	
 	public static void deinit() {
 		unloadAll();
-		spawnedItems.clear();
-		hiddenItems.clear();
-		spawnedItems = null;
-		hiddenItems = null;
+		if (spawnedItems != null) {
+			spawnedItems.clear();
+			spawnedItems = null;
+		}
+		if (hiddenItems != null) {
+			hiddenItems.clear();
+			hiddenItems = null;
+		}
 	}
 	
 	public static void setItem(Item item, ItemStack data) {
@@ -261,15 +273,19 @@ public class ItemHandler {
 		if (maxItemsPerChunk < 0) return;
 		if (!NoLagg.bufferItems) return;
 		if (spawnedItems == null) return;
-		for (ArrayList<Item> list : spawnedItems.values()) {
+		for (Map.Entry<Chunk, ArrayList<Item>> entry : spawnedItems.entrySet()) {
 			int i = 0;
+			boolean removed = false;
+			ArrayList<Item> list = entry.getValue();
 			while (i < list.size()) {
 				if (list.get(i).isDead()) {
 					list.remove(i);
+					removed = true;
 				} else {
 					i++;
 				}
 			}
+			if (removed) spawnInChunk(entry.getKey());
 		}
 	}
 }

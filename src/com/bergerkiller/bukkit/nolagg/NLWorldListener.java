@@ -4,6 +4,7 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldListener;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
 public class NLWorldListener extends WorldListener {
 
@@ -20,10 +21,15 @@ public class NLWorldListener extends WorldListener {
 			ItemHandler.unloadChunk(event.getChunk());
 		}
 	}
-	
+		
 	@Override
 	public void onWorldLoad(WorldLoadEvent event) {
 		AutoSaveChanger.change(event.getWorld());
+	}
+	
+	@Override
+	public void onWorldUnload(WorldUnloadEvent event) {
+		ChunkHandler.handleUnload(event);
 	}
 
 }

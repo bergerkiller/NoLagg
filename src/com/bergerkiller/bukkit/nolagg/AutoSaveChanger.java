@@ -58,6 +58,9 @@ public class AutoSaveChanger {
 	
  	private static void set(World world, int value) {
 		if (saveInterval != null) {
+			if (AsyncSaving.enabled) {
+				value = Integer.MAX_VALUE;
+			}
 			try {
 				net.minecraft.server.World w = getNative(world);
 				saveInterval.setInt(w, value);
