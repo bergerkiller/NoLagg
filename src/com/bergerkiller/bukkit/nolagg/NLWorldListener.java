@@ -25,11 +25,13 @@ public class NLWorldListener extends WorldListener {
 	@Override
 	public void onWorldLoad(WorldLoadEvent event) {
 		AutoSaveChanger.change(event.getWorld());
+		ItemHandler.init(event.getWorld());
 	}
 	
 	@Override
 	public void onWorldUnload(WorldUnloadEvent event) {
 		ChunkHandler.handleUnload(event);
+		if (!event.isCancelled()) ItemHandler.unloadWorld(event.getWorld());
 	}
 
 }

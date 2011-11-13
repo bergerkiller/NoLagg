@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg;
 import org.bukkit.entity.Item;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.ItemSpawnEvent;
@@ -36,6 +37,11 @@ public class NLEntityListener extends EntityListener {
 				event.setCancelled(true);
 			}
 		}
+	}
+	
+	@Override
+	public void onEntityDeath(EntityDeathEvent event) {
+		SpawnHandler.removeSpawn(event.getEntity());
 	}
 	
 }

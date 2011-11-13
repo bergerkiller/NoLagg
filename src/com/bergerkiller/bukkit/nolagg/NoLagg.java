@@ -81,7 +81,7 @@ public class NoLagg extends JavaPlugin {
 		ItemHandler.maxItemsPerChunk = config.parse("maxItemsPerChunk", 40);
 		ItemHandler.formStacks = config.parse("formItemStacks", true);
 		ChunkHandler.chunkUnloadDelay = config.parse("chunkUnloadDelay", 10000);
-		AutoSaveChanger.newInterval = config.parse("autoSaveInterval", 200);
+		AutoSaveChanger.newInterval = config.parse("autoSaveInterval", 400);
 		updateInterval = config.parse("updateInterval", 20);
 		StackFormer.stackRadius = config.parse("stackRadius", 1.0);
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
@@ -130,7 +130,7 @@ public class NoLagg extends JavaPlugin {
 		config.save(); 
 
 		TnTHandler.init();
-		ItemHandler.loadAll();
+		ItemHandler.init();
 		ChunkHandler.init();
 		AsyncAutoSave.init();
 		AutoSaveChanger.init();
@@ -146,7 +146,7 @@ public class NoLagg extends JavaPlugin {
 			}
 		}, 0, updateInterval);
 				
-		if (AsyncSaving.enabled) AsyncSaving.startSaving();
+		AsyncSaving.startSaving();
 		
 		getCommand("nolagg").setExecutor(this);
 		
@@ -157,13 +157,13 @@ public class NoLagg extends JavaPlugin {
 	public void onDisable() {
 		getServer().getScheduler().cancelTask(updateID);
 		ItemHandler.deinit();
-		AsyncAutoSave.deinit();
-		AutoSaveChanger.deinit();
 		TnTHandler.deinit();
 		ChunkHandler.deinit();
 		SpawnHandler.deinit();
 		PerformanceMonitor.deinit();
-		if (AsyncSaving.enabled) AsyncSaving.stopSaving();
+		AsyncSaving.stopSaving();
+		AsyncAutoSave.deinit();
+		AutoSaveChanger.deinit();
 		System.out.println("NoLagg disabled!");
 	}
 	
@@ -276,11 +276,12 @@ public class NoLagg extends JavaPlugin {
 					sender.sendMessage(ChatColor.GREEN + "The last-used clear command has been invoked:");
 				}
 				if (all) {
+					ItemHandler.init();
 					sender.sendMessage(ChatColor.YELLOW + "All worlds have been cleared: " + remcount + " entities removed!");
 				} else {
+					ItemHandler.init(worlds[0]);
 					sender.sendMessage(ChatColor.YELLOW + "This world has been cleared: " + remcount + " entities removed!");
 				}
-				ItemHandler.loadAll();
 			} else if (args[0].equalsIgnoreCase("monitor")) {
 				if (sender instanceof Player) {
 					Player p = (Player) sender;
@@ -297,10 +298,10 @@ public class NoLagg extends JavaPlugin {
 				} else {
 					if (PerformanceMonitor.sendConsole) {
 						PerformanceMonitor.sendConsole = false;
-						sender.sendMessage("You are now monitoring this server.");
+						sender.sendMessage("You are no longer monitoring this server.");
 					} else {
 						PerformanceMonitor.sendConsole = true;
-						sender.sendMessage("You are no longer monitoring this server.");
+						sender.sendMessage("You are now monitoring this server.");
 					}
 				}
 			} else if (args[0].equalsIgnoreCase("log")) {

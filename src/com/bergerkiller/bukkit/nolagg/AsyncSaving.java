@@ -1,32 +1,49 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkProviderServer;
+import net.minecraft.server.Entity;
 
 public class AsyncSaving extends Thread {
 	
 	public static boolean enabled = true;
 	
+	public static int getSize() {
+		synchronized (toSave) {
+			return toSave.size();
+		}
+	}
 	private static AsyncSaving thread;
-	private static boolean saving = false;
 	public static void startSaving() {
-		thread = new AsyncSaving();
-		saving = true;
-		thread.start();
+		if (enabled) {
+			thread = new AsyncSaving();
+			thread.start();
+		}
 	}
 	public static void stopSaving() {
-		NoLagg.log(Level.INFO, "Async saving disabled!");
-		saving = false;
+		enabled = false;
+		synchronized (toSave) {
+			if (toSave.size() == 0) return;
+			NoLagg.log(Level.INFO, "Saving chunks left by async saving queue (" + toSave.size() + ")...");
+			for (Chunk c : toSave) {
+				save(c);
+			}
+			toSave.clear();
+			toSave = null;
+			NoLagg.log(Level.INFO, "Done.");
+		}
 	}
 	
 	public static void fixChunk(org.bukkit.Chunk c) {
 		fixChunk(ChunkHandler.getNative(c));
 	}
 	public static void fixChunk(Chunk c) {
+		if (toSave == null) return;
 		synchronized (toSave) {
 			for (Chunk cc : toSave) {
 				if (cc.x == c.x && cc.z == c.z && cc.world == c.world) {
@@ -34,7 +51,6 @@ public class AsyncSaving extends Thread {
 				    //ignore entities, as they were cleared previously
 					if (ChunkHandler.transferData(cc, c)) {
 						toSave.remove(cc);
-						NoLagg.log(Level.WARNING, "Chunk [" + c.x + "/" + c.z + "/" + c.world.getWorld().getName() + "] was restored from the chunk saving queue!");
 					}
 					return;
 				}
@@ -44,18 +60,20 @@ public class AsyncSaving extends Thread {
 	
 	private static Queue<Chunk> toSave = new LinkedList<Chunk>();	
 	public static void scheduleSave(Chunk chunk) {
+		if (!enabled || toSave == null) return;
 		synchronized (toSave) {
            toSave.add(chunk);
 		}
 	}
 	private static Chunk poll() {
+		if (toSave == null) return null;
 		synchronized (toSave) {
 			return toSave.poll();
 		}
 	}
 	
 	public void run() {
-		while (saving && !this.isInterrupted()) {
+		while (enabled && !this.isInterrupted()) {
 			try {
 				Chunk c = poll();
 				if (c == null) {
@@ -63,10 +81,7 @@ public class AsyncSaving extends Thread {
 					Thread.sleep(500);
 					continue;
 				} else {
-					ChunkProviderServer cps = (ChunkProviderServer) c.world.chunkProvider;
-					//save async
-					cps.saveChunk(c);
-					cps.saveChunkNOP(c);
+					save(c);
 				}
 			} catch (InterruptedException ex) {
 				NoLagg.log(Level.SEVERE, "Async chunk saving was interrupted!");
@@ -75,11 +90,32 @@ public class AsyncSaving extends Thread {
 				ex.printStackTrace();
 			}
 		}
-		if (saving) {
-			NoLagg.log(Level.INFO, "Async saving disabled!");
-			saving = false;
+		if (enabled) {
+			NoLagg.log(Level.WARNING, "Async saving disabled!");
+			enabled = false;
 		}
 		thread = null;
 	}
 
+	@SuppressWarnings("rawtypes")
+	private static void save(Chunk c) {
+		//clear entities no longer in this chunk
+		for (List l : c.entitySlices) {
+			int i = 0;
+			while (i < l.size()) {
+				Entity e = (Entity) l.get(i);
+				if (((int) e.locX) >> 4 == c.x) {
+					if (((int) e.locZ) >> 4 == c.z) {
+						i++;
+						continue;
+					}
+				}
+				l.remove(i);
+			}
+		}
+		//save
+		ChunkProviderServer cps = (ChunkProviderServer) c.world.chunkProvider;
+		cps.saveChunk(c);
+		cps.saveChunkNOP(c);
+	}
 }

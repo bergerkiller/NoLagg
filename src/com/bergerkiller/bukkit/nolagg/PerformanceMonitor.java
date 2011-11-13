@@ -67,6 +67,7 @@ public class PerformanceMonitor implements Runnable {
 			} catch (IOException ex) {}
 			logger = null;
 		}
+		recipients.clear();
 	}
 	
 	private String getProgress(int length, ChatColor color) {
@@ -148,6 +149,12 @@ public class PerformanceMonitor implements Runnable {
 		long usedmem = totalmem - runtime.freeMemory();
 		long diff = usedmem - prevusedmem;
 		if (diff < 0) {
+			if (usedmem > minmem) {
+				if (mem(usedmem) + 100 > mem(runtime.maxMemory())) {
+					NoLagg.log(Level.SEVERE, "Memory usage is exceeding the maximum, a server restart may be required!");
+					Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + "[NoLagg] Memory usage is exceeding the maximum, a server restart may be required!");
+				}
+			}
 			minmem = usedmem;
 		}
 		if (sendLog || sendConsole || recipients.size() > 0) {
@@ -174,7 +181,7 @@ public class PerformanceMonitor implements Runnable {
 			}
 			double tps = monitorInterval / elapsedtimesec;
 			int hiddenItems = ItemHandler.getHiddenCount();
-			
+			int savesize = AsyncSaving.getSize();
 			if (sendLog && logger != null) {
 				try {
 					if (!wroteHeader) {
@@ -182,7 +189,7 @@ public class PerformanceMonitor implements Runnable {
 						String columns = "";
 						columns += "| Time		| Tick rate		| Total Memory	| Static Memory	| Dynamic Memory	";
 						columns += "| Memory Write Rate	| Total Chunks	| Buffered Chunks	";
-						columns += "| Chunks Loaded	| Chunks Unloaded	| Buffered TNT	| Buffered Items	"; 
+						columns += "| Chunks Loaded	| Chunks Unloaded	| Chunks To Save	| Buffered TNT	| Buffered Items	"; 
 						columns += "| Entities		| Mobs		| Items		| TNT		| Players		|";
 						log(columns);
 					}
@@ -201,6 +208,7 @@ public class PerformanceMonitor implements Runnable {
 					msg += getColumn(String.valueOf(ChunkHandler.getBufferCount()));
 					msg += getColumn(String.valueOf(ChunkHandler.getLoadCount()));
 					msg += getColumn(String.valueOf(ChunkHandler.getUnloadCount()));
+					msg += getColumn(String.valueOf(savesize));
 					msg += getColumn(String.valueOf(TnTHandler.getBufferCount()));
 					msg += getColumn(String.valueOf(ItemHandler.getHiddenCount()));
 					msg += getColumn(String.valueOf(entitycount));
@@ -233,6 +241,7 @@ public class PerformanceMonitor implements Runnable {
 				mem += ChunkHandler.getTotalCount() + " [" + ChunkHandler.getBufferCount() + " Buffered]";
 				mem += " [+" + ChunkHandler.getLoadCount() + "]";
 				mem += " [-" + ChunkHandler.getUnloadCount() + "]";
+				mem += " [" + savesize + " left to save]";
 				s.sendMessage(mem);
 				//Entities
 				mem = "Entities: " + entitycount + " [" + mobcount + " mobs]";
@@ -264,6 +273,7 @@ public class PerformanceMonitor implements Runnable {
 				mem += ChunkHandler.getTotalCount() + " [" + ChunkHandler.getBufferCount() + " Buffered]";
 				mem += ChatColor.GREEN + " [+" + ChunkHandler.getLoadCount() + "]";
 				mem += ChatColor.RED + " [-" + ChunkHandler.getUnloadCount() + "]";
+				mem += ChatColor.YELLOW + " [" + savesize + " left to save]";
 				messages.add(mem);
 				//Entities
 				mem = ChatColor.YELLOW + "Entities: ";

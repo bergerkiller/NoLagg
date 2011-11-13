@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.zip.Deflater;
 
@@ -12,6 +11,8 @@ import net.minecraft.server.Chunk;
 import net.minecraft.server.NetServerHandler;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.Packet52MultiBlockChange;
+import net.minecraft.server.Packet53BlockChange;
 import net.minecraft.server.TileEntity;
 import net.minecraft.server.World;
 
@@ -25,14 +26,20 @@ public class BufferedChunk {
 	private boolean hasEntireChunk = false;
 	private ArrayList<Packet> toSend = new ArrayList<Packet>();
 	public int x, z;
-	private int size = 0;
 	private boolean isChunkSent = false;
+	private long chunkTime = Long.MIN_VALUE;
 	
 	public static boolean isChunk(Packet packet) {
 		if (packet instanceof Packet51MapChunk) {
 			Packet51MapChunk p = (Packet51MapChunk) packet;
 			return p.d == 16 && p.e == 128 && p.f == 16;
 		}
+		return false;
+	}
+	public static boolean isBlockChange(Packet packet) {
+		if (packet instanceof Packet51MapChunk) return true;
+		if (packet instanceof Packet52MultiBlockChange) return true;
+		if (packet instanceof Packet53BlockChange) return true;
 		return false;
 	}
 
@@ -46,54 +53,78 @@ public class BufferedChunk {
 		this.isChunkSent = true;
 	}
 	public boolean isEmpty() {
-		return size == 0;
+		synchronized (this.toSend) {
+			return this.toSend.size() == 0;
+		}
 	}
 	
-	private synchronized void syncoperation(Player player, Packet packet) {
-		if (player == null && packet != null) {
-			if (isChunk(packet)) {
-				toSend.clear();
-				hasEntireChunk = true;
+	public void clear() {
+		synchronized (this.toSend) {
+			this.toSend.clear();
+		}
+	}
+	
+	public void queue(Packet packet) {
+		if (packet == null) return;
+		synchronized (this.toSend) {
+			if (isBlockChange(packet)) {
+				if (packet.timestamp <= chunkTime) return;
+				if (isChunk(packet)) {
+					chunkTime = packet.timestamp;
+					this.hasEntireChunk = true;
+					this.isChunkSent = false;
+					//remove all packets before this chunk
+					int i = 0;
+					while (i < toSend.size()) {
+						Packet p = toSend.get(i);
+						if (p.timestamp < chunkTime && isBlockChange(p)) {
+							toSend.remove(i);
+						} else {
+							i++;
+						}
+					}
+				}
 			}
 			toSend.add(packet);
-		} else if (player != null && packet == null) {
+			
+		}
+	}
+	public void queueChunk(org.bukkit.World world) {
+		if (world == null) return;
+		World w = ((CraftWorld) world).getHandle();
+		if (w == null) return;
+		this.queue(new Packet51MapChunk(this.x * 16, 0, this.z * 16, 16, 128, 16, w));
+		Chunk c = w.getChunkAt(this.x, this.z);
+		if (c == null) return;
+		for (Object o : c.tileEntities.values()) {
+			if (o instanceof TileEntity) {
+				this.queue(((TileEntity) o).l());
+			}
+		}
+	}
+	
+	public void send(Player to) {
+		synchronized (this.toSend) {
 			NLPacketListener.ignorePackets = true;
 			for (Packet p : toSend) {
-				send(player, p);
+				NLPacketListener.ignore(p);
+				try {
+					send(to, p);
+				} catch (Exception ex) {
+					System.out.println("[NoLaggChunks] Failed to send '" + p.getClass().getSimpleName() + "' to '" + to.getName() + "'!");
+					ex.printStackTrace();
+				}
 			}
 			NLPacketListener.ignorePackets = false;
 			hasEntireChunk = false;
 			toSend.clear();
 			this.isChunkSent = true;
 		}
-		this.size = toSend.size();
 	}
 	
-	public void queue(Packet packet) {
-        this.syncoperation(null, packet);
-	}
-	public void queueChunk(org.bukkit.World world) {
-		World w = ((CraftWorld) world).getHandle();
-		this.queue(new Packet51MapChunk(this.x * 16, 0, this.z * 16, 16, 128, 16, w)); 
-	}
-	
-	public void send(Player to) {
-		this.syncoperation(to, null);
-	}
-	
-	
-	private static Field timestamp;
 	public static void send(Player to, Packet packet) {
 		if (packet == null || to == null) return;
-		try {
-			if (timestamp == null) {
-				timestamp = Packet.class.getField("timestamp");
-				timestamp.setAccessible(true);
-			}
-
-			//Set the time
-			timestamp.set(packet, System.currentTimeMillis());
-				
+		try {				
 			if (packet instanceof Packet51MapChunk) {
 				Packet51MapChunk p = (Packet51MapChunk) packet;
 				if (!p.k && p.g == null) {
@@ -122,7 +153,7 @@ public class BufferedChunk {
 			NetServerHandler handler = ((CraftPlayer) to).getHandle().netServerHandler;
 			handler.sendPacket(packet);
 		} catch (Exception ex) {
-			System.out.println("[NoLaggChunks] Failed to send '" + packet.getClass().getSigners() + "' to '" + to.getName() + "'!");
+			System.out.println("[NoLaggChunks] Failed to send '" + packet.getClass().getSimpleName() + "' to '" + to.getName() + "'!");
 			ex.printStackTrace();
 		}
 	}

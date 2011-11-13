@@ -1,14 +1,14 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
 import org.getspout.spoutapi.SpoutManager;
 
 public class NoLaggChunks extends JavaPlugin {
@@ -17,7 +17,12 @@ public class NoLaggChunks extends JavaPlugin {
 	
 	private final NLPlayerListener playerListener = new NLPlayerListener();
 	private final NLPacketListener packetListener = new NLPacketListener();
-	private final int[] watchedPackets = new int[] {50, 52, 53, 130, 201};
+	private final NLWorldListener worldListener = new NLWorldListener();
+	
+	private static Logger logger = Logger.getLogger("Minecraft");
+	public static void log(Level level, String message) {
+		logger.log(level, "[NoLagg] [Chunks] " + message);
+	}
 	
 	public void onEnable() {
 		plugin = this;
@@ -28,51 +33,35 @@ public class NoLaggChunks extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_TELEPORT, playerListener, Priority.Monitor, this);
+		pm.registerEvent(Event.Type.CHUNK_POPULATED, worldListener, Priority.Monitor, this);
 		
 		SpoutManager.getPacketManager().addListenerUncompressedChunk(packetListener);
-		for (int id : watchedPackets) {
+		for (int id : new int[] {50, 51, 52, 53, 130, 23, 24}) {
 			SpoutManager.getPacketManager().addListener(id, packetListener);
 		}
 		
 		//Settings
-		Configuration config = this.getConfiguration();
-		PlayerChunkLoader.packetSendInterval = PlayerDefault.parseInt(config, "globalChunkSendInterval", 1);
-		PlayerChunkLoader.packetSendMaxRate = PlayerDefault.parseInt(config, "globalChunkSendMaxRate", 2);
-		
-		PlayerChunkBuffer.defaultSendInterval.parse(config, "defaultChunkSendInterval");
-		PlayerChunkBuffer.defaultSendRate.parse(config, "defaultChunkSendRate");
-		PlayerChunkBuffer.defaultViewDistance.parse(config, "defaultChunkViewDistance");
-		PlayerChunkBuffer.defaultDownloadSize.parse(config, "defaultChunkDownloadSize");
-		
-		if (config.getKeys().contains("players")) {
-			List<String> players = config.getStringList("players", new ArrayList<String>());
-			for (String player : players) {
-				player = "players." + player + ".";
-				PlayerChunkBuffer.defaultSendInterval.parse(player, config, player + "chunkSendInterval");
-				PlayerChunkBuffer.defaultSendRate.parse(player, config, player + "chunkSendRate");
-				PlayerChunkBuffer.defaultViewDistance.parse(player, config, player + "chunkViewDistance");
-				PlayerChunkBuffer.defaultDownloadSize.parse(player, config, player + "chunkDownloadSize");
-			}
-		} else {
-			config.setProperty("players.player.chunkSendInterval", PlayerChunkBuffer.defaultSendInterval.get());
-			config.setProperty("players.player.chunkSendRate", PlayerChunkBuffer.defaultSendRate.get());
-			config.setProperty("players.player.chunkViewDistance", PlayerChunkBuffer.defaultViewDistance.get());
-			config.setProperty("players.player.chunkDownloadSize", PlayerChunkBuffer.defaultDownloadSize.get());
-		}
-		
+		Configuration config = new Configuration(this);
+		config.load();
+		PlayerChunkBuffer.sendInterval = config.parse("chunkSendInterval", 4);
+		PlayerChunkBuffer.sendRate = config.parse("chunkSendRate", 1);
+		PlayerChunkBuffer.viewDistance = config.parse("chunkViewDistance", 10);
+		PlayerChunkBuffer.downloadSize = config.parse("chunkDownloadSize", 5);
 		config.save();
+				
+		//load chunks from previous enable (reloads)
+		PlayerChunkLoader.loadSentChunks(new File(getDataFolder() + File.separator + "chunks.tmp"));
 		
-		//load
+		//init
 		PlayerChunkLoader.init();
-		PlayerChunkLoader.queueAllChunks();
 		
         PluginDescriptionFile pdfFile = this.getDescription();
         System.out.println("[NoLagg] chunk handler add-on version " + pdfFile.getVersion() + " is enabled!");
 	}
 	
 	public void onDisable() {
+		PlayerChunkLoader.saveSentChunks(new File(getDataFolder() + File.separator + "chunks.tmp"));
 		PlayerChunkLoader.deinit();
-		
 		System.out.println("[NoLagg] chunk handler disabled!");
 	}
 	

@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.logging.Level;
 
 import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.Packet60Explosion;
@@ -143,7 +144,7 @@ public class TnTHandler {
 			            			try {
 			            				bb.dropNaturally(world, x, y, z, b.getData(), yield);
 			            			} catch (Throwable t) {
-		            				    System.out.println("[NoLagg] Failed to spawn block drops during explosions!");
+			            				NoLagg.log(Level.SEVERE, "Failed to spawn block drops during explosions!");
 		            				    t.printStackTrace();
 		            				    allowdrops = false;
 			            			}
@@ -159,7 +160,7 @@ public class TnTHandler {
 						manager.sendPacketNearby(at.getX(), at.getY(), at.getZ(), 64.0D, world.dimension, packet);
 					}
 				} catch (Throwable t) {
-					System.out.println("[NoLagg] Warning: explosion did not go as planned!");
+					NoLagg.log(Level.WARNING, "Explosion did not go as planned!");
 					t.printStackTrace();
 				}
 			}

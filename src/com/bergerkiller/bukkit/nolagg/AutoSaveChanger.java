@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
-import org.bukkit.craftbukkit.CraftWorld;
 
 public class AutoSaveChanger {
 	private static Field saveInterval;
@@ -12,19 +11,16 @@ public class AutoSaveChanger {
 	public static int newInterval;
 		
 	private static boolean validate(String fieldname) {
-		int checkvalue = 40;
 		try {
 			saveInterval = net.minecraft.server.World.class.getDeclaredField(fieldname);
 			if (saveInterval.getType() == int.class) {
 				saveInterval.setAccessible(true);
 				for (World world : Bukkit.getServer().getWorlds()) {
-					defaultInterval = saveInterval.getInt(getNative(world));
-					if (defaultInterval == checkvalue) {
-						if (newInterval <= 0) {
-							newInterval = defaultInterval;
-						}
-						return true;
+					defaultInterval = saveInterval.getInt(ChunkHandler.getNative(world));
+					if (newInterval <= 0) {
+						newInterval = defaultInterval;
 					}
+					return true;
 				}
 			}
 		} catch (NoSuchFieldException ex) {
@@ -62,8 +58,7 @@ public class AutoSaveChanger {
 				value = Integer.MAX_VALUE;
 			}
 			try {
-				net.minecraft.server.World w = getNative(world);
-				saveInterval.setInt(w, value);
+				saveInterval.setInt(ChunkHandler.getNative(world), value);
 			} catch (Exception e) {
 				System.out.println("[NoLagg] Failed to set save interval on world: " + world.getName());
 				e.printStackTrace();
@@ -71,11 +66,7 @@ public class AutoSaveChanger {
 		}
 		
 	}
-	
-	private static net.minecraft.server.World getNative(World world) {
-		return ((CraftWorld) world).getHandle();
-	}
-	
+		
 	public static void changeAll() {
 		setAll(newInterval);
 	}

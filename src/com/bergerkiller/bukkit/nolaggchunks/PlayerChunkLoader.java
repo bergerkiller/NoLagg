@@ -1,97 +1,125 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
-import java.util.WeakHashMap;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class PlayerChunkLoader {
-	private static WeakHashMap<Player, PlayerChunkBuffer> buffers = new WeakHashMap<Player, PlayerChunkBuffer>();
+	private static HashMap<String, PlayerChunkBuffer> buffers = new HashMap<String, PlayerChunkBuffer>();
 	
-	public static synchronized PlayerChunkBuffer getBuffer(Player player) {
-		PlayerChunkBuffer loader = buffers.get(player);
-		if (loader == null) {
-			loader = new PlayerChunkBuffer(player);
-			buffers.put(player, loader);
+	
+	public static PlayerChunkBuffer getBuffer(Player player) {
+		synchronized (buffers) {
+			PlayerChunkBuffer loader = buffers.get(player.getName());
+			if (loader == null) {
+				loader = new PlayerChunkBuffer(player);
+				buffers.put(player.getName(), loader);
+			}
+			return loader;
 		}
-		return loader;
 	}
-	
+	public static void remove(Player player) {
+		synchronized (buffers) {
+			buffers.remove(player.getName());
+		}
+	}
 	public static void update(Player player) {
 		getBuffer(player).update();
 	}
-	public static void remove(Player player) {
-		buffers.remove(player);
-	}
-	public static void queueAllChunks() {
-		for (Player p : Bukkit.getServer().getOnlinePlayers()) {
-			getBuffer(p).queueAllChunks();
-		}
-	}
 	
-	private static int[] getIndices(int[] keys, boolean desc) {
-		int[] rval = new int[keys.length];
-		for (int i = 0; i < rval.length; i++) {
-			rval[i] = -1;
+	public static void saveSentChunks(DataOutputStream stream) throws IOException {
+		synchronized (buffers) {
+			stream.writeInt(buffers.size());
+			for (PlayerChunkBuffer buffer : buffers.values()) {
+				stream.writeUTF(buffer.player.getName());
+				buffer.saveSentChunks(stream);
+			}
 		}
-		for (int i = 0; i < rval.length; i++) {
-			int tosetindex = -1;
-			int limit = Integer.MIN_VALUE;
-			for (int ii = 0; ii < rval.length; ii++) {
-				if (rval[ii] == -1) {
-					if (keys[ii] >= limit) {
-						tosetindex = ii;
-						limit = keys[ii];
-					}
+	}
+	public static void loadSentChunks(DataInputStream stream) throws IOException {
+		int storedcount = stream.readInt();
+		for (int i = 0; i < storedcount; i++) {
+			Player player = Bukkit.getServer().getPlayer(stream.readUTF());
+			if (player == null) {
+				int chunkcount = stream.readInt();
+				for (int j = 0; j < chunkcount; j++) {
+					stream.readInt();
+					stream.readInt();
 				}
+			} else {
+				getBuffer(player).loadSentChunks(stream);
 			}
-			rval[tosetindex] = i;
 		}
-		if (desc) {
-			return rval;
-		} else {
-			int[] rev = new int[rval.length];
-			for (int i = 0; i < rev.length; i++) {
-				rev[i] = rval[rval.length - i - 1];
+	}
+
+	public static void loadSentChunks(File file) {
+		if (!file.exists()) return;
+		if (Bukkit.getServer().getOnlinePlayers().length > 0) {
+			DataInputStream stream = null;
+			try {
+				stream = new DataInputStream(new FileInputStream(file));
+				loadSentChunks(stream);
+			} catch (IOException ex) {
+				NoLaggChunks.log(Level.WARNING, "Failed to load player chunk lists!");
+				ex.printStackTrace();
 			}
-			return rev;
+			try {
+				 if (stream != null) stream.close();
+			} catch (IOException ex) {}
+		}
+		file.delete();
+	}
+	public static void saveSentChunks(File file) {
+		if (file.exists() && !file.delete()) {
+			NoLaggChunks.log(Level.WARNING, "Failed to save player chunk lists: NO access.");
+			return;
+		}
+		if (Bukkit.getServer().getOnlinePlayers().length > 0) {
+			DataOutputStream stream = null;
+			try {
+				stream = new DataOutputStream(new FileOutputStream(file));
+				saveSentChunks(stream);
+			} catch (IOException ex) {
+				NoLaggChunks.log(Level.WARNING, "Failed to save player chunk lists!");
+				ex.printStackTrace();
+			}
+			try {
+				 if (stream != null) stream.close();
+			} catch (IOException ex) {}
 		}
 	}
-	private static <T> T[] sort(T[] toSort, int[] by, boolean desc) {
-		int[] indices = getIndices(by, desc);
-		T[] rval = toSort.clone();
-		for (int i = 0; i < rval.length; i++) {
-			rval[i] = toSort[indices[i]];
-		}
-		return rval;
-	}
-	public static PlayerChunkBuffer[] getSortedBuffers() {
-		PlayerChunkBuffer[] rval = buffers.values().toArray(new PlayerChunkBuffer[0]);
-		int[] prio = new int[rval.length];
-		for (int i = 0; i < prio.length; i++) {
-			prio[i] = rval[i].getPriority();
-		}
-		return sort(rval, prio, true);
-	}
-	
-		
-	public static int packetSendMaxRate = 2;
-	public static int packetSendInterval = 1;
 	
 	/*
 	 * Task init and deinit
 	 */
 	private static int taskid = -1;
 	public static void init() {
+		synchronized (buffers) {
+			if (buffers.size() > 0) {
+				NoLaggChunks.log(Level.INFO, "Queueing player chunks...");
+				for (PlayerChunkBuffer buff : buffers.values()) {
+					buff.queueAllChunks(false);
+				}
+				NoLaggChunks.log(Level.INFO, "Player chunks queued and will be sent shortly.");
+			}
+		}
 		taskid = NoLaggChunks.plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(NoLaggChunks.plugin, new Runnable() {
 			public void run() {
-				int limit = packetSendMaxRate;
-				for (PlayerChunkBuffer buffer : getSortedBuffers()) {
-					limit -= buffer.sendNext(limit);
-					if (limit == 0) break;
+				synchronized (buffers) {
+					for (PlayerChunkBuffer buffer : buffers.values()) {
+						buffer.sendNext();
+					}
 				}
 			}
-		}, 0, packetSendInterval);
+		}, 0, 1);
 	}
 	public static void deinit() {
 		if (taskid != -1) {

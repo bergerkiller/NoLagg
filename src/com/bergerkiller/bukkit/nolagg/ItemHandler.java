@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -20,8 +20,8 @@ public class ItemHandler {
 	public static int maxItemsPerChunk;
 	public static boolean formStacks;
 	public static boolean ignoreSpawn = false;
-	private static HashMap<Chunk, ArrayList<Item>> spawnedItems = new HashMap<Chunk, ArrayList<Item>>();
-	private static HashMap<Chunk, ArrayList<Item>> hiddenItems = new HashMap<Chunk, ArrayList<Item>>();
+	private static WeakHashMap<Chunk, ArrayList<Item>> spawnedItems = new WeakHashMap<Chunk, ArrayList<Item>>();
+	private static WeakHashMap<Chunk, ArrayList<Item>> hiddenItems = new WeakHashMap<Chunk, ArrayList<Item>>();
 	public static ArrayList<Item> getSpawnedItems(Chunk c) {
 		if (spawnedItems == null) return new ArrayList<Item>();
 		ArrayList<Item> items = spawnedItems.get(c);
@@ -77,7 +77,7 @@ public class ItemHandler {
 		return false;
 	}
 	public static void loadChunk(Chunk c) {
-		unloadChunk(c);
+		unloadChunk(c); //clear data internally stored
 		for (Entity e : c.getEntities().clone()) {
 			if (e instanceof Item) {
 				if (!handleItemSpawn((Item) e)) {
@@ -88,7 +88,6 @@ public class ItemHandler {
 	}
 	public static void unloadChunk(Chunk c) {
 		if (hiddenItems == null) return;
-		ignoreSpawn = true;
 		ArrayList<Item> items = hiddenItems.remove(c);
 		if (items != null) {
 			for (Item item : items) {
@@ -96,7 +95,6 @@ public class ItemHandler {
 			}
 		}
 		spawnedItems.remove(c);
-		ignoreSpawn = false;
 	}
 	public static void unloadAll() {
 		if (hiddenItems == null) return;
@@ -104,10 +102,31 @@ public class ItemHandler {
 			unloadChunk(c);
 		}
 	}
-	public static void loadAll() {
+	
+	public static void init(World world) {
+		for (Chunk c : world.getLoadedChunks()) {
+			loadChunk(c);
+		}
+	}
+	public static void init() {
 		for (World w : Bukkit.getServer().getWorlds()) {
-			for (Chunk c : w.getLoadedChunks()) {
-				loadChunk(c);
+			init(w);
+		}
+	}
+	
+	public static void unloadWorld(World world) {
+		for (Chunk c : world.getLoadedChunks()) {
+			spawnInChunk(c);
+			spawnedItems.remove(c);
+			hiddenItems.remove(c);
+		}
+	}
+	public static void loadWorld(World world) {
+		for (Entity e : world.getEntities()) {
+			if (e instanceof Item) {
+				if (!handleItemSpawn((Item) e)) {
+					e.remove();
+				}
 			}
 		}
 	}

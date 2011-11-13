@@ -1,9 +1,11 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
+
+import net.minecraft.server.EntityPlayer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -43,7 +45,7 @@ public class ChunkHandler {
 		unloadedChunks = 0;
 	}
 	
-	private static HashMap<Chunk, Long> chunks = new HashMap<Chunk, Long>();
+	private static WeakHashMap<Chunk, Long> chunks = new WeakHashMap<Chunk, Long>();
 	private static void touch(Chunk chunk, long time) {
 		chunks.put(chunk, time);
 	}
@@ -53,14 +55,52 @@ public class ChunkHandler {
 			Location spawn = chunk.getWorld().getSpawnLocation();
 			int x = chunk.getX() - (spawn.getBlockX() >> 4);
 			int z = chunk.getZ() - (spawn.getBlockZ() >> 4);
-			return (x > -8 && x < 8 && z > -8 && z < 8);
+			return x >= -12 && x <= 12 && z >= -12 && z <= 12;
 		} else {
 			return false;
 		}
 	}
 	
-	private static boolean isPlayerNear(Chunk chunk) {
-		return ((CraftWorld) chunk.getWorld()).isChunkInUse(chunk.getX(), chunk.getZ());
+	public static boolean isPlayerNear(Chunk chunk) {
+		return isPlayerNear(chunk.getWorld(), chunk.getX(), chunk.getZ());
+	}
+	public static boolean isPlayerNear(World world, int cx, int cz) {
+		return isPlayerNear(getNative(world), cx, cz);
+	}
+	public static boolean isPlayerNear(net.minecraft.server.World world, int cx, int cz) {
+		cx = cx << 4;
+		cz = cz << 4;
+		int max = 32 + (Bukkit.getServer().getViewDistance() << 4);
+		for (Object o : world.entityList) {
+			if (o instanceof EntityPlayer) {
+				EntityPlayer p = (EntityPlayer) o;
+				int x = ((int) p.locX) - cx;
+			    if (x > max) continue;
+			    if (x < -max) continue;
+			    int z = ((int) p.locZ) - cz;
+			    if (z > max) continue;
+			    if (z < -max) continue;
+			    return true;
+			}
+		}
+		return false;
+	}
+	
+	public static boolean isPlayerNear2(net.minecraft.server.World world, int cx, int cz) {
+		int max = Bukkit.getServer().getViewDistance() + 1;
+		for (Object o : world.entityList) {
+			if (o instanceof EntityPlayer) {
+				EntityPlayer p = (EntityPlayer) o;
+				int x = (((int) p.locX) >> 4) - cx;
+			    if (x > max) continue;
+			    if (x < -max) continue;
+			    int z = (((int) p.locZ) >> 4) - cz;
+			    if (z > max) continue;
+			    if (z < -max) continue;
+			    return true;
+			}
+		}
+		return false;
 	}
 	
 	private static boolean isExpired(long time, long currenttime) {
@@ -109,21 +149,34 @@ public class ChunkHandler {
 	public static net.minecraft.server.Chunk getNative(Chunk chunk) {
 		return ((CraftChunk) chunk).getHandle();
 	}
+	public static net.minecraft.server.World getNative(World world) {
+		return ((CraftWorld) world).getHandle();
+	}
+	
+	public static String toString(Chunk chunk) {
+		return "[" + chunk.getX() + "/" + chunk.getZ() + "/" + chunk.getWorld().getName() + "]";
+	}
 	
 	public static void unload(Chunk chunk) {
-		try {
-			if (AsyncSaving.enabled) {
-				net.minecraft.server.Chunk c = getNative(chunk);
-				if (chunk.unload(false)) {
-					c.removeEntities();
-					AsyncSaving.scheduleSave(c);
-					chunks.remove(chunk);
-				}
-			} else if (chunk.unload()) {
-				chunks.remove(chunk);
-			}
-		} catch (Exception ex) {
+		if (!chunk.isLoaded()) {
 			chunks.remove(chunk);
+			return;
+		}
+		try {
+			try {
+				if (AsyncSaving.enabled) {
+					net.minecraft.server.Chunk c = getNative(chunk);
+					if (chunk.unload(false)) {
+						c.removeEntities();
+						AsyncSaving.scheduleSave(c);
+					}
+					return;
+				}
+			} catch (Exception ex) {}
+			chunk.unload();
+		} catch (Exception ex) {
+			NoLagg.log(Level.WARNING, "Failed to unload chunk " + toString(chunk) + ":");
+			ex.printStackTrace();
 		}
 	}
 	

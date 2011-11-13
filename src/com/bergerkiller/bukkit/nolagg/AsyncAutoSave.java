@@ -18,22 +18,30 @@ public class AsyncAutoSave {
 	public static void init() {
 		if (!AsyncSaving.enabled) return;
 		try {
+			if (AutoSaveChanger.newInterval < 400) {
+				throw new Exception("Interval is too low for async auto saving to work. Set the auto save interval in the configuration to a value higher than 400 ticks (20 seconds) to use async auto saving.");
+			}
 			worldsave = World.class.getDeclaredMethod("w");
 			worldsave.setAccessible(true);
 			taskID = NoLagg.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(NoLagg.plugin, new Runnable() {
 				public void run() {
 					try {
 						if (AsyncSaving.enabled) {
-							for (org.bukkit.World world : Bukkit.getServer().getWorlds()) {
-								World w = ((CraftWorld) world).getHandle();
-								if (w.chunkProvider.canSave()) {
-									worldsave.invoke(w);
-									for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
-										Chunk c = ChunkHandler.cloneChunk(ChunkHandler.getNative(chunk));
-										if (c == null) {
-											throw new Exception("Chunk cloning failed.");
-										} else {
-											AsyncSaving.scheduleSave(c);
+							if (AsyncSaving.getSize() > 1000) {
+								NoLagg.log(Level.WARNING, "Skipping auto-save for worlds: Saving queue overloaded.");
+							} else {
+								for (org.bukkit.World world : Bukkit.getServer().getWorlds()) {
+									World w = ((CraftWorld) world).getHandle();
+									if (w.chunkProvider.canSave()) {
+										AutoSaveChanger.change(world);
+										worldsave.invoke(w);
+										for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+											Chunk c = ChunkHandler.cloneChunk(ChunkHandler.getNative(chunk));
+											if (c == null) {
+												throw new Exception("Chunk cloning failed.");
+											} else {
+												AsyncSaving.scheduleSave(c);
+											}
 										}
 									}
 								}
@@ -50,8 +58,9 @@ public class AsyncAutoSave {
 			}, AutoSaveChanger.newInterval, AutoSaveChanger.newInterval);
 			enabled = true;
 		} catch (Throwable t) {
-			NoLagg.log(Level.SEVERE, "Failed to initialize async auto saver!");
+			NoLagg.log(Level.WARNING, "Failed to initialize async auto saver!");
 			t.printStackTrace();
+			NoLagg.log(Level.INFO, "Native sync auto-save feature is used instead.");
 			enabled = false;
 		}
 	}

@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.nolaggchunks;
 import java.util.HashMap;
 
 import org.bukkit.entity.Player;
-import org.bukkit.util.config.Configuration;
 
 @SuppressWarnings("unchecked")
 public class PlayerDefault<T> {
@@ -49,23 +48,12 @@ public class PlayerDefault<T> {
 	public void set(Object value) {
 		this.def = (T) value;
 	}
-	
-	public static int parseInt(Configuration config, String key, int def) {
-		def = config.getInt(key, def);
-		config.setProperty(key, def);
-		return def;
-	}
-	public static double parseDouble(Configuration config, String key, double def) {
-		def = config.getDouble(key, def);
-		config.setProperty(key, def);
-		return def;
-	}
-	
+		
 	public void parse(String playername, Configuration config, String key) {
 		if (this.def instanceof Integer) {
-			this.set(playername, parseInt(config, key, (Integer) this.get(playername)));
+			this.set(playername, config.parse(key, (Integer) this.get(playername)));
 		} else if (this.def instanceof Double) {
-			this.set(playername, parseDouble(config, key, (Double) this.get(playername)));
+			this.set(playername, config.parse(key, (Double) this.get(playername)));
 		}
 	}
 	public void parse(Configuration config, String key) {

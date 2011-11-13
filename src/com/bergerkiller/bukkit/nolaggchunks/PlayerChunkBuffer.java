@@ -1,9 +1,16 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet130UpdateSign;
+import net.minecraft.server.Packet23VehicleSpawn;
+import net.minecraft.server.Packet24MobSpawn;
 import net.minecraft.server.Packet51MapChunk;
 import net.minecraft.server.Packet52MultiBlockChange;
 import net.minecraft.server.Packet53BlockChange;
@@ -20,26 +27,18 @@ public class PlayerChunkBuffer {
 		this.z = player.getLocation().getBlockZ() >> 4;
 		this.world = player.getWorld();
 		this.player = player;
-		this.sendInterval = defaultSendInterval.get(player);
-		this.sendRate = defaultSendRate.get(player);
-		this.downloadSize = defaultDownloadSize.get(player);
-		this.view = defaultViewDistance.get(player);
 	}
 	
-	public static PlayerDefault<Integer> defaultSendInterval = new PlayerDefault<Integer>(4);
-	public static PlayerDefault<Integer> defaultSendRate = new PlayerDefault<Integer>(1);
-	public static PlayerDefault<Integer> defaultDownloadSize = new PlayerDefault<Integer>(5);
-	public static PlayerDefault<Integer> defaultViewDistance = new PlayerDefault<Integer>(12);
+	public static int sendInterval = 4;
+	public static int sendRate = 1;
+	public static int downloadSize = 5;
+	public static int viewDistance = 10;
 
-	private ConcurrentHashMap<Chunk, BufferedChunk> chunks = new ConcurrentHashMap<Chunk, BufferedChunk>();
+	private HashMap<Chunk, BufferedChunk> chunks = new HashMap<Chunk, BufferedChunk>();
 	private int x, z;
 	public World world;
-	public int view = 5;
-	public int downloadSize = 6;
 	private int intervalCounter = 0;
 	
-	public int sendInterval;
-	public int sendRate;
 	private boolean isTerrainDownloaded = false;
 	private final static int maxview = 15;
 	public Player player;
@@ -53,31 +52,34 @@ public class PlayerChunkBuffer {
 	 * @param limit - The maximum allowed chunks to send
 	 * @return The amount of chunks sent
 	 */
-	public int sendNext(int limit) {
+	public void sendNext() {
 		intervalCounter++;
-		if (limit > 0 && intervalCounter >= sendInterval) {
+		if (intervalCounter >= sendInterval) {
 			//Global - max rate per tick
-			int rate = this.sendRate;
-			if (limit < rate) rate = limit;
 			intervalCounter = 0;
-			return this.send(rate);
+			this.send(sendRate);
 		}
-		return 0;
 	}
+	
 	
 	/*
 	 * General coding
 	 */
-	private BufferedChunk get(int cx, int cz) {
+	public BufferedChunk get(int cx, int cz) {
 		return this.get(new Chunk(cx, cz));
 	}
-	private synchronized BufferedChunk get(Chunk chunk) {
-		BufferedChunk bc = this.chunks.get(chunk);
-		if (bc == null) {
-			bc = new BufferedChunk(chunk.x, chunk.z);
-			this.chunks.put(chunk, bc);
+	private BufferedChunk get(Chunk chunk) {
+		synchronized (this.chunks) {
+			BufferedChunk bc = this.chunks.get(chunk);
+			if (bc == null) {
+				bc = new BufferedChunk(chunk.x, chunk.z);
+				this.chunks.put(chunk, bc);
+			}
+			return bc;
 		}
-		return bc;
+	}
+	public BufferedChunk get(Packet packet) {
+		return this.get(Chunk.fromPacket(packet));
 	}
 	
 	public boolean isNear(int cx, int cz, int view) {
@@ -88,33 +90,32 @@ public class PlayerChunkBuffer {
 	 * Queue a packet
 	 * @param packet
 	 * @param chunk
-	 * @return If the packet is handled by this buffer and should not be sent
+	 * @return If the packet can be sent to the client
 	 */
 	private boolean queue(Packet packet, Chunk chunk) {
+		if (chunk == null) return true;
 		if (this.isNear(chunk.x, chunk.z, maxview)) {
 			BufferedChunk c = get(chunk);
 			if (BufferedChunk.isChunk(packet)) {
 				c.queue(packet);
-				return true;
+				return false;
 			} else {
 				if (c.isQueueingChunk()) {
 					//We are queuing a chunk, add it to the queue
 					c.queue(packet);
-					return true;
+					return false;
 				} else if (c.hasFullChunkSent()) {
 					//Chunk is present, just send it right away
-					return false;
+					return true;
 				} else {
 					//Chunk not yet received...yet we got a minor chunk update
-					//Time to load this chunk
-					c.queueChunk(this.world);
 					c.queue(packet);
-					return true;
+					return false;
 				}
 			}
 		} else {
 			//Out of reach, handled
-			return true;
+			return false;
 		}
 	}
 	public boolean queue(Packet packet) {
@@ -122,62 +123,80 @@ public class PlayerChunkBuffer {
 	}
 	
 	public void queueAllChunks() {
-		for (int a = -view; a <= view; a++) {
-			for (int b = -view; b <= view; b++) {
-				BufferedChunk c = this.get(this.x + a, this.z + b);
-				if (!c.hasFullChunkSent()) {
-					c.queueChunk(this.world);
-				}
+		this.queueAllChunks(true);
+	}
+	public void queueAllChunks(boolean forced) {
+		for (int a = -viewDistance; a <= viewDistance; a++) {
+			for (int b = -viewDistance; b <= viewDistance; b++) {
+				this.queueChunk(this.x + a, this.z + b, forced);
 			}
 		}
+	}
+	private void queueChunk(BufferedChunk c, boolean forced) {
+		if (forced || !c.isQueueingChunk()) {
+			c.queueChunk(this.world);
+		}
+	}
+	public void queueChunk(int cx, int cz, boolean forced) {
+		this.queueChunk(this.get(cx, cz), forced);
+	}
+	public void queueChunk(int cx, int cz) {
+		this.queueChunk(cx, cz, true);
 	}
 	
 	public void update() {
 		this.update(this.player.getLocation());
 	}
-	public synchronized void update(Location newLocation) {
-		if (newLocation.getWorld() == this.world) {
-			int cx = newLocation.getBlockX() >> 4;
-			int cz = newLocation.getBlockZ() >> 4;
-			if (this.x != cx || this.z != cz) {
-				this.x = cx;
-				this.z = cz;
-				//Remove chunks that will be re-sent by the game later on anyway
-				BufferedChunk[] gen = this.chunks.values().toArray(new BufferedChunk[0]);
-				this.chunks.clear();
-				for (BufferedChunk bc : gen) {
-					if (this.isNear(bc.x, bc.z, maxview)) {
-						this.chunks.put(new Chunk(bc.x, bc.z), bc);
+	public void update(Location newLocation) {
+		synchronized (this.chunks) {
+			if (newLocation.getWorld() == this.world) {
+				int cx = newLocation.getBlockX() >> 4;
+				int cz = newLocation.getBlockZ() >> 4;
+				if (this.x != cx || this.z != cz) {
+					this.x = cx;
+					this.z = cz;
+					//Remove chunks that will be re-sent by the game later on anyway
+					BufferedChunk[] gen = this.chunks.values().toArray(new BufferedChunk[0]);
+					this.chunks.clear();
+					for (BufferedChunk bc : gen) {
+						if (this.isNear(bc.x, bc.z, maxview)) {
+							this.chunks.put(new Chunk(bc.x, bc.z), bc);
+						}
 					}
 				}
+			} else {
+				this.world = newLocation.getWorld();
+				this.x = newLocation.getBlockX() >> 4;
+				this.z = newLocation.getBlockZ() >> 4;
+				this.chunks.clear();
+				this.isTerrainDownloaded = false;
 			}
-		} else {
-			this.world = newLocation.getWorld();
-			this.chunks.clear();
-			this.isTerrainDownloaded = false;
 		}
 	}
 	
 	private void markSent(Chunk chunk) {
 		BufferedChunk b = new BufferedChunk(chunk.x, chunk.z);
 		b.setFullChunkSent();
-		this.chunks.put(chunk, b);
+		synchronized (this.chunks) {
+			this.chunks.put(chunk, b);
+		}
 	}
+	
 	
 	/*
 	 * Send coding
 	 */
-	public boolean send(int cx, int cz) {
-		if (this.isNear(cx, cz, this.view)) {
+	private boolean send(int cx, int cz) {
+		if (this.isNear(cx, cz, viewDistance)) {
 			BufferedChunk c = get(cx, cz);
-			if (c != null && !c.isEmpty()) {
+			if (c != null && !c.isEmpty() && c.isQueueingChunk()) {
 				c.send(this.player);
 				return true;
 			}
 		}
 		return false;
 	}
-	public int sendLayer(int sendcount, int sendlimit, int layer, BlockFace direction) {
+	private int sendLayer(int sendcount, int sendlimit, int layer, BlockFace direction) {
 		//get modifiers from direction
 		MoveMod[] mods = MoveMod.get(direction);
 		//Get the chunk to start at
@@ -219,10 +238,11 @@ public class PlayerChunkBuffer {
 			}
 		}
 	}
-	public int send(int sendcount) {
-		return send(getDirection(this.player), sendcount);
+	
+	public void send(int sendcount) {
+		this.send(sendcount, getDirection(this.player));
 	}
-	public int send(BlockFace direction, int sendcount) {
+	private int send(int sendcount, BlockFace direction) {
 		if (sendcount > 0) {
 			//main chunk
 			if (this.send(this.x, this.z)) {
@@ -245,48 +265,23 @@ public class PlayerChunkBuffer {
 			}
 			
 			//less than half layers
-			for (int layer = threshold2; layer <= view; layer++) {
+			for (int layer = threshold2; layer <= viewDistance; layer++) {
 				sendcount = this.sendLayer(sendcount, (int) (layer * 1.5), layer, direction);
 				if (sendcount == 0) return 0;
 			}
 			
 			//fill the square
-			for (int a = -this.view; a <= this.view; a++) {
-				for (int b = -this.view; b <= this.view; b++) {
+			for (int a = -viewDistance; a <= viewDistance; a++) {
+				for (int b = -viewDistance; b <= viewDistance; b++) {
 					if (this.send(this.x + a, this.z + b)) {
 						if (--sendcount == 0) return 0;
 					}
 				}
 			}
-					
-//			//remove non-sent chunks
-//			ArrayList<Chunk> toRemove = new ArrayList<Chunk>();
-//			for (Map.Entry<Chunk, BufferedChunk> entry : this.chunks.entrySet()) {
-//				if (!entry.getValue().isNear(this.x, this.z, this.view)) {
-//					toRemove.add(entry.getKey());
-//				}
-//			}
-//			for (Chunk c : toRemove) {
-//				this.chunks.remove(c);
-//			}
 		}
 		return sendcount;
 	}
 		
-	/*
-	 * The highest value has highest priority!
-	 * Priority value decreases with the amount of ahead chunks
-	 */
-	public int getPriority() {
-		int priority = 0;
-		for (BufferedChunk bc : this.chunks.values()) {
-			if (bc.isQueueingChunk()) {
-				priority += this.view - Math.max(Math.abs(bc.x - this.x), Math.abs(bc.z - this.z));
-			}
-		}
-		return priority;
-	}
-	
 	public static BlockFace getDirection(Player p) {
 		int yaw = (int) p.getLocation().getYaw() - 90;
         while (yaw <= -180) yaw += 360;
@@ -423,18 +418,25 @@ public class PlayerChunkBuffer {
 			} else if (packet instanceof Packet130UpdateSign) {
 				Packet130UpdateSign p = (Packet130UpdateSign) packet;
 				return new Chunk(p.x >> 4, p.z >> 4);
+			} else if (packet instanceof Packet23VehicleSpawn) {
+				Packet23VehicleSpawn p = (Packet23VehicleSpawn) packet;
+				return new Chunk(p.b / 512, p.d / 512);
+			} else if (packet instanceof Packet24MobSpawn) {
+				Packet24MobSpawn p = (Packet24MobSpawn) packet;
+				return new Chunk(p.c / 512, p.e / 512);
 			}
 			return null;
 	    }
 	}
-		
+
 	//World downloading
 	public boolean isDownloaded() {
 		return this.isTerrainDownloaded;
 	}
 	public boolean handleChunkDownload(Packet packet) {
 		Chunk c = Chunk.fromPacket(packet);
-		if (c != null && Math.abs(this.x - c.x) <= this.downloadSize && Math.abs(this.z - c.z) <= this.downloadSize) {
+		if (c == null) return true;
+		if (this.isNear(c.x, c.z, downloadSize)) {
 			this.markSent(c);
 			return true;
 		} else {
@@ -444,17 +446,39 @@ public class PlayerChunkBuffer {
 		}
 	}
 	public void finalizeTerrainDownload() {
-		for (int a = -this.downloadSize; a <= this.downloadSize; a++) {
-			if (a > -2 && a < 2) {
-				for (int b = -this.downloadSize; b <= this.downloadSize; b++) {
-					if (b > -2 && b < 2) {
+		if (this.isTerrainDownloaded) return;
+		for (int a = -downloadSize; a <= downloadSize; a++) {
+			if (a <= -2 && a >= 2) {
+				for (int b = -downloadSize; b <= downloadSize; b++) {
+					if (b <= -2 && b >= 2) {
 						Chunk c = new Chunk(this.x + a, this.z + b);
-						BufferedChunk.sendChunk(this.player, c.x, c.z, true);
 						this.markSent(c);
+						BufferedChunk.sendChunk(this.player, c.x, c.z, true);
 					}
 				}
 			}
 		}
 		this.isTerrainDownloaded = true;
 	}
+
+	public void saveSentChunks(DataOutputStream stream) throws IOException {
+		ArrayList<Chunk> sent = new ArrayList<Chunk>();
+		for (Map.Entry<Chunk, BufferedChunk> chunk : this.chunks.entrySet()) {
+			if (chunk.getValue().hasFullChunkSent()) {
+				sent.add(chunk.getKey());
+			}
+		}
+		stream.writeInt(sent.size());
+		for (Chunk c : sent) {
+			stream.writeInt(c.x);
+			stream.writeInt(c.z);
+		}
+	}
+	public void loadSentChunks(DataInputStream stream) throws IOException {
+		int sent = stream.readInt();
+		for (int i = 0; i < sent; i++) {
+			this.markSent(new Chunk(stream.readInt(), stream.readInt()));
+		}
+	}
 }
+
