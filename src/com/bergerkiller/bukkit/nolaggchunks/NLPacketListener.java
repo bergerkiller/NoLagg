@@ -24,6 +24,7 @@ public class NLPacketListener implements PacketListener {
 		Packet packet = (Packet) mcpacket.getPacket();
 		int id = mcpacket.getId();
 		PlayerChunkBuffer buffer = PlayerChunkLoader.getBuffer(player);
+		if (buffer == null) return true;
 		if (!buffer.isDownloaded()) {
 			if (id == 50) {
 				buffer.finalizeTerrainDownload();

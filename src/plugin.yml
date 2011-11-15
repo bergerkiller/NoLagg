@@ -1,8 +1,8 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.46
+version: 1.47
 author: bergerkiller
-softdepend: [LogBlock]
+softdepend: [LogBlock, NoLaggChunks]
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam
 commands:
     nolagg:
@@ -22,4 +22,7 @@ permissions:
         default: op
     nolagg.clearlog:
         description: Allows a player to clear the NoLagg log file
+        default: op
+    nolagg.fix:
+        description: Allows a player to fix lighting issues in chunks around him
         default: op

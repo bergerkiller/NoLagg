@@ -3,10 +3,7 @@ package com.bergerkiller.bukkit.nolagg;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Item;
@@ -14,166 +11,122 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 public class StackFormer {
-	public static double stackRadius;
+	public static double stackRadiusSquared;
 	public static int stackThreshold = 2;
-	private static Chunk[] tmpchunks = new Chunk[9]; //used to optimize chunk returning
-			
-	private static void clearTmpChunks() {
-		for (int i = 0; i < 9; i++) tmpchunks[i] = null;
-	}
 	
-	private static Chunk getChunk(World world, int x, int z) {
-		if (world.isChunkLoaded(x, z)) {
-			return world.getChunkAt(x, z);
-		}
-		return null;
-	}
-	private static Chunk[] getNearChunks(Location at) {
-		return getNearChunks(at.getWorld(), at.getBlockX(), at.getBlockZ());
-	}
-	private static Chunk[] getNearChunks(World world, int locx, int locz) {
-		int cx = locx >> 4;
-		int cz = locz >> 4;
-		clearTmpChunks();
-		tmpchunks[8] = getChunk(world, cx, cz);
-    	//Get the 4 mid-corner locations
-    	int xleft = cx * 16;
-    	int xright = xleft + 16;
-    	int ztop = cz * 16;
-    	int zbottom = ztop + 16;
-    	//Compare
-    	boolean left = locx - xleft <= stackRadius;
-    	boolean right = xright - locx <= stackRadius;
-    	boolean top = locz - ztop <= stackRadius;
-    	boolean bottom = zbottom - locz <= stackRadius;
-    	if (left) {
-    		tmpchunks[0] = getChunk(world, cx - 1, cz);
-    		if (top) tmpchunks[4] = getChunk(world, cx - 1, cz - 1);
-    		if (bottom) tmpchunks[5] = getChunk(world, cx - 1, cz + 1);
-    	}
-    	if (right) {
-    		tmpchunks[1] = getChunk(world, cx + 1, cz);
-    		if (top) tmpchunks[6] = getChunk(world, cx + 1, cz - 1);
-    		if (bottom) tmpchunks[7] = getChunk(world, cx + 1, cz + 1);
-    	}
-    	if (top) tmpchunks[2] = getChunk(world, cx, cz - 1);
-    	if (bottom) tmpchunks[3] = getChunk(world, cx, cz + 1);
-    	return tmpchunks;
-	}
-	
-	private static boolean checkItem(Entity item) {
-		if (!(item instanceof Item)) return false;
-		return !ItemHandler.isShowcased((Item) item);
-	}
-	
-    private static boolean addSameEntitiesNear(List<Entity> rval, Entity entity) {
-    	if (entity.isDead()) return false;
-    	boolean item;
-    	if (checkItem(entity)) {
-    		item = true;
-    	} else if (NoLagg.isOrb(entity)) {
-    		item = false;
-    	} else {
-    		return false;
-    	}
-    	//get nearby chunks
-    	Location m = entity.getLocation();
-    	boolean added = false;
-    	double rad = stackRadius * stackRadius;
-    	//get nearby chunks which could require stacking
-    	for (Chunk chunk : getNearChunks(m)) {
-    		if (chunk == null) continue;
-    		for (Entity e : chunk.getEntities()) {
-    			if (e != entity && !e.isDead()) {
-    				//compare
-    				if (item && checkItem(e)) {
-    					Item ie = (Item) e;
-    					ItemStack instack = ((Item) entity).getItemStack();
-    					ItemStack stack = ie.getItemStack();
-    					if (instack.getTypeId() != stack.getTypeId()) {
-    						continue;
-    					}
-    					if (instack.getDurability() != stack.getDurability()) {
-    						continue;
-    					}
-    					//allow distance check
-    				} else if (!item && e instanceof ExperienceOrb) {
-    					//allow distance check
-    				} else {
-    					continue;
-    				}
-    				//distance check
-    				if (e.getLocation().distanceSquared(m) <= rad) {
-    					rval.add(e);
-    					added = true;
-    				}
-    			}
-    		}
-    	}    	
-    	return added;
-    }
-	
-	public static void update() {
-		if (!ItemHandler.formStacks) return;
-		List<Entity> near = new ArrayList<Entity>();
-		for (World w : Bukkit.getServer().getWorlds()) {
-			for (Entity e : w.getEntities()) {
-				boolean item;
-				if (checkItem(e)) {
-					item = true;
-				} else if (NoLagg.isOrb(e)) {
-					item = false;
-				} else {
+	private static boolean addSameItemsNear(List<Entity> rval, List<Item> from, Item around) {
+		if (around.isDead()) return false;
+		Location m = around.getLocation();
+		ItemStack stack = around.getItemStack();
+		boolean added = false;
+		for (Item item : from) {
+			if (item.isDead()) continue;
+			if (item == around) continue;
+			if (canStack(m, item.getLocation())) {
+				ItemStack instack = item.getItemStack();
+				if (instack.getTypeId() != stack.getTypeId()) {
 					continue;
 				}
-				if (addSameEntitiesNear(near, e)) {
-					//continue
-					if (near.size() > stackThreshold - 2) {
-						if (item) {
-							//addition the items
-							Item i = (Item) e;
-							ItemStack stack = i.getItemStack();
-							int maxsize = stack.getType().getMaxStackSize();
-							if (stack.getAmount() < maxsize) {
-								for (Entity ee : near) {
-									if (ee.isDead()) continue;
-									Item from = (Item) ee;
-									ItemStack stack2 = from.getItemStack();
-									if (stack2.getAmount() < maxsize) {
-										int newamount = stack.getAmount() + stack2.getAmount();
-										if (newamount <= maxsize) {
-											stack.setAmount(newamount);
-											from.remove();
-											ItemHandler.removeSpawnedItem(from);
-										} else if (stack2.getAmount() < maxsize) {
-											//set to max
-											stack.setAmount(maxsize);
-											//set prev. item
-											stack2.setAmount(newamount - maxsize);
-										} else {
-											continue;
-										}
-										i = ItemHandler.respawnItem(i, new Vector());
-										stack = i.getItemStack();
-									}
-								}
-							}
-						} else {
-							//add the experience
-							ExperienceOrb to = (ExperienceOrb) e;
-							for (Entity ee : near) {
-								if (ee.isDead()) continue;
-								ExperienceOrb from = (ExperienceOrb) ee;
-								to.setExperience(to.getExperience() + from.getExperience());
-								ee.remove();
-							}
-						}
-					}
-					near.clear();
+				if (instack.getDurability() != stack.getDurability()) {
+					continue;
 				}
+				added = true;
+				rval.add(item);
 			}
 		}
-		clearTmpChunks();
+		return added;
+	}
+	private static boolean addSameOrbsNear(List<Entity> rval, List<ExperienceOrb> from, ExperienceOrb around) {
+		if (around.isDead()) return false;
+		Location m = around.getLocation();
+		boolean added = true;
+		for (ExperienceOrb orb : from) {
+			if (orb.isDead()) continue;
+			if (orb == around) continue;
+			if (canStack(m, orb.getLocation())) {
+				added = true;
+				rval.add(orb);
+			}
+		}
+		return added;
+	}
+	
+	private static boolean canStack(Location l1, Location l2) {
+		double d = distance(l1.getX(), l2.getX());
+		if (d > stackRadiusSquared) return false;
+		d += distance(l1.getZ(), l2.getZ());
+		if (d > stackRadiusSquared) return false;
+		d += distance(l1.getY(), l2.getY());
+		if (d > stackRadiusSquared) return false;
+		return true;
+	}	
+	private static double distance(double d1, double d2) {
+		d1 = Math.abs(d1 - d2);
+		return d1 * d1;
+	}
+   	
+	public static void update(List<Item> items, List<ExperienceOrb> orbs) {
+		if (!ItemHandler.formStacks) return;
+		if (stackThreshold < 2) return;
+		List<Entity> near = new ArrayList<Entity>(stackThreshold - 1);
+		updateItems(near, items);
+		updateOrbs(near, orbs);
+	}
+	public static void updateOrbs(List<Entity> near, List<ExperienceOrb> orbs) {
+		if (!ItemHandler.formStacks) return;
+		for (ExperienceOrb orb : orbs) {
+			if (orb.isDead()) continue;
+			if (addSameOrbsNear(near, orbs, orb)) {
+				if (near.size() > stackThreshold - 2) {
+					for (Entity e : near) {
+						if (e.isDead()) continue;
+						//add the experience
+						ExperienceOrb to = (ExperienceOrb) e;
+						for (Entity ee : near) {
+							if (ee.isDead()) continue;
+							ExperienceOrb from = (ExperienceOrb) ee;
+							to.setExperience(to.getExperience() + from.getExperience());
+							ee.remove();
+						}
+					}						
+				}
+				near.clear();
+			}
+		}
+	}
+	public static void updateItems(List<Entity> near, List<Item> items) {
+		if (!ItemHandler.formStacks) return;
+		for (Item item : items) {
+			if (item.isDead()) continue;
+			ItemStack stack = item.getItemStack();
+			int maxsize = stack.getType().getMaxStackSize();
+			if (stack.getAmount() >= maxsize) continue;
+			if (addSameItemsNear(near, items, item)) {
+				if (near.size() > stackThreshold - 2) {
+					//addition the items
+					for (Entity e : near) {
+						if (e.isDead()) continue;
+						Item nearitem = (Item) e;
+						ItemStack stack2 = nearitem.getItemStack();
+						if (stack2.getAmount() >= maxsize) continue;
+						int newamount = stack.getAmount() + stack2.getAmount();
+						if (newamount <= maxsize) {
+							stack.setAmount(newamount);
+							nearitem.remove();
+							ItemHandler.removeSpawnedItem(nearitem);
+						} else {
+							//set to max
+							stack.setAmount(maxsize);
+							//set prev. item
+							stack2.setAmount(newamount - maxsize);
+						}
+						item = ItemHandler.respawnItem(item, new Vector());
+						stack = item.getItemStack();
+					}
+				}
+				near.clear();
+			}
+		}
 	}
 	
 }

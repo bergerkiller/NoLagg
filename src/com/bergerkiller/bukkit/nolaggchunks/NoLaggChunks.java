@@ -17,7 +17,6 @@ public class NoLaggChunks extends JavaPlugin {
 	
 	private final NLPlayerListener playerListener = new NLPlayerListener();
 	private final NLPacketListener packetListener = new NLPacketListener();
-	private final NLWorldListener worldListener = new NLWorldListener();
 	
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
@@ -33,7 +32,6 @@ public class NoLaggChunks extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_TELEPORT, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.CHUNK_POPULATED, worldListener, Priority.Monitor, this);
 		
 		SpoutManager.getPacketManager().addListenerUncompressedChunk(packetListener);
 		for (int id : new int[] {50, 51, 52, 53, 130, 23, 24}) {
@@ -56,7 +54,7 @@ public class NoLaggChunks extends JavaPlugin {
 		PlayerChunkLoader.init();
 		
         PluginDescriptionFile pdfFile = this.getDescription();
-        System.out.println("[NoLagg] chunk handler add-on version " + pdfFile.getVersion() + " is enabled!");
+        System.out.println("[NoLagg] chunk handler Spout add-on version " + pdfFile.getVersion() + " is enabled!");
 	}
 	
 	public void onDisable() {

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldListener;
 import org.bukkit.event.world.WorldLoadEvent;
@@ -33,5 +34,11 @@ public class NLWorldListener extends WorldListener {
 		ChunkHandler.handleUnload(event);
 		if (!event.isCancelled()) ItemHandler.unloadWorld(event.getWorld());
 	}
+	
+	@Override
+	public void onChunkPopulate(ChunkPopulateEvent event) {
+		AsyncSaving.scheduleLightingFix(event.getChunk());
+	}
 
+	
 }

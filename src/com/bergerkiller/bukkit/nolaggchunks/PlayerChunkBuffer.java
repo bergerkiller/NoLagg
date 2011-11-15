@@ -35,12 +35,12 @@ public class PlayerChunkBuffer {
 	public static int viewDistance = 10;
 
 	private HashMap<Chunk, BufferedChunk> chunks = new HashMap<Chunk, BufferedChunk>();
-	private int x, z;
+	public int x, z;
 	public World world;
 	private int intervalCounter = 0;
 	
 	private boolean isTerrainDownloaded = false;
-	private final static int maxview = 15;
+	public final static int maxview = 15;
 	public Player player;
 		
 	/*
@@ -96,6 +96,7 @@ public class PlayerChunkBuffer {
 		if (chunk == null) return true;
 		if (this.isNear(chunk.x, chunk.z, maxview)) {
 			BufferedChunk c = get(chunk);
+			if (c.isLocked()) return false;
 			if (BufferedChunk.isChunk(packet)) {
 				c.queue(packet);
 				return false;
@@ -104,7 +105,7 @@ public class PlayerChunkBuffer {
 					//We are queuing a chunk, add it to the queue
 					c.queue(packet);
 					return false;
-				} else if (c.hasFullChunkSent()) {
+				} else if (c.hasSent()) {
 					//Chunk is present, just send it right away
 					return true;
 				} else {
@@ -175,9 +176,9 @@ public class PlayerChunkBuffer {
 	}
 	
 	private void markSent(Chunk chunk) {
-		BufferedChunk b = new BufferedChunk(chunk.x, chunk.z);
-		b.setFullChunkSent();
 		synchronized (this.chunks) {
+			BufferedChunk b = new BufferedChunk(chunk.x, chunk.z);
+			b.markSent();
 			this.chunks.put(chunk, b);
 		}
 	}
@@ -189,10 +190,11 @@ public class PlayerChunkBuffer {
 	private boolean send(int cx, int cz) {
 		if (this.isNear(cx, cz, viewDistance)) {
 			BufferedChunk c = get(cx, cz);
-			if (c != null && !c.isEmpty() && c.isQueueingChunk()) {
-				c.send(this.player);
-				return true;
-			}
+			if (c == null) return false;
+			if (c.isLocked()) return false;
+			if (!c.isQueueingChunk()) return false;
+			c.send(this.player);
+			return true;
 		}
 		return false;
 	}
@@ -464,7 +466,7 @@ public class PlayerChunkBuffer {
 	public void saveSentChunks(DataOutputStream stream) throws IOException {
 		ArrayList<Chunk> sent = new ArrayList<Chunk>();
 		for (Map.Entry<Chunk, BufferedChunk> chunk : this.chunks.entrySet()) {
-			if (chunk.getValue().hasFullChunkSent()) {
+			if (chunk.getValue().hasSent()) {
 				sent.add(chunk.getKey());
 			}
 		}

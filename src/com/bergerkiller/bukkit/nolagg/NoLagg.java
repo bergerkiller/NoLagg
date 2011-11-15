@@ -1,19 +1,24 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.Packet29DestroyEntity;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
@@ -37,7 +42,8 @@ public class NoLagg extends JavaPlugin {
 	public static boolean useSpawnLimits;
 	public static boolean useChunkUnloadDelay;
 	public static boolean isShowcaseEnabled = false;
-					
+	public static boolean isAddonEnabled = false;
+		
 	private static Logger logger = Logger.getLogger("Minecraft");
 	public static void log(Level level, String message) {
 		logger.log(level, "[NoLagg] " + message);
@@ -52,6 +58,7 @@ public class NoLagg extends JavaPlugin {
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Normal, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
+		pm.registerEvent(Event.Type.CHUNK_POPULATED, worldListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.WORLD_LOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.WORLD_UNLOAD, worldListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.ITEM_SPAWN, entityListener, Priority.Lowest, this);
@@ -67,6 +74,9 @@ public class NoLagg extends JavaPlugin {
 				}
 			}
 		}, 1);
+		if (getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
+			isAddonEnabled = true;
+		}
 				
 		//General settings
 		Configuration config = new Configuration(this);
@@ -83,9 +93,10 @@ public class NoLagg extends JavaPlugin {
 		ChunkHandler.chunkUnloadDelay = config.parse("chunkUnloadDelay", 10000);
 		AutoSaveChanger.newInterval = config.parse("autoSaveInterval", 400);
 		updateInterval = config.parse("updateInterval", 20);
-		StackFormer.stackRadius = config.parse("stackRadius", 1.0);
+		StackFormer.stackRadiusSquared = config.parse("stackRadius", 1.0);
+		StackFormer.stackRadiusSquared *= StackFormer.stackRadiusSquared;
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
-        AsyncSaving.enabled = config.parse("useAsyncChunkSaving", true);
+		PerformanceMonitor.monitorInterval = config.parse("monitorInterval", 40);
 		if (useSpawnLimits) {
 			//Spawn restrictions
 			ConfigurationSection slimits = config.getConfigurationSection("spawnlimits");
@@ -125,7 +136,7 @@ public class NoLagg extends JavaPlugin {
 				}
 			}
 		}
-
+		config.trim();
 		//Write out data
 		config.save(); 
 
@@ -136,13 +147,35 @@ public class NoLagg extends JavaPlugin {
 		AutoSaveChanger.init();
 		PerformanceMonitor.init();
 		
-		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
 			public void run() {
+				List<Item> items = null;
+				List<ExperienceOrb> orbs = null;
+				List<Entity> entities = null;
+				if (ItemHandler.formStacks) {
+					items = new ArrayList<Item>();
+					orbs = new ArrayList<ExperienceOrb>();
+				}
+				if (useSpawnLimits) {
+					entities = new ArrayList<Entity>();
+					SpawnHandler.reset();
+				}
+				if (items != null || orbs != null || entities != null) {
+					for (WorldServer ws : EntityCounter.getWorlds()) {
+						EntityCounter.fill(ws, items, orbs, entities);
+						if (orbs != null && items != null) {
+							StackFormer.update(items, orbs);
+							orbs.clear();
+							items.clear();
+						}
+						if (entities != null) {
+							SpawnHandler.update(ws, entities);
+							entities.clear();
+						}
+					}
+				}
 				ItemHandler.update();
-				StackFormer.update();
 				ChunkHandler.cleanUp();
-				SpawnHandler.update();
 			}
 		}, 0, updateInterval);
 				
@@ -155,6 +188,9 @@ public class NoLagg extends JavaPlugin {
         System.out.println(pdfFile.getName() + " version " + pdfFile.getVersion() + " is enabled!" );
 	}
 	public void onDisable() {
+		if (isAddonEnabled && !getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
+			isAddonEnabled = false;
+		}
 		getServer().getScheduler().cancelTask(updateID);
 		ItemHandler.deinit();
 		TnTHandler.deinit();
@@ -290,6 +326,9 @@ public class NoLagg extends JavaPlugin {
 						return true;
 					}
 					if (PerformanceMonitor.recipients.remove(p.getName())) {
+						for (int i = 0; i < 10; i++) {
+							p.sendMessage(" ");
+						}
 						p.sendMessage("You are no longer monitoring this server.");
 					} else {
 						PerformanceMonitor.recipients.add(p.getName());
@@ -330,6 +369,33 @@ public class NoLagg extends JavaPlugin {
 				} else {
 					sender.sendMessage("Failed to clear the server log");
 				}
+			} else if (args[0].equalsIgnoreCase("fix")) {
+				if (sender instanceof Player) {
+					Player p = (Player) sender;
+					if (!p.hasPermission("nolagg.fix")) {
+						sender.sendMessage(ChatColor.DARK_RED + "You don't have permission to use this command!");
+						return true;
+					}
+					int radius = Bukkit.getServer().getViewDistance();
+					if (args.length == 2) {
+						try {
+							radius = Integer.parseInt(args[1]);
+						} catch (Exception ex) {}
+					}
+					int cx = p.getLocation().getBlockX() >> 4;
+					int cz = p.getLocation().getBlockZ() >> 4;
+					for (int a = -radius; a <= radius; a++) {
+						for (int b = -radius; b <= radius; b++) {
+							Chunk c = p.getWorld().getChunkAt(cx + a, cz + b);
+							AsyncSaving.scheduleLightingFix(c);
+						} 
+					}
+					p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
+				} else {
+					sender.sendMessage("This command is only for players!");
+				}
+			} else {
+				sender.sendMessage("Unknown sub-command!");
 			}
 		}
 		return true;

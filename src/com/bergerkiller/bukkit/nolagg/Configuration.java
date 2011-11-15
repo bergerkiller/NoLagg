@@ -13,6 +13,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 @SuppressWarnings("rawtypes")
 public class Configuration extends YamlConfiguration {
 	
+	private HashSet<String> readKeys = new HashSet<String>();
+	
 	public Configuration(JavaPlugin plugin) {
 		this(plugin.getDataFolder() + File.separator + "config.yml");
 	}
@@ -38,6 +40,21 @@ public class Configuration extends YamlConfiguration {
 	public void init() {
 		this.load();
 		this.save();
+	}
+	
+	
+	public Object get(String path, Object def) {
+		readKeys.add(path.toLowerCase());
+		return super.get(path, def);
+	}
+	
+	public void trim() {
+		for (String key : this.getKeys(false)) {
+			if (!this.readKeys.contains(key.toLowerCase())) {
+				this.set(key, null);
+			}
+		}
+		this.readKeys.clear();
 	}
 
 	public void load() {

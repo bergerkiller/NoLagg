@@ -24,9 +24,10 @@ public class BufferedChunk {
 	}
 		
 	private boolean hasEntireChunk = false;
+	private boolean locked = false;
 	private ArrayList<Packet> toSend = new ArrayList<Packet>();
 	public int x, z;
-	private boolean isChunkSent = false;
+	private boolean isSent = false;
 	private long chunkTime = Long.MIN_VALUE;
 	
 	public static boolean isChunk(Packet packet) {
@@ -43,14 +44,20 @@ public class BufferedChunk {
 		return false;
 	}
 
+	public boolean isLocked() {
+		return this.locked;
+	}
+	public void setLocked(boolean locked) {
+		this.locked = locked;
+	}
 	public boolean isQueueingChunk() {
 		return this.hasEntireChunk;
 	}
-	public boolean hasFullChunkSent() {
-		return this.isChunkSent;
+	public boolean hasSent() {
+		return this.isSent;
 	}
-	public void setFullChunkSent() {
-		this.isChunkSent = true;
+	public void markSent() {
+		this.isSent = true;
 	}
 	public boolean isEmpty() {
 		synchronized (this.toSend) {
@@ -72,7 +79,7 @@ public class BufferedChunk {
 				if (isChunk(packet)) {
 					chunkTime = packet.timestamp;
 					this.hasEntireChunk = true;
-					this.isChunkSent = false;
+					this.isSent = false;
 					//remove all packets before this chunk
 					int i = 0;
 					while (i < toSend.size()) {
@@ -93,16 +100,16 @@ public class BufferedChunk {
 		if (world == null) return;
 		World w = ((CraftWorld) world).getHandle();
 		if (w == null) return;
-		this.queue(new Packet51MapChunk(this.x * 16, 0, this.z * 16, 16, 128, 16, w));
 		Chunk c = w.getChunkAt(this.x, this.z);
 		if (c == null) return;
+		this.queue(new Packet51MapChunk(this.x * 16, 0, this.z * 16, 16, 128, 16, c.world));
 		for (Object o : c.tileEntities.values()) {
 			if (o instanceof TileEntity) {
 				this.queue(((TileEntity) o).l());
 			}
 		}
 	}
-	
+		
 	public void send(Player to) {
 		synchronized (this.toSend) {
 			NLPacketListener.ignorePackets = true;
@@ -118,7 +125,7 @@ public class BufferedChunk {
 			NLPacketListener.ignorePackets = false;
 			hasEntireChunk = false;
 			toSend.clear();
-			this.isChunkSent = true;
+			this.isSent = true;
 		}
 	}
 	

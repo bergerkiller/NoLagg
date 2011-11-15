@@ -142,7 +142,7 @@ public class PerformanceMonitor implements Runnable {
     }
 
 	@Override
-	public void run() {		
+	public void run() {	
 		long time = System.currentTimeMillis();
 		double elapsedtimesec = (double) (time - prevtime) / 1000;
 		long totalmem = runtime.totalMemory();

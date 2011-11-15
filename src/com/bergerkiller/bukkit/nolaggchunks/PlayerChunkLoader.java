@@ -6,17 +6,42 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 public class PlayerChunkLoader {
 	private static HashMap<String, PlayerChunkBuffer> buffers = new HashMap<String, PlayerChunkBuffer>();
 	
-	
+	public static PlayerChunkBuffer[] getBuffersNear(net.minecraft.server.Chunk chunk) {
+		return getBuffersNear(chunk.world.getWorld(), chunk.x, chunk.z);
+	}
+	public static PlayerChunkBuffer[] getBuffersNear(Chunk chunk) {
+		return getBuffersNear(chunk.getWorld(), chunk.getX(), chunk.getZ());
+	}
+	public static PlayerChunkBuffer[] getBuffersNear(World world, int cx, int cz) {
+		synchronized (buffers) {
+			ArrayList<PlayerChunkBuffer> rval = new ArrayList<PlayerChunkBuffer>(buffers.size());
+			for (PlayerChunkBuffer b : buffers.values()) {
+				if (b.world != world) continue;
+				int dx = b.x - cx;
+				if (dx > PlayerChunkBuffer.maxview) continue;
+				if (dx < -PlayerChunkBuffer.maxview) continue;
+				int dz = b.z - cz;
+				if (dz > PlayerChunkBuffer.maxview) continue;
+				if (dz < -PlayerChunkBuffer.maxview) continue;
+				rval.add(b);
+			}
+			return rval.toArray(new PlayerChunkBuffer[0]);
+		}
+	}
 	public static PlayerChunkBuffer getBuffer(Player player) {
+		if (buffers == null) return null;
 		synchronized (buffers) {
 			PlayerChunkBuffer loader = buffers.get(player.getName());
 			if (loader == null) {
@@ -27,6 +52,7 @@ public class PlayerChunkLoader {
 		}
 	}
 	public static void remove(Player player) {
+		if (buffers == null) return;
 		synchronized (buffers) {
 			buffers.remove(player.getName());
 		}
@@ -102,6 +128,7 @@ public class PlayerChunkLoader {
 	 */
 	private static int taskid = -1;
 	public static void init() {
+		if (buffers == null) return;
 		synchronized (buffers) {
 			if (buffers.size() > 0) {
 				NoLaggChunks.log(Level.INFO, "Queueing player chunks...");
@@ -113,6 +140,7 @@ public class PlayerChunkLoader {
 		}
 		taskid = NoLaggChunks.plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(NoLaggChunks.plugin, new Runnable() {
 			public void run() {
+				if (buffers == null) return;
 				synchronized (buffers) {
 					for (PlayerChunkBuffer buffer : buffers.values()) {
 						buffer.sendNext();
@@ -124,6 +152,10 @@ public class PlayerChunkLoader {
 	public static void deinit() {
 		if (taskid != -1) {
 			NoLaggChunks.plugin.getServer().getScheduler().cancelTask(taskid);
+		}
+		if (buffers != null) {
+			buffers.clear();
+			buffers = null;
 		}
 	}
 	

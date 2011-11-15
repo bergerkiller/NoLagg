@@ -5,10 +5,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.WeakHashMap;
 
-import org.bukkit.Bukkit;
+import net.minecraft.server.WorldServer;
+
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
@@ -147,27 +149,47 @@ public class SpawnHandler {
 		return handleSpawn(event.getVehicle());
 	}
 		
-	public static void update() {
+	public static void reset() {
+		if (!NoLagg.useSpawnLimits) return;
 		if (worldLimits == null || globalLimits == null) return;
-		//Clear old limit counts
 		for (SpawnLimiter limiter : worldLimits.values()) {
 			limiter.reset();
 		}
 		globalLimits.reset();
-		//Update spawned creatures
-		for (World w : Bukkit.getServer().getWorlds()) {
-			List<Entity> entities = w.getEntities();
-			for (Entity e : entities) {
-				if (e instanceof LivingEntity) {
-					handleSpawn(e);
+	}
+		
+	public static void update(WorldServer ws, List<Entity> entities) {
+		if (!NoLagg.useSpawnLimits) return;
+		if (worldLimits == null || globalLimits == null) return;
+		SpawnLimiter limiter = getWorldLimits(ws.getWorld().getName());
+		for (Entity e : entities) {
+			if (e instanceof Player) continue;
+			if (e instanceof LivingEntity) {
+				if (spawnIgnore.containsKey(e)) continue;
+				if (globalLimits.canSpawn(e)) {
+					if (limiter.canSpawn(e)) {
+						limiter.addSpawn(e);
+						globalLimits.addSpawn(e);
+					} else {
+						e.remove();
+					}
 				}
 			}
-			Collections.reverse(entities);
-			for (Entity e : entities) {
-				if (!(e instanceof LivingEntity)) {
-					handleSpawn(e);
+		}
+		Collections.reverse(entities);
+		for (Entity e : entities) {
+			if (!(e instanceof LivingEntity)) {
+				if (spawnIgnore.containsKey(e)) continue;
+				if (globalLimits.canSpawn(e)) {
+					if (limiter.canSpawn(e)) {
+						limiter.addSpawn(e);
+						globalLimits.addSpawn(e);
+					} else {
+						e.remove();
+					}
 				}
 			}
 		}
 	}
+	
 }

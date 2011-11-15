@@ -1,11 +1,16 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
+import net.minecraft.server.Entity;
 import net.minecraft.server.EntityPlayer;
+import net.minecraft.server.Packet;
+import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.TileEntity;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -149,7 +154,7 @@ public class ChunkHandler {
 	public static net.minecraft.server.Chunk getNative(Chunk chunk) {
 		return ((CraftChunk) chunk).getHandle();
 	}
-	public static net.minecraft.server.World getNative(World world) {
+	public static net.minecraft.server.WorldServer getNative(World world) {
 		return ((CraftWorld) world).getHandle();
 	}
 	
@@ -157,6 +162,7 @@ public class ChunkHandler {
 		return "[" + chunk.getX() + "/" + chunk.getZ() + "/" + chunk.getWorld().getName() + "]";
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public static void unload(Chunk chunk) {
 		if (!chunk.isLoaded()) {
 			chunks.remove(chunk);
@@ -167,7 +173,21 @@ public class ChunkHandler {
 				if (AsyncSaving.enabled) {
 					net.minecraft.server.Chunk c = getNative(chunk);
 					if (chunk.unload(false)) {
-						c.removeEntities();
+						//clear the chunk from unwanted entities
+						Entity e = null;
+						for (int i = 0; i < c.entitySlices.length; i++) {
+							for (int j = 0; j < c.entitySlices[i].size(); j++) {
+								e = (Entity) c.entitySlices[i].get(j);
+								e.dead = true;
+							}
+							c.entitySlices[i].clear();
+						}
+				        Iterator iterator = c.tileEntities.values().iterator();
+				        while (iterator.hasNext()) {
+				            TileEntity tileentity = (TileEntity) iterator.next();
+				            c.world.a(tileentity);
+				        }
+				        c.tileEntities.clear();
 						AsyncSaving.scheduleSave(c);
 					}
 					return;
@@ -218,7 +238,26 @@ public class ChunkHandler {
 			return false;
 		}
 	}
-
+	
+	public static boolean canSave(net.minecraft.server.Chunk chunk) {
+		return chunk.a(false) && chunk.world.getWorld().isAutoSave();
+	}
+	
+	public static Packet[] getChunkPackets(net.minecraft.server.Chunk c) {
+		ArrayList<Packet> toSend = new ArrayList<Packet>(c.tileEntities.size() + 1);
+		byte[] data = new byte[81920];
+		c.getData(data, 0, 0, 0, 16, 128, 16, 0);
+		toSend.add(new Packet51MapChunk(c.x * 16, 0, c.z * 16, 16, 128, 16, data));
+		//prepare the tile entity packets from this chunk
+		for (Object o : c.tileEntities.values()) {
+			if (o instanceof TileEntity) {
+				Packet p = ((TileEntity) o).l();
+				if (p != null) toSend.add(p);
+			}
+		}
+		return toSend.toArray(new Packet[0]);
+	}
+	
 	public static void cleanUp() {
 		if (chunks == null) return;
 		if (NoLagg.useChunkUnloadDelay) {			
@@ -231,7 +270,6 @@ public class ChunkHandler {
 				if (isPlayerNear(c)) {
 					entry.setValue(time);
 				} else if (isExpired(entry.getValue(), time)) {
-					//queueUnload(c);
 					toUnload.add(c);
 				}
 			}
@@ -241,7 +279,7 @@ public class ChunkHandler {
 			}
 		}
 	}
-
+	
 	public static void init() {
 		if (!NoLagg.useChunkUnloadDelay) return;
 		long time = System.currentTimeMillis();
