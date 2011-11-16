@@ -60,6 +60,8 @@ public class NoLaggChunks extends JavaPlugin {
 	public void onDisable() {
 		PlayerChunkLoader.saveSentChunks(new File(getDataFolder() + File.separator + "chunks.tmp"));
 		PlayerChunkLoader.deinit();
+		Compression.deinit();
+		//remove the tasks
 		System.out.println("[NoLagg] chunk handler disabled!");
 	}
 	

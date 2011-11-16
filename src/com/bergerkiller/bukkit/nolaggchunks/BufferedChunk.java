@@ -21,6 +21,9 @@ public class BufferedChunk {
 	public BufferedChunk(int cx, int cz) {
 		this.x = cx;
 		this.z = cz;
+		this.trigger.a = this.x * 16;
+		this.trigger.b = 0;
+		this.trigger.c = this.z * 16;
 	}
 		
 	private boolean hasEntireChunk = false;
@@ -29,6 +32,8 @@ public class BufferedChunk {
 	public int x, z;
 	private boolean isSent = false;
 	private long chunkTime = Long.MIN_VALUE;
+	private boolean needsCompression = false;
+	private Packet53BlockChange trigger = new Packet53BlockChange();
 	
 	public static boolean isChunk(Packet packet) {
 		if (packet instanceof Packet51MapChunk) {
@@ -64,11 +69,20 @@ public class BufferedChunk {
 			return this.toSend.size() == 0;
 		}
 	}
+	public boolean needsCompression() {
+		return this.needsCompression;
+	}
 	
 	public void clear() {
 		synchronized (this.toSend) {
 			this.toSend.clear();
+			this.needsCompression = false;
 		}
+	}
+	
+	private void setTrigger(Packet51MapChunk packet) {
+		this.trigger.material = packet.rawData[0] & 255;
+		this.trigger.data = packet.rawData[32768] & 15;
 	}
 	
 	public void queue(Packet packet) {
@@ -77,7 +91,9 @@ public class BufferedChunk {
 			if (isBlockChange(packet)) {
 				if (packet.timestamp <= chunkTime) return;
 				if (isChunk(packet)) {
-					chunkTime = packet.timestamp;
+					//settings
+					this.setTrigger((Packet51MapChunk) packet);
+					this.chunkTime = packet.timestamp;
 					this.hasEntireChunk = true;
 					this.isSent = false;
 					//remove all packets before this chunk
@@ -92,8 +108,11 @@ public class BufferedChunk {
 					}
 				}
 			}
+			if (!packet.k && !this.needsCompression) {
+				this.needsCompression = true;
+				Compression.schedule(this);
+			}
 			toSend.add(packet);
-			
 		}
 	}
 	public void queueChunk(org.bukkit.World world) {
@@ -110,6 +129,43 @@ public class BufferedChunk {
 		}
 	}
 		
+	public void compress() {
+		if (this.needsCompression) {
+			synchronized (this.toSend) {
+				for (Packet p : this.toSend) {
+					if (!p.k) {
+						if (p instanceof Packet51MapChunk) {
+							compress((Packet51MapChunk) p);
+						}
+					}
+				}
+				this.needsCompression = false;
+			}
+		}
+	}
+	
+	private static void compress(Packet51MapChunk packet) {
+		if (packet.g != null) return;
+        int dataSize = packet.rawData.length;
+        Deflater deflater = new Deflater();
+        byte[] deflateBuffer = new byte[dataSize + 100];
+        
+        deflater.reset();
+        deflater.setLevel(dataSize < 20480 ? 1 : 6);
+        deflater.setInput(packet.rawData);
+        deflater.finish();
+        int size = deflater.deflate(deflateBuffer);
+        if (size == 0) {
+            size = deflater.deflate(deflateBuffer);
+        }
+
+        // copy compressed data to packet
+        packet.g = new byte[size];
+        packet.h = size;
+        System.arraycopy(deflateBuffer, 0, packet.g, 0, size);
+        packet.rawData = null;
+	}
+	
 	public void send(Player to) {
 		synchronized (this.toSend) {
 			NLPacketListener.ignorePackets = true;
@@ -121,7 +177,8 @@ public class BufferedChunk {
 					System.out.println("[NoLaggChunks] Failed to send '" + p.getClass().getSimpleName() + "' to '" + to.getName() + "'!");
 					ex.printStackTrace();
 				}
-			}
+			}	
+			send(to, this.trigger);
 			NLPacketListener.ignorePackets = false;
 			hasEntireChunk = false;
 			toSend.clear();
@@ -136,23 +193,7 @@ public class BufferedChunk {
 				Packet51MapChunk p = (Packet51MapChunk) packet;
 				if (!p.k && p.g == null) {
 					//To prevent npe's: compress
-			        int dataSize = p.rawData.length;
-			        Deflater deflater = new Deflater();
-			        byte[] deflateBuffer = new byte[dataSize + 100];
-			        
-			        deflater.reset();
-			        deflater.setLevel(dataSize < 20480 ? 1 : 6);
-			        deflater.setInput(p.rawData);
-			        deflater.finish();
-			        int size = deflater.deflate(deflateBuffer);
-			        if (size == 0) {
-			            size = deflater.deflate(deflateBuffer);
-			        }
-
-			        // copy compressed data to packet
-			        p.g = new byte[size];
-			        p.h = size;
-			        System.arraycopy(deflateBuffer, 0, p.g, 0, size);
+					compress(p);
 				}
 			}
 			

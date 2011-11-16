@@ -7,6 +7,8 @@ import org.bukkit.event.world.WorldListener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
+import com.bergerkiller.bukkit.nolagg.ChunkOperation.Type;
+
 public class NLWorldListener extends WorldListener {
 
 	@Override
@@ -37,7 +39,7 @@ public class NLWorldListener extends WorldListener {
 	
 	@Override
 	public void onChunkPopulate(ChunkPopulateEvent event) {
-		AsyncSaving.scheduleLightingFix(event.getChunk());
+		ChunkScheduler.schedule(event, Type.LIGHTING);
 	}
 
 	

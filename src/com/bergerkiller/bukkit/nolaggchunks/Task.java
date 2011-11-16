@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -7,7 +8,7 @@ public class Task implements Runnable {
     private JavaPlugin plugin;
     private Object[] arguments;
     private int taskID = 0;
-
+    
     public static Task create(JavaPlugin plugin, Object... arguments) {
         return new Task(plugin, arguments);
     }
@@ -19,8 +20,8 @@ public class Task implements Runnable {
     public JavaPlugin getPlugin() {
         return this.plugin;
     }
-    public Server getServer() {
-        return this.plugin.getServer();
+    public static Server getServer() {
+        return Bukkit.getServer();
     }
     public Object getArg(int index) {
         return arguments[index];
@@ -46,13 +47,13 @@ public class Task implements Runnable {
     }
 
     public boolean isQueued() {
-        return this.getServer().getScheduler().isQueued(this.taskID);
+        return getServer().getScheduler().isQueued(this.taskID);
     }
     public boolean isRunning() {
-        return this.getServer().getScheduler().isCurrentlyRunning(this.taskID);
+        return getServer().getScheduler().isCurrentlyRunning(this.taskID);
     }
     public void stop() {
-        this.getServer().getScheduler().cancelTask(this.taskID);
+        getServer().getScheduler().cancelTask(this.taskID);
     }
     public void start() {
         start(false);
@@ -65,9 +66,9 @@ public class Task implements Runnable {
     }
     public void startDelayed(long tickDelay, boolean Async) {
         if (Async) {
-            this.taskID = this.getServer().getScheduler().scheduleAsyncDelayedTask(this.plugin, this, tickDelay);
+            this.taskID = getServer().getScheduler().scheduleAsyncDelayedTask(this.plugin, this, tickDelay);
         } else {
-            this.taskID = this.getServer().getScheduler().scheduleSyncDelayedTask(this.plugin, this, tickDelay);
+            this.taskID = getServer().getScheduler().scheduleSyncDelayedTask(this.plugin, this, tickDelay);
         }
     }
     public void startRepeating(long tickInterval) {
@@ -78,9 +79,9 @@ public class Task implements Runnable {
     }
     public void startRepeating(long tickDelay, long tickInterval, boolean Async) {
         if (Async) {
-            this.taskID = this.getServer().getScheduler().scheduleAsyncRepeatingTask(this.plugin, this, tickDelay, tickInterval);
+            this.taskID = getServer().getScheduler().scheduleAsyncRepeatingTask(this.plugin, this, tickDelay, tickInterval);
         } else {
-            this.taskID = this.getServer().getScheduler().scheduleSyncRepeatingTask(this.plugin, this, tickDelay, tickInterval);
+            this.taskID = getServer().getScheduler().scheduleSyncRepeatingTask(this.plugin, this, tickDelay, tickInterval);
         }
     }
 

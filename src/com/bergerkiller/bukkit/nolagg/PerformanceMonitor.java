@@ -127,6 +127,14 @@ public class PerformanceMonitor implements Runnable {
 		logger.write(message);
 		logger.newLine();
     }
+    public static boolean writeLog(String message) {
+    	try {
+    		log(message);
+    		return true;
+    	} catch (IOException ex) {
+    		return false;
+    	}
+    }
     
     private static String getTime() {
     	final SimpleDateFormat sdf = new SimpleDateFormat("H:mm:ss");
@@ -181,7 +189,7 @@ public class PerformanceMonitor implements Runnable {
 			}
 			double tps = monitorInterval / elapsedtimesec;
 			int hiddenItems = ItemHandler.getHiddenCount();
-			int savesize = AsyncSaving.getSize();
+			int savesize = ChunkScheduler.size();
 			if (sendLog && logger != null) {
 				try {
 					if (!wroteHeader) {

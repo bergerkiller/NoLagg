@@ -1,16 +1,16 @@
 package com.bergerkiller.bukkit.nolagg;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 
-import net.minecraft.server.Entity;
+import net.minecraft.server.ChunkProviderServer;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet51MapChunk;
 import net.minecraft.server.TileEntity;
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -21,6 +21,8 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+
+import com.bergerkiller.bukkit.nolagg.ChunkOperation.Type;
 
 public class ChunkHandler {
 	public static int chunkUnloadDelay;
@@ -120,7 +122,7 @@ public class ChunkHandler {
 		if (chunks == null) return;
 		if (NoLagg.useChunkUnloadDelay && !isSpawnChunk(event.getChunk())) {
 			//restore from saving if needed
-			if (AsyncSaving.enabled) AsyncSaving.fixChunk(event.getChunk());
+			ChunkScheduler.fixChunk(getNative(event.getChunk()));
 			touch(event.getChunk(), System.currentTimeMillis());
 		}
 	}
@@ -162,38 +164,18 @@ public class ChunkHandler {
 		return "[" + chunk.getX() + "/" + chunk.getZ() + "/" + chunk.getWorld().getName() + "]";
 	}
 	
-	@SuppressWarnings("rawtypes")
 	public static void unload(Chunk chunk) {
-		if (!chunk.isLoaded()) {
-			chunks.remove(chunk);
-			return;
-		}
+		chunks.remove(chunk);
+		if (!chunk.isLoaded()) return;
 		try {
-			try {
-				if (AsyncSaving.enabled) {
-					net.minecraft.server.Chunk c = getNative(chunk);
-					if (chunk.unload(false)) {
-						//clear the chunk from unwanted entities
-						Entity e = null;
-						for (int i = 0; i < c.entitySlices.length; i++) {
-							for (int j = 0; j < c.entitySlices[i].size(); j++) {
-								e = (Entity) c.entitySlices[i].get(j);
-								e.dead = true;
-							}
-							c.entitySlices[i].clear();
-						}
-				        Iterator iterator = c.tileEntities.values().iterator();
-				        while (iterator.hasNext()) {
-				            TileEntity tileentity = (TileEntity) iterator.next();
-				            c.world.a(tileentity);
-				        }
-				        c.tileEntities.clear();
-						AsyncSaving.scheduleSave(c);
-					}
-					return;
-				}
-			} catch (Exception ex) {}
-			chunk.unload();
+			net.minecraft.server.Chunk c = getNative(chunk);
+			if (c == null) return;
+			c.removeEntities();
+			ChunkProviderServer cps = ((WorldServer) c.world).chunkProviderServer;
+			cps.unloadQueue.remove(c.x, c.z);
+			cps.chunks.remove(c.x, c.z);
+			cps.chunkList.remove(c);
+			ChunkScheduler.schedule(c, Type.UNLOAD);
 		} catch (Exception ex) {
 			NoLagg.log(Level.WARNING, "Failed to unload chunk " + toString(chunk) + ":");
 			ex.printStackTrace();

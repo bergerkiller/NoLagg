@@ -1,6 +1,6 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.47
+version: 1.48
 author: bergerkiller
 softdepend: [LogBlock, NoLaggChunks]
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam

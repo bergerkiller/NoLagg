@@ -28,6 +28,8 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.bergerkiller.bukkit.nolagg.ChunkOperation.Type;
+
 public class NoLagg extends JavaPlugin {
 	public static NoLagg plugin;
 
@@ -148,38 +150,43 @@ public class NoLagg extends JavaPlugin {
 		PerformanceMonitor.init();
 		
 		updateID = getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+			List<Item> items = null;
+			List<ExperienceOrb> orbs = null;
+			List<Entity> entities = null;
 			public void run() {
-				List<Item> items = null;
-				List<ExperienceOrb> orbs = null;
-				List<Entity> entities = null;
-				if (ItemHandler.formStacks) {
-					items = new ArrayList<Item>();
-					orbs = new ArrayList<ExperienceOrb>();
-				}
-				if (useSpawnLimits) {
-					entities = new ArrayList<Entity>();
-					SpawnHandler.reset();
-				}
-				if (items != null || orbs != null || entities != null) {
-					for (WorldServer ws : EntityCounter.getWorlds()) {
-						EntityCounter.fill(ws, items, orbs, entities);
-						if (orbs != null && items != null) {
-							StackFormer.update(items, orbs);
-							orbs.clear();
-							items.clear();
-						}
-						if (entities != null) {
-							SpawnHandler.update(ws, entities);
-							entities.clear();
+				try {
+					if (ItemHandler.formStacks) {
+						if (items != null) items = new ArrayList<Item>();
+						if (orbs != null) orbs = new ArrayList<ExperienceOrb>();
+					}
+					if (useSpawnLimits) {
+						if (entities != null) entities = new ArrayList<Entity>();
+						SpawnHandler.reset();
+					}
+					if (items != null || orbs != null || entities != null) {
+						for (WorldServer ws : Util.getWorlds()) {
+							Util.fillEntities(ws, items, orbs, entities);
+							if (orbs != null && items != null) {
+								StackFormer.update(items, orbs);
+								orbs.clear();
+								items.clear();
+							}
+							if (entities != null) {
+								SpawnHandler.update(ws, entities);
+								entities.clear();
+							}
 						}
 					}
+					ItemHandler.update();
+					ChunkHandler.cleanUp();
+				} catch (Throwable t) {
+					log(Level.SEVERE, "An error occured while performing a routine update:");
+					t.printStackTrace();
 				}
-				ItemHandler.update();
-				ChunkHandler.cleanUp();
 			}
 		}, 0, updateInterval);
 				
-		AsyncSaving.startSaving();
+		ChunkScheduler.init();
 		
 		getCommand("nolagg").setExecutor(this);
 		
@@ -197,7 +204,7 @@ public class NoLagg extends JavaPlugin {
 		ChunkHandler.deinit();
 		SpawnHandler.deinit();
 		PerformanceMonitor.deinit();
-		AsyncSaving.stopSaving();
+		ChunkScheduler.deinit();
 		AsyncAutoSave.deinit();
 		AutoSaveChanger.deinit();
 		System.out.println("NoLagg disabled!");
@@ -387,7 +394,7 @@ public class NoLagg extends JavaPlugin {
 					for (int a = -radius; a <= radius; a++) {
 						for (int b = -radius; b <= radius; b++) {
 							Chunk c = p.getWorld().getChunkAt(cx + a, cz + b);
-							AsyncSaving.scheduleLightingFix(c);
+							ChunkScheduler.schedule(c, Type.LIGHTING);
 						} 
 					}
 					p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");

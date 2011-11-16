@@ -54,7 +54,7 @@ public class AutoSaveChanger {
 	
  	private static void set(World world, int value) {
 		if (saveInterval != null) {
-			if (AsyncSaving.enabled) {
+			if (AsyncAutoSave.enabled) {
 				value = Integer.MAX_VALUE;
 			}
 			try {

@@ -126,7 +126,8 @@ public class PlayerChunkLoader {
 	/*
 	 * Task init and deinit
 	 */
-	private static int taskid = -1;
+	private static Thread mainthread;
+	private static boolean enabled = false;
 	public static void init() {
 		if (buffers == null) return;
 		synchronized (buffers) {
@@ -138,21 +139,42 @@ public class PlayerChunkLoader {
 				NoLaggChunks.log(Level.INFO, "Player chunks queued and will be sent shortly.");
 			}
 		}
-		taskid = NoLaggChunks.plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(NoLaggChunks.plugin, new Runnable() {
+		enabled = true;
+		mainthread = new Thread() {
 			public void run() {
-				if (buffers == null) return;
-				synchronized (buffers) {
-					for (PlayerChunkBuffer buffer : buffers.values()) {
-						buffer.sendNext();
+				long time;
+				while (enabled && !this.isInterrupted()) {
+					try {
+						time = System.currentTimeMillis();
+						//======================================
+						synchronized (buffers) {
+							for (PlayerChunkBuffer buffer : buffers.values()) {
+								buffer.sendNext();
+							}
+						}
+						//======================================
+						//use remaining time for compression - sync to a duration of 50ms
+						//use a buffer of 10 ms
+						while (System.currentTimeMillis() - time <= 40 && Compression.execute());
+						//sleep for the remaining time
+						time = 50 - (System.currentTimeMillis() - time);
+						if (time < 10) time = 10;
+						Thread.sleep(time);
+					} catch (InterruptedException ex) {
+					} catch (Exception ex) {
+						if (enabled) {
+							NoLaggChunks.log(Level.SEVERE, "Failed to perform routine chunk processing:");
+							ex.printStackTrace();
+						}
 					}
 				}
 			}
-		}, 0, 1);
+		};
+		mainthread.start();
 	}
 	public static void deinit() {
-		if (taskid != -1) {
-			NoLaggChunks.plugin.getServer().getScheduler().cancelTask(taskid);
-		}
+		enabled = false;
+		mainthread = null;
 		if (buffers != null) {
 			buffers.clear();
 			buffers = null;
