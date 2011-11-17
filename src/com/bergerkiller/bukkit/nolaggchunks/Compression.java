@@ -26,10 +26,7 @@ public class Compression {
 			while (true) {
 				BufferedChunk bc = toCompress.poll();
 				if (bc == null) return false;
-				if (bc.needsCompression()) {
-					bc.compress();
-					return true;
-				}
+				if (bc.compress()) return true;
 			}
 		}
 	}

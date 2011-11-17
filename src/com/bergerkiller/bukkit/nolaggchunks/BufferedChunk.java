@@ -129,23 +129,27 @@ public class BufferedChunk {
 		}
 	}
 		
-	public void compress() {
+	public boolean compress() {
 		if (this.needsCompression) {
+			boolean comp = false;
 			synchronized (this.toSend) {
 				for (Packet p : this.toSend) {
-					if (!p.k) {
+					if (p.k) {
 						if (p instanceof Packet51MapChunk) {
 							compress((Packet51MapChunk) p);
+							comp = true;
 						}
 					}
 				}
-				this.needsCompression = false;
 			}
+			this.needsCompression = false;
+			return comp;
 		}
+		return false;
 	}
 	
 	private static void compress(Packet51MapChunk packet) {
-		if (packet.g != null) return;
+		if (packet.g != null || !packet.k) return;
         int dataSize = packet.rawData.length;
         Deflater deflater = new Deflater();
         byte[] deflateBuffer = new byte[dataSize + 100];
@@ -164,6 +168,7 @@ public class BufferedChunk {
         packet.h = size;
         System.arraycopy(deflateBuffer, 0, packet.g, 0, size);
         packet.rawData = null;
+        packet.k = false;
 	}
 	
 	public void send(Player to) {
@@ -191,7 +196,7 @@ public class BufferedChunk {
 		try {				
 			if (packet instanceof Packet51MapChunk) {
 				Packet51MapChunk p = (Packet51MapChunk) packet;
-				if (!p.k && p.g == null) {
+				if (p.g == null) {
 					//To prevent npe's: compress
 					compress(p);
 				}
@@ -206,11 +211,11 @@ public class BufferedChunk {
 		}
 	}
 	
-	public static void sendChunk(Player to, int cx, int cz, boolean instant) {
+	public static void sendChunk(Player to, int cx, int cz, boolean compress) {
 		try {
 			World world = ((CraftPlayer) to).getHandle().world;
 			Packet51MapChunk packet = new Packet51MapChunk(cx * 16, 0, cz * 16, 16, 128, 16, world);
-			packet.k = !instant;
+			if (compress) compress(packet);
 			send(to, packet);
 	      
 			Chunk chunk = world.getChunkAt(cx, cz);

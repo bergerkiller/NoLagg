@@ -34,6 +34,7 @@ public class PerformanceMonitor implements Runnable {
 	private static int taskID = -1;
 	private static BufferedWriter logger;
 	private static boolean wroteHeader = false;
+	public static boolean broadcastMemoryHigh = true;
 	
 	private static File logfile;
 	
@@ -160,7 +161,11 @@ public class PerformanceMonitor implements Runnable {
 			if (usedmem > minmem) {
 				if (mem(usedmem) + 100 > mem(runtime.maxMemory())) {
 					NoLagg.log(Level.SEVERE, "Memory usage is exceeding the maximum, a server restart may be required!");
-					Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + "[NoLagg] Memory usage is exceeding the maximum, a server restart may be required!");
+					if (broadcastMemoryHigh) {
+						for (Player player : Bukkit.getServer().getOnlinePlayers()) {
+							player.sendMessage(ChatColor.DARK_RED + "[NoLagg] Memory usage is exceeding the maximum, a server restart may be required!");
+						}
+					}
 				}
 			}
 			minmem = usedmem;

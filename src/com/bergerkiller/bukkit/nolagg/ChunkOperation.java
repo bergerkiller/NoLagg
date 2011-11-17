@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import java.util.List;
 import java.util.logging.Level;
 
 import com.bergerkiller.bukkit.nolaggchunks.BufferedChunk;
@@ -9,7 +8,6 @@ import com.bergerkiller.bukkit.nolaggchunks.PlayerChunkLoader;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkProviderServer;
-import net.minecraft.server.Entity;
 import net.minecraft.server.Packet;
 
 @SuppressWarnings("rawtypes")
@@ -38,26 +36,7 @@ public class ChunkOperation implements Comparable {
 	public int getMode() {
 		return this.mode;
 	}
-	
-	private void fixEntities() {
-		//clear entities no longer in this chunk
-		for (List l : c.entitySlices) {
-			int i = 0;
-			while (i < l.size()) {
-				Entity e = (Entity) l.get(i);
-				if (((int) e.locX) >> 4 == c.x) {
-					if (((int) e.locZ) >> 4 == c.z) {
-						i++;
-						continue;
-					}
-				}
-				//move entity to other chunk
-				System.out.println("REMOVED: " + e.toString());
-				l.remove(i);
-			}
-		}
-	}
-	
+		
 	/*
 	 * Whatever needs to happen when this object is being scheduled
 	 */
@@ -80,7 +59,7 @@ public class ChunkOperation implements Comparable {
 	/*
 	 * What needs to happen when the scheduler finds this object
 	 */
-	public void execute() {
+	public void execute(boolean isFinal) {
 		//1 = fix lighting
 		//2 = save - unload mode
 		//3 = save - autosave mode
@@ -89,8 +68,9 @@ public class ChunkOperation implements Comparable {
 		if (this.mode == 1) {
 			c.h();
 			c.initLighting();
-			c.initLighting();
-
+			
+			if (isFinal) return; //Skip packet handling when reloading!
+			
 			//prepare the packets to send
 			Packet[] toSend = ChunkHandler.getChunkPackets(c);
 			

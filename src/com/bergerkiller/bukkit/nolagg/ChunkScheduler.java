@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.logging.Level;
 
 import org.bukkit.event.world.ChunkEvent;
@@ -41,8 +43,8 @@ public class ChunkScheduler extends Thread {
 	}
 	
 	private static HashMap<ChunkPosition, ChunkOperation> operations = new HashMap<ChunkPosition, ChunkOperation>();
-	private static TreeSet<ChunkOperation> input = new TreeSet<ChunkOperation>();
-	private static TreeSet<ChunkOperation> active = new TreeSet<ChunkOperation>();
+	private static LinkedList<ChunkOperation> input = new LinkedList<ChunkOperation>();
+	private static Queue<ChunkOperation> active = new LinkedList<ChunkOperation>();
 	private static int inputsize = 0;
 	private static int activesize = 0;
 	private static boolean enabled = false;
@@ -60,7 +62,9 @@ public class ChunkScheduler extends Thread {
 			if (active.size() > 0) {
 				NoLagg.log(Level.INFO, "Performing remaining chunk operations (" + active.size() + ")...");
 				try {
-					for (ChunkOperation cmd : active) cmd.execute();	
+					for (ChunkOperation cmd : active) {
+						cmd.execute(true);
+					}
 					NoLagg.log(Level.INFO, "Operations performed.");
 				} catch (Exception ex) {
 					NoLagg.log(Level.SEVERE, "Operation failed:");
@@ -72,6 +76,8 @@ public class ChunkScheduler extends Thread {
 		input = null;
 		active.clear();
 		active = null;
+		operations.clear();
+		operations = null;
 		thread = null;
 	}
 	
@@ -96,22 +102,24 @@ public class ChunkScheduler extends Thread {
 	}	
 	public static void fixChunk(Chunk chunk) {
 		ChunkOperation op = operations.get(new ChunkPosition(chunk));
-		if (op != null) ChunkHandler.transferData(op.c, chunk);
+		if (op != null && op.c != chunk) ChunkHandler.transferData(op.c, chunk);
 	}
 	public static int size() {
 		return inputsize + activesize;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static boolean transfer() {
 		if (inputsize == 0) return false;
 		if (activesize > 0) return false;
-		synchronized(input) {
-			synchronized(active) {
+		synchronized(active) {
+			synchronized(input) {
 				active.addAll(input);
 				input.clear();
 				inputsize = 0;
-				activesize = active.size();
 			}
+			Collections.sort((LinkedList<ChunkOperation>) active);
+			activesize = active.size();
 		}
 		return true;
 	}
@@ -121,14 +129,14 @@ public class ChunkScheduler extends Thread {
 		while (!this.isInterrupted() && enabled) {
 			try {
 				synchronized(active) {
-					cmd = active.pollFirst();
+					cmd = active.poll();
 					if (cmd != null) {
 						operations.remove(new ChunkPosition(cmd.c));
 						--activesize;
 					}
+					if (cmd != null) cmd.execute(false);
 				}
 				if (cmd != null) {
-					cmd.execute();
 					cmd = null;
 					Thread.sleep(5);
 				} else {

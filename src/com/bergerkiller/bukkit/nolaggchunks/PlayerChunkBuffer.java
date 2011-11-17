@@ -466,7 +466,7 @@ public class PlayerChunkBuffer {
 	public void saveSentChunks(DataOutputStream stream) throws IOException {
 		ArrayList<Chunk> sent = new ArrayList<Chunk>();
 		for (Map.Entry<Chunk, BufferedChunk> chunk : this.chunks.entrySet()) {
-			if (chunk.getValue().hasSent()) {
+			if (chunk.getValue().hasSent() && !chunk.getValue().isLocked()) {
 				sent.add(chunk.getKey());
 			}
 		}

@@ -57,14 +57,16 @@ public class ChunkHandler {
 		chunks.put(chunk, time);
 	}
 		
-	private static boolean isSpawnChunk(Chunk chunk){
+	private static boolean isUnloadable(Chunk chunk) {
+		if (!chunk.getWorld().isAutoSave()) return false;
 		if (chunk.getWorld().getKeepSpawnInMemory()) {
 			Location spawn = chunk.getWorld().getSpawnLocation();
 			int x = chunk.getX() - (spawn.getBlockX() >> 4);
 			int z = chunk.getZ() - (spawn.getBlockZ() >> 4);
-			return x >= -12 && x <= 12 && z >= -12 && z <= 12;
+			
+			return x < -12 || x > 12 || z < -12 || z > 12;
 		} else {
-			return false;
+			return true;
 		}
 	}
 	
@@ -120,7 +122,7 @@ public class ChunkHandler {
 	public static void handleLoad(ChunkLoadEvent event) {
 		loadedChunks++;
 		if (chunks == null) return;
-		if (NoLagg.useChunkUnloadDelay && !isSpawnChunk(event.getChunk())) {
+		if (NoLagg.useChunkUnloadDelay && isUnloadable(event.getChunk())) {
 			//restore from saving if needed
 			ChunkScheduler.fixChunk(getNative(event.getChunk()));
 			touch(event.getChunk(), System.currentTimeMillis());
@@ -130,7 +132,7 @@ public class ChunkHandler {
 		if (chunks == null) return;
 		if (NoLagg.useChunkUnloadDelay && !event.isCancelled()) {
 			Chunk c = event.getChunk();
-			if (isSpawnChunk(c)) {
+			if (!isUnloadable(c)) {
 				event.setCancelled(true);
 			} else if (isPlayerNear(c)) {
 				event.setCancelled(true);
@@ -167,6 +169,7 @@ public class ChunkHandler {
 	public static void unload(Chunk chunk) {
 		chunks.remove(chunk);
 		if (!chunk.isLoaded()) return;
+		if (!isUnloadable(chunk)) return;
 		try {
 			net.minecraft.server.Chunk c = getNative(chunk);
 			if (c == null) return;
@@ -267,7 +270,7 @@ public class ChunkHandler {
 		long time = System.currentTimeMillis();
 		for(org.bukkit.World world : Bukkit.getServer().getWorlds()){
 			for(Chunk chunk : world.getLoadedChunks()){
-				if (isSpawnChunk(chunk)) continue;
+				if (!isUnloadable(chunk)) continue;
 				touch(chunk, time);
 			}
 		}

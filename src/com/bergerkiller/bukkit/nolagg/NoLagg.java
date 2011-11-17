@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -7,6 +8,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.Packet29DestroyEntity;
+import net.minecraft.server.PlayerManager;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
@@ -29,6 +31,7 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.nolagg.ChunkOperation.Type;
+import com.bergerkiller.bukkit.nolaggchunks.NoLaggChunks;
 
 public class NoLagg extends JavaPlugin {
 	public static NoLagg plugin;
@@ -78,6 +81,7 @@ public class NoLagg extends JavaPlugin {
 		}, 1);
 		if (getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
 			isAddonEnabled = true;
+			NoLaggChunks.register(this);
 		}
 				
 		//General settings
@@ -99,6 +103,7 @@ public class NoLagg extends JavaPlugin {
 		StackFormer.stackRadiusSquared *= StackFormer.stackRadiusSquared;
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
 		PerformanceMonitor.monitorInterval = config.parse("monitorInterval", 40);
+		PerformanceMonitor.broadcastMemoryHigh = config.parse("broadcastMemoryHigh", true);
 		if (useSpawnLimits) {
 			//Spawn restrictions
 			ConfigurationSection slimits = config.getConfigurationSection("spawnlimits");
@@ -190,14 +195,31 @@ public class NoLagg extends JavaPlugin {
 		
 		getCommand("nolagg").setExecutor(this);
 		
+		
+		
+		
+		try {
+			Field f = PlayerManager.class.getDeclaredField("f");
+			f.setAccessible(true);
+			for (WorldServer world : Util.getWorlds()) {
+				f.set(world.manager, 3);
+			}
+			
+			
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+		
+		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();
         System.out.println(pdfFile.getName() + " version " + pdfFile.getVersion() + " is enabled!" );
 	}
 	public void onDisable() {
-		if (isAddonEnabled && !getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
-			isAddonEnabled = false;
-		}
 		getServer().getScheduler().cancelTask(updateID);
 		ItemHandler.deinit();
 		TnTHandler.deinit();

@@ -1,11 +1,13 @@
 package com.bergerkiller.bukkit.nolaggchunks;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -57,7 +59,21 @@ public class NoLaggChunks extends JavaPlugin {
         System.out.println("[NoLagg] chunk handler Spout add-on version " + pdfFile.getVersion() + " is enabled!");
 	}
 	
+	private ArrayList<String> registered = new ArrayList<String>();
+	public static void register(Plugin plug) {
+		plugin.registered.add(plug.getDescription().getName());
+	}
+	
 	public void onDisable() {
+		//Disable registered plugins first
+		PluginManager man = getServer().getPluginManager();
+		for (String pluginname : registered) {
+			Plugin plug = man.getPlugin(pluginname);
+			if (plug == null || !plug.isEnabled()) continue;
+			man.disablePlugin(plug);
+		}
+		registered.clear();
+		
 		PlayerChunkLoader.saveSentChunks(new File(getDataFolder() + File.separator + "chunks.tmp"));
 		PlayerChunkLoader.deinit();
 		Compression.deinit();
