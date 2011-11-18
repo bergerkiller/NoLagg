@@ -158,16 +158,6 @@ public class PerformanceMonitor implements Runnable {
 		long usedmem = totalmem - runtime.freeMemory();
 		long diff = usedmem - prevusedmem;
 		if (diff < 0) {
-			if (usedmem > minmem) {
-				if (mem(usedmem) + 100 > mem(runtime.maxMemory())) {
-					NoLagg.log(Level.SEVERE, "Memory usage is exceeding the maximum, a server restart may be required!");
-					if (broadcastMemoryHigh) {
-						for (Player player : Bukkit.getServer().getOnlinePlayers()) {
-							player.sendMessage(ChatColor.DARK_RED + "[NoLagg] Memory usage is exceeding the maximum, a server restart may be required!");
-						}
-					}
-				}
-			}
 			minmem = usedmem;
 		}
 		if (sendLog || sendConsole || recipients.size() > 0) {

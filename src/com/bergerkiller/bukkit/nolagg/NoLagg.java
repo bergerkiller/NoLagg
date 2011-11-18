@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -8,7 +7,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import net.minecraft.server.Packet29DestroyEntity;
-import net.minecraft.server.PlayerManager;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.Bukkit;
@@ -60,7 +58,6 @@ public class NoLagg extends JavaPlugin {
 		//General registering
 		PluginManager pm = getServer().getPluginManager();
 		pm.registerEvent(Event.Type.PLAYER_PICKUP_ITEM, playerListener, Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Monitor, this);
 		pm.registerEvent(Event.Type.CHUNK_LOAD, worldListener, Priority.Normal, this);
 		pm.registerEvent(Event.Type.CHUNK_UNLOAD, worldListener, Priority.Lowest, this);
 		pm.registerEvent(Event.Type.CHUNK_POPULATED, worldListener, Priority.Lowest, this);
@@ -103,7 +100,6 @@ public class NoLagg extends JavaPlugin {
 		StackFormer.stackRadiusSquared *= StackFormer.stackRadiusSquared;
 		StackFormer.stackThreshold = config.parse("stackThreshold", 2);
 		PerformanceMonitor.monitorInterval = config.parse("monitorInterval", 40);
-		PerformanceMonitor.broadcastMemoryHigh = config.parse("broadcastMemoryHigh", true);
 		if (useSpawnLimits) {
 			//Spawn restrictions
 			ConfigurationSection slimits = config.getConfigurationSection("spawnlimits");
@@ -161,14 +157,14 @@ public class NoLagg extends JavaPlugin {
 			public void run() {
 				try {
 					if (ItemHandler.formStacks) {
-						if (items != null) items = new ArrayList<Item>();
-						if (orbs != null) orbs = new ArrayList<ExperienceOrb>();
+						if (items == null) this.items = new ArrayList<Item>();
+						if (orbs == null) this.orbs = new ArrayList<ExperienceOrb>();
 					}
 					if (useSpawnLimits) {
-						if (entities != null) entities = new ArrayList<Entity>();
+						if (entities == null) entities = new ArrayList<Entity>();
 						SpawnHandler.reset();
 					}
-					if (items != null || orbs != null || entities != null) {
+					if (this.items != null || this.orbs != null || this.entities != null) {
 						for (WorldServer ws : Util.getWorlds()) {
 							Util.fillEntities(ws, items, orbs, entities);
 							if (orbs != null && items != null) {
@@ -194,26 +190,6 @@ public class NoLagg extends JavaPlugin {
 		ChunkScheduler.init();
 		
 		getCommand("nolagg").setExecutor(this);
-		
-		
-		
-		
-		try {
-			Field f = PlayerManager.class.getDeclaredField("f");
-			f.setAccessible(true);
-			for (WorldServer world : Util.getWorlds()) {
-				f.set(world.manager, 3);
-			}
-			
-			
-			
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		
-		
 		
         //final msg
         PluginDescriptionFile pdfFile = this.getDescription();

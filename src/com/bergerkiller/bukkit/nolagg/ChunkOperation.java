@@ -8,6 +8,7 @@ import com.bergerkiller.bukkit.nolaggchunks.PlayerChunkLoader;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkProviderServer;
+import net.minecraft.server.EnumSkyBlock;
 import net.minecraft.server.Packet;
 
 @SuppressWarnings("rawtypes")
@@ -41,7 +42,7 @@ public class ChunkOperation implements Comparable {
 	 * Whatever needs to happen when this object is being scheduled
 	 */
 	public void preexecute() {
-		if (this.mode == 0) {
+		if (this.mode == 1) {
 			if (NoLagg.isAddonEnabled) {
 				try {
 					for (PlayerChunkBuffer pcb : PlayerChunkLoader.getBuffersNear(c)) {
@@ -55,7 +56,7 @@ public class ChunkOperation implements Comparable {
 			}
 		}
 	}
-	
+		
 	/*
 	 * What needs to happen when the scheduler finds this object
 	 */
@@ -68,6 +69,44 @@ public class ChunkOperation implements Comparable {
 		if (this.mode == 1) {
 			c.h();
 			c.initLighting();
+			boolean haserror = true;
+			int loops = -1;
+			while (haserror) {
+				if (loops > 20) {
+					NoLagg.log(Level.WARNING, "Failed to fix all lighting issues in chunk [" + c.x + "/" + c.z + "/" + c.world.getWorld().getName() + "]");
+					break;
+				}
+				haserror = false;
+				loops++;
+				for (int x = 0; x < 16; x++) {
+					for (int z = 0; z < 16; z++) {
+						for (int y = 127; y > 0; y--) {
+							if (c.getTypeId(x, y, z) == 0) {
+								if (c.h.a(x, y, z) == 0) {
+									//air is all dark? Better fix this!
+									//check if nearby blocks with higher light exist
+									//subtract one from highest value
+									int wx = x + c.x * 16;
+									int wy = y;
+									int wz = z + c.z * 16;
+									int maxlight = 1;
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx + 1, wy, wz));
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx - 1, wy, wz));
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx, wy + 1, wz));
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx, wy - 1, wz));
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx, wy, wz + 1));
+									maxlight = Math.max(maxlight, c.world.getLightLevel(wx, wy, wz - 1));
+									--maxlight;
+									if (maxlight > 0) {
+										haserror = true;
+										c.h.a(x, y, z, maxlight);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			
 			if (isFinal) return; //Skip packet handling when reloading!
 			
