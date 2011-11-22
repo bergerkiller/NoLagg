@@ -77,7 +77,6 @@ public class ItemHandler {
                 
                 } else if(NoLagg.isSCSEnabled) {
                     try {
-                        System.out.println("[NoLagg] isSCSEnabled check:" + ShowCaseStandalone.get().isShowCaseItem(item));
 		        return ShowCaseStandalone.get().isShowCaseItem(item);
 			} catch (Throwable t) {
 				System.out.println("[NoLagg] ShowcaseStandalone item verification failed, contact the authors!");
