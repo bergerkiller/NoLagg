@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import com.narrowtux.showcase.Showcase;
+import com.miykeal.showCaseStandalone.ShowCaseStandalone;
 
 public class ItemHandler {
 	public static int maxItemsPerChunk;
@@ -70,6 +71,16 @@ public class ItemHandler {
 		        return Showcase.instance.getItemByDrop(item) != null;
 			} catch (Throwable t) {
 				System.out.println("[NoLagg] Showcase item verification failed, contact the authors!");
+				t.printStackTrace();
+				NoLagg.isShowcaseEnabled = false;
+			}
+                
+                } else if(NoLagg.isSCSEnabled) {
+                    try {
+                        System.out.println("[NoLagg] isSCSEnabled check:" + ShowCaseStandalone.get().isShowCaseItem(item));
+		        return ShowCaseStandalone.get().isShowCaseItem(item);
+			} catch (Throwable t) {
+				System.out.println("[NoLagg] ShowcaseStandalone item verification failed, contact the authors!");
 				t.printStackTrace();
 				NoLagg.isShowcaseEnabled = false;
 			}

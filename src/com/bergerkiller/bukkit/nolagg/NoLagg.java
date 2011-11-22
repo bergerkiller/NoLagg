@@ -45,6 +45,7 @@ public class NoLagg extends JavaPlugin {
 	public static boolean useSpawnLimits;
 	public static boolean useChunkUnloadDelay;
 	public static boolean isShowcaseEnabled = false;
+        public static boolean isSCSEnabled = false;
 	public static boolean isAddonEnabled = false;
 		
 	private static Logger logger = Logger.getLogger("Minecraft");
@@ -74,6 +75,9 @@ public class NoLagg extends JavaPlugin {
 				if (getServer().getPluginManager().isPluginEnabled("Showcase")) {
 					isShowcaseEnabled = true;
 				}
+                                if (getServer().getPluginManager().isPluginEnabled("ShowCaseStandalone")){
+                                        isSCSEnabled = true;
+                                }
 			}
 		}, 1);
 		if (getServer().getPluginManager().isPluginEnabled("NoLaggChunks")) {
