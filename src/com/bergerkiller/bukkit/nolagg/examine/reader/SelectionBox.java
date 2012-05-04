@@ -76,9 +76,9 @@ public abstract class SelectionBox extends JPanel {
 			public void mousePressed(MouseEvent arg0) {}
 			public void mouseReleased(MouseEvent arg0) {}
 			
-			
 			@Override
 			public void mouseClicked(MouseEvent e) {
+				me.setSelection(e.getY() / 26);
 				me.onItemClick(me.previndex);
 			}
 			

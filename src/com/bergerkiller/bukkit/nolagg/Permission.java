@@ -9,6 +9,7 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public enum Permission implements IPermissionDefault {
 	
+	RELOAD("nolagg.reload", PermissionDefault.OP, "Allows a player to reload NoLagg"),
 	COMMON_CLEAR("nolagg.common.clear", PermissionDefault.OP, "Allows a player to clear all entities on the server"),
 	COMMON_GC("nolagg.common.gc", PermissionDefault.OP, "Allows a player to garbage collect the server memory"),
 	CHUNKS_SENDING("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself"),

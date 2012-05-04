@@ -1,10 +1,16 @@
 package com.bergerkiller.bukkit.nolagg.examine.reader;
 
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.HierarchyBoundsListener;
 import java.awt.event.HierarchyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 
 import javax.swing.*;
 
@@ -14,8 +20,9 @@ public class MainWindow extends JFrame {
 	private GraphBox ticktimes1;
 	private SelectionBox selection;
 	public JTextField filepath;
-	public JTextArea locations;
+	public JTextArea description;
 	private JScrollPane locscroll;
+	private JPopupMenu descriptionMenu;
 	
 	public MainWindow() {
 		this(870, 572);
@@ -48,17 +55,7 @@ public class MainWindow extends JFrame {
 	}
 		
 	public void onClick(int index) {
-		if (index == -1) {
-			if (ExamReader.isSingleSelected) {
-				ExamReader.selectPlugin(ExamReader.selectedPlugin);
-			} else {
-				ExamReader.selectPlugin((PluginInfo) null);
-			}
-		} else if (ExamReader.selectedPlugin != null) {
-			ExamReader.selectSegment(index);
-		} else {
-			ExamReader.selectPlugin(this.selection.getText(index));
-		}
+		ExamReader.loadSegment(index);
 	}
 	
 	public void reset(int newduration) {
@@ -121,13 +118,55 @@ public class MainWindow extends JFrame {
             }
         });
 
-		this.locations = new JTextArea();
-		locations.setEditable(false);
+		//description box
+		this.description = new JTextArea();
+		this.description.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
+		this.description.setEditable(false);
+		this.description.getCaret().setBlinkRate(0);
+		this.description.addMouseMotionListener(new MouseMotionListener() {
+			public void mouseDragged(MouseEvent e) {}
+
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				main.description.getCaret().setVisible(true);
+			}
+		});
+		this.description.addMouseListener(new MouseListener() {
+			public void mousePressed(MouseEvent e) {}
+			public void mouseReleased(MouseEvent e) {}
+			public void mouseEntered(MouseEvent e) {}
+			public void mouseExited(MouseEvent e) {}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON3) {
+					main.descriptionMenu.show(main.description, e.getX(), e.getY());
+				}
+			}
+		});
+		
+		//popup menu with copy button for description box
+		this.descriptionMenu = this.append(new JPopupMenu());
+		this.descriptionMenu.add(new JMenuItem("Copy")).addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				main.description.copy();
+			}
+		});
+		this.descriptionMenu.add(new JMenuItem("Copy All")).addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				main.description.selectAll();
+				main.description.copy();
+			}
+		});
+		
+		//file box
 		this.filepath = this.append(new JTextField());
 		this.filepath.setBounds(110, 5, 750, 30);
 		this.filepath.setEditable(false);
 		this.filepath.setDragEnabled(false);
-		this.append(locscroll = new JScrollPane(locations)).setSize(this.selectionWidth, 200);
+		this.append(locscroll = new JScrollPane(description)).setSize(this.selectionWidth, 200);
 
 		this.setResizable(true);
 		

@@ -25,7 +25,7 @@ public abstract class Graph extends JPanel {
 		super();
 		this.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 		final Graph graph = this;
-		this.addMouseMotionListener(new MouseMotionListener() {
+		final MouseMotionListener mouselistener = new MouseMotionListener() {
 
 			public void mouseDragged(MouseEvent arg0) {}
 
@@ -55,7 +55,9 @@ public abstract class Graph extends JPanel {
 					graph.setSelection(-1);
 				}
 			}
-		});
+		};
+		
+		this.addMouseMotionListener(mouselistener);
 		this.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseWheelMoved(MouseWheelEvent event) {
@@ -76,13 +78,13 @@ public abstract class Graph extends JPanel {
 			
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
+				mouselistener.mouseMoved(arg0);
 				if (graph.selectedArea == null) {
 					graph.onAreaClick(null);
 				} else {
 					graph.onAreaClick(graph.selectedArea);
 				}
 			}
-
 		});
 	}
 	
@@ -152,7 +154,7 @@ public abstract class Graph extends JPanel {
 	private List<GraphArea> areas = new ArrayList<GraphArea>();
 	public GraphArea addArea() {
 		GraphArea area = new GraphArea(this.duration, this.areas.size());
-		this.areas.add(area);
+		this.areas.add(0, area);
 		return area;
 	}
 	public void reset(int newduration) {

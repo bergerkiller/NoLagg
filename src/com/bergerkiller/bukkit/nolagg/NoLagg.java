@@ -82,11 +82,7 @@ public class NoLagg extends PluginBase {
 					sender.sendMessage(ChatColor.GREEN + this.getName() + " version " + this.getVersion());
 					return true;
 				} else if (args[0].equalsIgnoreCase("reload")) {
-					if (sender instanceof Player) {
-						if (!sender.isOp() && !sender.hasPermission("nolagg.reload")) {
-							throw new NoPermissionException();
-						}
-					}
+					Permission.RELOAD.handle(sender);
 					
 					//check if all components are still enabled
 					FileConfiguration config = new FileConfiguration(this);
