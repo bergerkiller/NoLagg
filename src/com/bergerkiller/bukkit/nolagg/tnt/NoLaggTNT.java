@@ -15,7 +15,6 @@ public class NoLaggTNT extends NoLaggComponent {
 	
 	@Override
 	public void onReload(ConfigurationNode config) {
-		config.setHeader("This is the configuration of NoLaggTNT\n");
 		config.setHeader("detonationInterval", "The interval (in ticks) at which TNT is detonated by explosions");
 		config.setHeader("detonationRate", "How many TNT is detonated by explosions per interval");
 		config.setHeader("explosionRadiusFactor", "The explosion crater size factor");

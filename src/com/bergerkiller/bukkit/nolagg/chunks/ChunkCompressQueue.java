@@ -129,11 +129,19 @@ public class ChunkCompressQueue {
         synchronized (this.toSend) {
         	if (this.toSend.isEmpty()) return null;
         	ChunkSendCommand cmd = this.toSend.poll();
-        	if (!this.isNear(cmd.chunk)) {
+        	if (this.isNear(cmd.chunk)) {
+        		// In range of dynamic view?
+        		if (DynamicViewDistance.isNear(this.owner, cmd.chunk.x, cmd.chunk.z)) {
+        			return cmd;
+        		} else {
+        			// There is no near command available, put back
+        			this.toSend.offerLast(cmd);
+        			return null;
+        		}
+        	} else {
         		this.owner.removeContained(cmd.chunk.x, cmd.chunk.z);
         		return this.pollSendCommand(); 
         	}
-        	return cmd;
         }
     }
     public boolean sendNext() {

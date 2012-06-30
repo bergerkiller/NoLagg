@@ -33,6 +33,7 @@ import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet53BlockChange;
 import net.minecraft.server.World;
+import net.minecraft.server.WorldServer;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ChunkSendQueue extends LinkedList {
@@ -218,6 +219,7 @@ public class ChunkSendQueue extends LinkedList {
 	private int intervalcounter = 200;
 	private int triggerintervalcounter = 200;
 	private int buffersizeavg = 0;
+	private int idleTicks = 0;
 	public String getBufferLoadMsg() {
 		double per = MathUtil.round(100D * this.buffersizeavg / getMaxQueueSize(), 2);
 		if (this.buffersizeavg > 300000) {
@@ -273,6 +275,11 @@ public class ChunkSendQueue extends LinkedList {
 		} else {
 			this.buffersizeavg += 0.3 * (this.packetBufferQueueSize - this.buffersizeavg);
 		}
+		if (this.idleTicks > 0) {
+			this.idleTicks--;
+			return;
+		}
+		
 		if (super.size() == 0 && !this.chunkQueue.canSend()) return;
 		double newrate = this.rate.get();
 		if (this.packetBufferQueueSize > this.maxQueueSize) {
@@ -350,13 +357,23 @@ public class ChunkSendQueue extends LinkedList {
 		for (int i = 0; i < count; i++) {
 			ChunkCoordIntPair pair = this.pollPair();
 			if (pair == null) break;
-			this.chunkQueue.enqueue(this.ep.world.getChunkAt(pair.x, pair.z));
+			this.chunkQueue.enqueue(((WorldServer) this.ep.world).chunkProviderServer.getChunkAt(pair.x, pair.z));
 		}
-						
+
 		//send chunks
-		for (int i = 0; i < count && this.chunkQueue.sendNext(); i++);
+		for (int i = 0; i < count; i++) {
+			if (!this.chunkQueue.sendNext()) {
+				// Wait a few ticks to make chunks visible
+				this.idle(4);
+				break;
+			}
+		}
 	}
-			
+
+	public void idle(int ticks) {
+		this.idleTicks += ticks;
+	}
+
 	public boolean containsAll(Collection coll) {
 		synchronized (this) {
 			for (Object o : coll) {

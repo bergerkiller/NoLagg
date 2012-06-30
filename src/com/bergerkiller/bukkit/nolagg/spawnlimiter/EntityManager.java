@@ -29,7 +29,10 @@ public class EntityManager {
 
 			@Override
 			public void handle(WorldServer world) {
-				listeners.put(world.getWorld(), new WorldListener(world));
+				EntityWorldWatcher listener = new EntityWorldWatcher(world);
+				if (listener.enable()) {
+					listeners.put(world.getWorld(), listener);
+				}
 				this.doEntities(world);
 			}
 
@@ -69,7 +72,10 @@ public class EntityManager {
 	public static void init(World world) {
 		if (WorldListener.isValid()) {
 			WorldServer ws = WorldUtil.getNative(world);
-			listeners.put(world, new WorldListener(ws));
+			EntityWorldWatcher listener = new EntityWorldWatcher(ws);
+			if (listener.enable()) {
+				listeners.put(world, listener);
+			}
 			new Operation(world) {
 				@Override
 				public void run() {
@@ -91,7 +97,12 @@ public class EntityManager {
 				if (bentity instanceof Item && ItemUtil.isIgnored(bentity)) {
 					SpawnHandler.ignoreSpawn(bentity);
 				} else {
-					return SpawnHandler.getEntityLimits(bentity).handleSpawn();
+					if (SpawnHandler.getEntityLimits(bentity).handleSpawn()) {
+						return true;
+					} else {
+						entities.remove(entity);
+						return false;
+					}
 				}
 			}
 		}

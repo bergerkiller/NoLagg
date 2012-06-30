@@ -1,7 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.itembuffer;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.bukkit.World;
 
@@ -16,7 +16,7 @@ import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityItem;
 
 public class ItemMap {
-	private static Map<Chunk, ChunkItems> items = new HashMap<Chunk, ChunkItems>();
+	private static Map<Chunk, ChunkItems> items = new WeakHashMap<Chunk, ChunkItems>();
 	private static Task updateTask;
 	
 	public static ChunkCoordIntPair getChunkCoords(EntityItem item) {
@@ -72,22 +72,18 @@ public class ItemMap {
 		Task.stop(updateTask);
 	}
 	
-	public static int currentUnloadX = Integer.MAX_VALUE;
-	public static int currentUnloadZ = Integer.MAX_VALUE;
+	public static ChunkCoordIntPair currentUnload = null;
 	
 	public static void unloadChunk(org.bukkit.Chunk chunk) {
 		unloadChunk(WorldUtil.getNative(chunk));
 	}
 	public static void unloadChunk(Chunk chunk) {
-		currentUnloadX = chunk.x;
-		currentUnloadZ = chunk.z;
+		currentUnload = new ChunkCoordIntPair(chunk.x, chunk.z);
 		ChunkItems citems = items.remove(chunk);
 		if (citems != null) {
 			citems.deinit();
-			items.remove(chunk);
 		}
-		currentUnloadX = Integer.MAX_VALUE;
-		currentUnloadZ = Integer.MAX_VALUE;
+		currentUnload = null;
 	}
 	
 	public static void loadChunk(org.bukkit.Chunk chunk) {
@@ -105,7 +101,7 @@ public class ItemMap {
 	}
 	public static boolean addItem(ChunkCoordIntPair coords, EntityItem item) {
 		if (item == null) return true;
-		if (coords.x == currentUnloadX && coords.z == currentUnloadZ) {
+		if (currentUnload != null && coords.x == currentUnload.x && coords.z == currentUnload.z) {
 			return true;
 		}
 		return addItem(item.world.getChunkAt(coords.x, coords.z), item);
@@ -129,7 +125,7 @@ public class ItemMap {
 	}
 	public static void removeItem(ChunkCoordIntPair coords, EntityItem item) {
 		if (item == null) return;
-		if (coords.x == currentUnloadX && coords.z == currentUnloadZ) {
+		if (currentUnload != null && coords.x == currentUnload.x && coords.z == currentUnload.z) {
 			return;
 		}
 		removeItem(item.world.getChunkAt(coords.x, coords.z), item);

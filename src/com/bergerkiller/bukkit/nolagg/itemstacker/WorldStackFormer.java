@@ -40,6 +40,8 @@ public class WorldStackFormer implements Runnable {
 			if (isProcessing) return;
 			
 			//fill the collections with new items and orbs again
+			items.clear();
+			orbs.clear();
 			items.addAll(this.watcher.items);
 			orbs.addAll(this.watcher.orbs);
 		}
@@ -62,7 +64,6 @@ public class WorldStackFormer implements Runnable {
 				near.clear();
 			}
 		}
-		orbs.clear();
 	}	
 
 	private void kill(Entity entity) {
@@ -96,7 +97,6 @@ public class WorldStackFormer implements Runnable {
 				near.clear();
 			}
 		}
-		items.clear();
 	}
 
 	@SuppressWarnings("rawtypes")

@@ -1,23 +1,31 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
+import java.util.Arrays;
 import java.util.logging.Level;
+
+import net.minecraft.server.WorldServer;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
+import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
 
+/*
+ * Important note:
+ * The classes in the antiloader package ensure that chunks are NOT loaded by the Player Instance objects
+ * Instead the sending queue is used to load the chunks. If any of the many component fail to initialize, this is not active.
+ */
 public class NoLaggChunks extends NoLaggComponent {
-
 	public static NoLaggChunks plugin;
-	
 	public static boolean isOreObfEnabled = false;
 	public static boolean isRawCritOrbEnabled = false;
 	public static boolean isSpoutEnabled = false;
@@ -60,11 +68,23 @@ public class NoLaggChunks extends NoLaggComponent {
 		config.setHeader("triggerRate", "The rate at which chunks are 'triggered' (refreshed, make visible) (trigger packets/tick)");
 		config.setHeader("bufferedLoader.enabled", "Whether or not to use the buffered packet loader to reduce new memory allocation");
 		config.setHeader("bufferedLoader.threadCount", "The amount of threads to use to compress the chunk packets (increase if it can't keep up)");
+
+		config.setHeader("dynamicView", "Sets multiple view distances for different amounts of loaded chunks (chunk_count: view_chunks)");
+		config.addHeader("dynamicView", "To disable, remove all chunk: view nodes. The view is smoothed out between nodes");
+		config.addHeader("dynamicView", "The dynamic view distance will never be higher than the server view distance!");
+
 		ChunkSendQueue.minRate = config.get("minRate", 0.25);
 		ChunkSendQueue.maxRate = config.get("maxRate", 2.00);
 		ChunkSendQueue.globalTriggerRate = config.get("triggerRate", 0.5);
 		useBufferedLoading = config.get("bufferedLoader.enabled", true);
 		ChunkCompressionThread.init(config.get("bufferedLoader.threadCount", 2));
+
+		if (!config.contains("dynamicView")) {
+			// Generate default views
+			config.set("dynamicView", Arrays.asList("0 = 13", "5000 = 13", "10000 = 13", "60000 = 13"));
+		}
+
+		DynamicViewDistance.init(config.getList("dynamicView", String.class));
 	}
 
 	public void onEnable(ConfigurationNode config) {
@@ -72,11 +92,20 @@ public class NoLaggChunks extends NoLaggComponent {
 		this.register(NLCListener.class);
 		this.onReload(config);
 		ChunkSendQueue.init();
+		new Operation() {
+			public void run() {
+				this.doWorlds();
+			}
+			public void handle(WorldServer world) {
+				DummyManager.convert(world);
+			}
+		};
 	}
 
 	public void onDisable(ConfigurationNode config) {
 		ChunkSendQueue.deinit();
 		ChunkCompressionThread.deinit();
+		DummyManager.revert();
 	}
 
 	@Override

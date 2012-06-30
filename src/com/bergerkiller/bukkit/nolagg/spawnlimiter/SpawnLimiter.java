@@ -25,7 +25,12 @@ public class SpawnLimiter {
 		this.count++;
 	}
 	public void despawn() {
-		if (this.count-- < 0) this.count = 0;
+		this.count--;
+		if (this.count < 0) this.count = 0;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "[" + this.count + "/" + this.limit + "]";
+	}
 }

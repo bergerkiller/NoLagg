@@ -9,7 +9,8 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.ItemSpawnEvent;
-import org.bukkit.event.world.WorldInitEvent;
+import org.bukkit.event.vehicle.VehicleCreateEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -18,7 +19,7 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 public class NLSLListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onWorldInit(WorldInitEvent event) {
+	public void onWorldLoad(WorldLoadEvent event) {
 		EntityManager.init(event.getWorld());
 	}
 
@@ -41,6 +42,17 @@ public class NLSLListener implements Listener {
 		}
 	}
 
+	private long prevSpawnWave = System.currentTimeMillis();
+	private static long spawnWaitTime = 3000; //how many msecs to wait spawning
+	private static long spawnTime = 1000; //how many msecs to allow spawning
+
+//	@EventHandler(priority = EventPriority.HIGHEST)
+//	public void onVehicleSpawn(VehicleCreateEvent event) {
+//		if (!EntityManager.addEntity(EntityUtil.getNative(event.getVehicle()))) {
+//			event.getVehicle().remove();
+//		}
+//	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		if (!event.isCancelled()) {
@@ -48,6 +60,16 @@ public class NLSLListener implements Listener {
 				SpawnHandler.ignoreSpawn(event.getEntity());
 			} else if (event.getSpawnReason() == SpawnReason.SPAWNER) {
 				SpawnHandler.mobSpawnerSpawned(event.getEntity());
+			} else {
+				long time = System.currentTimeMillis();
+				long diff = time - prevSpawnWave - spawnWaitTime;
+				//to prevent lots of lag because of spammed spawn events
+				if (diff < 0) {
+					event.setCancelled(true);
+					return;
+				} else if (diff > spawnTime) {
+					prevSpawnWave = time;
+				}
 			}
 			if (!EntityManager.addEntity(EntityUtil.getNative(event.getEntity()))) {
 				event.setCancelled(true);

@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.threadcheck;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,6 +67,20 @@ public class ThreadCheck {
 			stack.remove(0); //remove check function from stacktrace
 			stack.remove(0); //remove check function from stacktrace
 			if (t.getClass().equals(ServerShutdownThread.class)) return true;
+			if (event != null && event.equals("")) {
+				return false; //no messages for custom events
+			}
+
+			//remove timed wrapper from stack trace
+			if (NoLaggComponents.EXAMINE.isEnabled()) {
+				Iterator<StackTraceElement> iter = stack.iterator();
+				while (iter.hasNext()) {
+					if (classCheck(iter.next(), TimedWrapper.class)) {
+						iter.remove();
+					}
+				}
+			}
+
 			String classname;
 			//general thread?
 			if (classCheck(stack.get(stack.size() - 1), Thread.class)) {
@@ -79,8 +94,8 @@ public class ThreadCheck {
 			} else {
 				classname = t.getClass().getName();
 			}
+
 			if (event != null) {
-				if (event.equals("")) return false; //no messages for custom events
 				//replace call
 				final StackTraceElement el = stack.get(0);
 				final String mname = el.getMethodName();
@@ -88,14 +103,11 @@ public class ThreadCheck {
 				cname = cname.substring(cname.lastIndexOf('.') + 1);
 				stack.set(0, new StackTraceElement(getListenerName(cname), mname, cname, 0));
 			}
-			
+
 			//now convert the stack trace to an array
 			StackTraceElement[] elements = new StackTraceElement[stack.size()]; //stack.toArray(new StackTraceElement[0]);
 			StringBuilder sb = new StringBuilder(elements.length * 80); //assume 80 characters per line
 			for (int i = 0; i < elements.length; i++) {
-				if (NoLaggComponents.EXAMINE.isEnabled()) {
-					if (classCheck(elements[i], TimedWrapper.class)) continue; 
-				}
 				if (i != 0) sb.append('\n');
 				sb.append((elements[i] = stack.get(i)).toString());
 			}
