@@ -5,12 +5,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.server.WorldServer;
+
 import org.bukkit.craftbukkit.CraftChunk;
 
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
+import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
 
 public class DynamicViewDistance {
 	public static int viewDistance = CommonUtil.view;
@@ -33,15 +37,19 @@ public class DynamicViewDistance {
 		if (task == null) {
 			return true;
 		} else {
-			return queue.isNear(x, z, viewDistance);
+			return queue.isNear(x, z, viewDistance - 1);
 		}
 	}
 
 	public static void init(List<String> elements) {
 		nodes.clear();
 		viewDistance = CommonUtil.view;
+		chunks = 0;
 		Task.stop(task);
 		task = null;
+		if (!NoLaggChunks.useDynamicView) {
+			return;
+		}
 		int lowest = Integer.MAX_VALUE;
 		Iterator<String> iter = elements.iterator();
 		while (iter.hasNext()) {
@@ -60,6 +68,7 @@ public class DynamicViewDistance {
 			iter.remove();
 		}
 		if (nodes.isEmpty() || lowest >= CommonUtil.view) {
+			NoLaggChunks.useDynamicView = false;
 			return;
 		}
 		chunks = 0;
@@ -72,6 +81,17 @@ public class DynamicViewDistance {
 			}
 		};
 		chunksChanged = true;
+
+		// Alter player manager to prevent chunk loading outside range
+		new Operation() {
+			public void run() {
+				this.doWorlds();
+			}
+			public void handle(WorldServer world) {
+				DummyManager.convert(world);
+			}
+		};
+
 		task = new Task(NoLagg.plugin) {
 			public void run() {
 				if (chunksChanged) {
@@ -110,9 +130,8 @@ public class DynamicViewDistance {
 					double value = (double) (chunks - minChunks) / (double) (maxChunks - minChunks);
 					viewDistance = (int) (value * (double) maxView + (1.00 - value) * (double) minView);
 				}
-				if (viewDistance > CommonUtil.view) {
-					viewDistance = CommonUtil.view;
-				}
+				viewDistance = MathUtil.limit(viewDistance, 3, CommonUtil.view);
+				
 			}
 		}.start(15, 40);
 	}
@@ -120,5 +139,6 @@ public class DynamicViewDistance {
 	public static void deinit() {
 		Task.stop(task);
 		task = null;
+		DummyManager.revert();
 	}
 }

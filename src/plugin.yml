@@ -1,6 +1,6 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.85
+version: 1.86
 author: bergerkiller
 load: startup
 depend: [BKCommonLib]

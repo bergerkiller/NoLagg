@@ -3,21 +3,17 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 import java.util.Arrays;
 import java.util.logging.Level;
 
-import net.minecraft.server.WorldServer;
-
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
-import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
 
 /*
  * Important note:
@@ -30,6 +26,7 @@ public class NoLaggChunks extends NoLaggComponent {
 	public static boolean isRawCritOrbEnabled = false;
 	public static boolean isSpoutEnabled = false;
 	public static boolean useBufferedLoading = true;
+	public static boolean useDynamicView = true;
 
 	@Override
 	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
@@ -69,6 +66,8 @@ public class NoLaggChunks extends NoLaggComponent {
 		config.setHeader("bufferedLoader.enabled", "Whether or not to use the buffered packet loader to reduce new memory allocation");
 		config.setHeader("bufferedLoader.threadCount", "The amount of threads to use to compress the chunk packets (increase if it can't keep up)");
 
+		config.setHeader("useDynamicView", "Sets whether the dynamic view distance should be enforced");
+		config.addHeader("useDynamicView", "If you use maxTPS, set this to false, or it will conflict!");
 		config.setHeader("dynamicView", "Sets multiple view distances for different amounts of loaded chunks (chunk_count: view_chunks)");
 		config.addHeader("dynamicView", "To disable, remove all chunk: view nodes. The view is smoothed out between nodes");
 		config.addHeader("dynamicView", "The dynamic view distance will never be higher than the server view distance!");
@@ -77,6 +76,7 @@ public class NoLaggChunks extends NoLaggComponent {
 		ChunkSendQueue.maxRate = config.get("maxRate", 2.00);
 		ChunkSendQueue.globalTriggerRate = config.get("triggerRate", 0.5);
 		useBufferedLoading = config.get("bufferedLoader.enabled", true);
+		useDynamicView = config.get("useDynamicView", true);
 		ChunkCompressionThread.init(config.get("bufferedLoader.threadCount", 2));
 
 		if (!config.contains("dynamicView")) {
@@ -92,20 +92,12 @@ public class NoLaggChunks extends NoLaggComponent {
 		this.register(NLCListener.class);
 		this.onReload(config);
 		ChunkSendQueue.init();
-		new Operation() {
-			public void run() {
-				this.doWorlds();
-			}
-			public void handle(WorldServer world) {
-				DummyManager.convert(world);
-			}
-		};
 	}
 
 	public void onDisable(ConfigurationNode config) {
 		ChunkSendQueue.deinit();
 		ChunkCompressionThread.deinit();
-		DummyManager.revert();
+		DynamicViewDistance.deinit();
 	}
 
 	@Override

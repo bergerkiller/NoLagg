@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -338,20 +339,22 @@ public class ChunkSendQueue extends LinkedList {
 		}
 		this.isUpdating = false;
 	}
-	
+
 	private ChunkCoordIntPair pollPair() {
-		while (!this.isEmpty()) {
-			ChunkCoordIntPair pair = (ChunkCoordIntPair) super.poll();
-			if (pair == null) return null;
-			if (this.isNear(pair, CommonUtil.view)) {
+		Iterator<ChunkCoordIntPair> iter = super.iterator();
+		while (iter.hasNext()) {
+			ChunkCoordIntPair pair = iter.next();
+			if (DynamicViewDistance.isNear(this, pair.x, pair.z)) {
+				iter.remove();
 				return pair;
-			} else {
+			} else if (!this.isNear(pair, CommonUtil.view)) {
+				iter.remove();
 				this.contained.remove(pair);
 			}
 		}
 		return null;
 	}
-	
+
 	private void sendBatch(int count) {				
 		//load chunks
 		for (int i = 0; i < count; i++) {
@@ -441,14 +444,14 @@ public class ChunkSendQueue extends LinkedList {
 		}
 		return false;
 	}
-	
+
 	public boolean isNear(ChunkCoordIntPair coord, final int view) {
 		return this.isNear(coord.x, coord.z, view);
 	}
 	public boolean isNear(final int chunkx, final int chunkz, final int view) {
 		return EntityUtil.isNearChunk(this.ep, chunkx, chunkz, view + 1);
 	}
-		
+
 	private boolean add(ChunkCoordIntPair pair) {
 		if (this.isUpdating) return true;
 		if (!this.isNear(pair, CommonUtil.view)) return false;

@@ -31,6 +31,7 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
+import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
 import com.bergerkiller.bukkit.nolagg.lighting.LightingFixThread;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
@@ -516,6 +517,8 @@ public class PerformanceMonitor extends Task {
 							msg += ChatColor.YELLOW + " at " + ChatColor.GREEN + MathUtil.round(queue.getRate(), 2) + " chunks/tick (" + MathUtil.round(avgrate, 2) + " avg)";
 							p.sendMessage(msg);
 							msg = ChatColor.YELLOW + "Packet buffer size: " + queue.getBufferLoadMsg();
+							p.sendMessage(msg);
+							msg = ChatColor.YELLOW + "Dynamic view distance: " + ChatColor.GREEN + DynamicViewDistance.viewDistance + ChatColor.YELLOW + " chunks";
 							p.sendMessage(msg);
 						}
 						if (removalReq.remove(name)) {

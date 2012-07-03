@@ -8,7 +8,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
 
 public class NLCListener implements Listener {
@@ -38,6 +40,19 @@ public class NLCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldLoad(WorldLoadEvent event) {
-		DummyManager.convert(event.getWorld());
+		if (NoLaggChunks.useDynamicView) {
+			DummyManager.convert(event.getWorld());
+		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onWorldUnload(WorldUnloadEvent event) {
+		if (event.isCancelled() || !NoLaggChunks.useDynamicView) {
+			return;
+		}
+		int chunkCount = WorldUtil.getNative(event.getWorld()).chunkProviderServer.chunkList.size();
+		for (int i = 0; i < chunkCount; i++) {
+			DynamicViewDistance.removeChunk();
+		}
 	}
 }

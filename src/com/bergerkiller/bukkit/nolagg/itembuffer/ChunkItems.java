@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.itembuffer;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -77,19 +78,24 @@ public class ChunkItems {
 			Iterator<EntityItem> iter = this.spawnedItems.iterator();
 			EntityItem e;
 			ChunkCoordIntPair pair;
-			while (iter.hasNext()) {
-				e = iter.next();
-				if (e.dead) {
-					iter.remove();
-				} else {
-					pair = ItemMap.getChunkCoords(e);
-					if (pair.x != this.chunk.x || pair.z != this.chunk.z) {
-						//respawn in correct chunk
+			try {
+				while (iter.hasNext()) {
+					e = iter.next();
+					if (e.dead) {
 						iter.remove();
-						ItemMap.addItem(pair, e);
+					} else {
+						pair = ItemMap.getChunkCoords(e);
+						if (pair.x != this.chunk.x || pair.z != this.chunk.z) {
+							//respawn in correct chunk
+							iter.remove();
+							ItemMap.addItem(pair, e);
+						}
 					}
 				}
-			}
+			} catch (ConcurrentModificationException ex) {
+				update();
+				return;
+			} catch (StackOverflowError ex) {}
 		}
 		this.spawnInChunk();
 	}

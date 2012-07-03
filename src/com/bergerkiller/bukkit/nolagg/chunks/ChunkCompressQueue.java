@@ -131,13 +131,7 @@ public class ChunkCompressQueue {
         	ChunkSendCommand cmd = this.toSend.poll();
         	if (this.isNear(cmd.chunk)) {
         		// In range of dynamic view?
-        		if (DynamicViewDistance.isNear(this.owner, cmd.chunk.x, cmd.chunk.z)) {
-        			return cmd;
-        		} else {
-        			// There is no near command available, put back
-        			this.toSend.offerLast(cmd);
-        			return null;
-        		}
+        		return cmd;
         	} else {
         		this.owner.removeContained(cmd.chunk.x, cmd.chunk.z);
         		return this.pollSendCommand(); 
