@@ -1,7 +1,9 @@
 package com.bergerkiller.bukkit.nolagg.itemstacker;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityExperienceOrb;
@@ -17,6 +19,7 @@ public class WorldStackFormer implements Runnable {
 	private Boolean isProcessing = true;
 	private final List<EntityItem> items = new ArrayList<EntityItem>();
 	private final List<EntityExperienceOrb> orbs = new ArrayList<EntityExperienceOrb>();
+	private final Set<EntityItem> itemsToRespawn = new HashSet<EntityItem>();
 	public final WorldEntityWatcher watcher;
 	public final EntityTracker tracker;
 	private boolean disabled = false;
@@ -39,9 +42,23 @@ public class WorldStackFormer implements Runnable {
 		synchronized (isProcessing) {
 			if (isProcessing) return;
 			
+			//re-spawn previously stacked items
+			for (EntityItem item : itemsToRespawn) {
+				item.dead = true;
+				EntityItem newItem = new EntityItem(item.world, item.locX, item.locY, item.locZ, item.itemStack);
+				newItem.fallDistance = item.fallDistance;
+				newItem.fireTicks = item.fireTicks;
+				newItem.pickupDelay = item.pickupDelay;
+				newItem.motX = item.motX;
+				newItem.motY = item.motY;
+				newItem.motZ = item.motZ;
+				newItem.world.addEntity(newItem);
+			}
+			
 			//fill the collections with new items and orbs again
 			items.clear();
 			orbs.clear();
+			itemsToRespawn.clear();
 			items.addAll(this.watcher.items);
 			orbs.addAll(this.watcher.orbs);
 		}
@@ -88,8 +105,7 @@ public class WorldStackFormer implements Runnable {
 							if (nearitem.itemStack.count == 0) {
 								kill(nearitem);
 								//respawn item
-								this.tracker.untrackEntity(item);
-								this.tracker.track(item);
+								itemsToRespawn.add(item);
 							}
 						}
 					}

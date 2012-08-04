@@ -228,10 +228,10 @@ public class CustomExplosion {
 		double ymax = this.posY + tmpsize + 1.0;
 		double zmax = this.posZ + tmpsize + 1.0;
 
-		List<Entity> list = this.world.getEntities(this.source, AxisAlignedBB.b(xmin, ymin, zmin, xmax, ymax, zmax));    
+		List<Entity> list = this.world.getEntities(this.source, AxisAlignedBB.a(xmin, ymin, zmin, xmax, ymax, zmax));    
 		//==========================================================
 
-		Vec3D vec3d = Vec3D.create(this.posX, this.posY, this.posZ);
+		Vec3D vec3d = Vec3D.a(this.posX, this.posY, this.posZ);
 
 		for (i = 0; i < list.size(); i++) {
 			Entity entity = list.get(i);

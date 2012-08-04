@@ -119,7 +119,7 @@ public class LightingFixThread extends AsyncTask {
 		public FixOperation(final Chunk chunk) {
 			this.chunk = chunk;
 			this.world = (WorldServer) chunk.world;
-			this.sections = this.chunk.h();
+			this.sections = this.chunk.i();
 		}
 		private Chunk getChunk(final int x, final int z) {
 			return this.world.chunkProviderServer.chunks.get(x, z);
@@ -168,7 +168,7 @@ public class LightingFixThread extends AsyncTask {
 							inity = this.world.getHeight() - 1;
 						}
 						for (y = inity; y > 0; --y) {
-							if (this.chunk.h()[y >> 4] == null) {
+							if (this.chunk.i()[y >> 4] == null) {
 								continue;
 							}
 							typeid = this.chunk.getTypeId(x, y, z);
@@ -187,7 +187,7 @@ public class LightingFixThread extends AsyncTask {
 								newlight -= factor;
 								//pick the highest value
 								if (newlight > light) {
-									ChunkSection chunksection = this.chunk.h()[y >> 4];
+									ChunkSection chunksection = this.chunk.i()[y >> 4];
 									if (chunksection != null) {
 										if (mode == EnumSkyBlock.SKY) {
 											chunksection.c(x, y & 0xf, z, newlight);
@@ -209,7 +209,7 @@ public class LightingFixThread extends AsyncTask {
 
 		public void prepare() {
 			int x, y, z;
-			int slicesLight = this.chunk.g();
+			int slicesLight = this.chunk.h();
 			int maxheight = this.world.getHeight() - 1;
 			ChunkSection sec;
 			//initial calculation of sky light
@@ -226,6 +226,7 @@ public class LightingFixThread extends AsyncTask {
 							ll = 0;
 						}
 						sec.c(x, y & 0xf, z, ll);
+						sec.d(x, y, z, 0);
 					}
 				}
 			}

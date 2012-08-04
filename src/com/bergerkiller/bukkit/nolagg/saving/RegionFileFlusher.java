@@ -24,7 +24,7 @@ public class RegionFileFlusher {
 	private static Task flushTask;
 	private static SafeField<Map<File, Reference<RegionFile>>> regionFiles;
 	private static SafeField<RandomAccessFile> rafField;
-	
+
 	public static void init() {
 		if (NoLaggSaving.writeDataEnabled) {
 			regionFiles = new SafeField<Map<File, Reference<RegionFile>>>(RegionFileCache.class, "a");
@@ -40,46 +40,46 @@ public class RegionFileFlusher {
 			}
 		}
 	}
-	
+
 	public static void reload() {
 		Task.stop(flushTask);
 		if (NoLaggSaving.writeDataEnabled) {
 			if (regionFiles.isValid() && rafField.isValid()) {
-			    flushTask = new Task(NoLagg.plugin) {
-			    	public void run() {
-			    		//get all the required region files to flush
-			    	    final List<Entry<RegionFile, RandomAccessFile>> regions = new ArrayList<Entry<RegionFile, RandomAccessFile>>();
-			    		for (Reference<RegionFile> ref : regionFiles.get(null).values()) {
-		                    RegionFile regionfile = ref.get();
-		                    if (regionfile != null) {
-		                    	RandomAccessFile raf = rafField.get(regionfile);
-		                    	if (raf != null) {
-		                    		regions.add(new SimpleEntry<RegionFile, RandomAccessFile>(regionfile, raf));
-		                    	}
-		                    }
-			    		}
-			    		
-			    		//create an async task to write stuff to file
-			    		new AsyncTask("NoLagg saving data writer") {
-			    			public void run() {
-			    				for (Entry<RegionFile, RandomAccessFile> file : regions) {
-			    					synchronized (file.getKey()) {
-			    						try {
+				flushTask = new Task(NoLagg.plugin) {
+					public void run() {
+						//get all the required region files to flush
+						final List<Entry<RegionFile, RandomAccessFile>> regions = new ArrayList<Entry<RegionFile, RandomAccessFile>>();
+						for (Reference<RegionFile> ref : regionFiles.get(null).values()) {
+							RegionFile regionfile = ref.get();
+							if (regionfile != null) {
+								RandomAccessFile raf = rafField.get(regionfile);
+								if (raf != null) {
+									regions.add(new SimpleEntry<RegionFile, RandomAccessFile>(regionfile, raf));
+								}
+							}
+						}
+
+						//create an async task to write stuff to file
+						new AsyncTask("NoLagg saving data writer") {
+							public void run() {
+								for (Entry<RegionFile, RandomAccessFile> file : regions) {
+									synchronized (file.getKey()) {
+										try {
 											file.getValue().getFD().sync();
 										} catch (IOException e) {
 											NoLaggSaving.plugin.log(Level.SEVERE, "Failed to sync region data to file:");
 											e.printStackTrace();
 										}
-			    					}
-			    				}
-			    			}
-			    		}.start(false);
-			    	}
-			    }.start(NoLaggSaving.writeDataInterval, NoLaggSaving.writeDataInterval);
+									}
+								}
+							}
+						}.start(false);
+					}
+				}.start(NoLaggSaving.writeDataInterval, NoLaggSaving.writeDataInterval);
 			}
 		}
 	}
-	
+
 	public static void deinit() {
 		Task.stop(flushTask);
 		flushTask = null;

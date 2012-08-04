@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.nolagg.tnt;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
 import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.Packet60Explosion;
 import net.minecraft.server.WorldServer;
 
@@ -161,7 +160,7 @@ public class TNTHandler {
 					}
 					if (sentExplosions < explosionRate) {
 						++sentExplosions;
-						Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, new HashSet<ChunkPosition>());
+						Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, Collections.EMPTY_LIST, null);
 						PacketUtil.broadcastPacketNearby(at, 64.0, packet);
 					}
 				} catch (Throwable t) {

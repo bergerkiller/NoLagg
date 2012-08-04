@@ -6,7 +6,6 @@ import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.SafeField;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.LongHashMap;
@@ -14,14 +13,15 @@ import net.minecraft.server.PlayerManager;
 import net.minecraft.server.WorldServer;
 
 public class DummyManager extends PlayerManager {
-	public static SafeField<List<?>> cField = new SafeField<List<?>>(PlayerManager.class, "c");
-	public static SafeField<LongHashMap> instanceMap = new SafeField<LongHashMap>(PlayerManager.class, "b");
-	public static SafeField<Integer> view = new SafeField<Integer>(PlayerManager.class, "f");
-	public static SafeField<Integer> dim = new SafeField<Integer>(PlayerManager.class, "e");
+	public static SafeField<LongHashMap> instanceMap = new SafeField<LongHashMap>(PlayerManager.class, "c");
+	public static SafeField<List<?>> cField = new SafeField<List<?>>(PlayerManager.class, "d");
+	public static SafeField<Integer> view = new SafeField<Integer>(PlayerManager.class, "e");
+	public static SafeField<List<?>> managedPlayers = new SafeField<List<?>>(PlayerManager.class, "managedPlayers");
+	public static SafeField<PlayerManager> worldManager = new SafeField<PlayerManager>(WorldServer.class, "manager");
 
 	public static void convert(WorldServer world) {
-		if (cField.isValid() && instanceMap.isValid() && view.isValid() && dim.isValid() && DummyWorld.INSTANCE != null) {
-			world.manager = new DummyManager(world);
+		if (cField.isValid() && instanceMap.isValid() && view.isValid() && worldManager.isValid() && managedPlayers.isValid() && DummyWorld.INSTANCE != null) {
+			worldManager.set(world, new DummyManager(world));
 		}
 	}
 
@@ -35,8 +35,9 @@ public class DummyManager extends PlayerManager {
 				this.doWorlds();
 			}
 			public void handle(WorldServer world) {
-				if (world.manager instanceof DummyManager) {
-					world.manager = ((DummyManager) world.manager).base;
+				PlayerManager manager = world.getPlayerManager();
+				if (manager instanceof DummyManager) {
+					worldManager.set(world, ((DummyManager) manager).base);
 				}
 			}
 		};
@@ -46,14 +47,14 @@ public class DummyManager extends PlayerManager {
 	public final WorldServer world;
 
 	public DummyManager(WorldServer world) {
-		this(world.manager, world);
+		this(world.getPlayerManager(), world);
 	}
 
 	public DummyManager(final PlayerManager base, WorldServer world) {
-		super(CommonUtil.getMCServer(), dim.get(base), view.get(base));
+		super(world, view.get(base));
 		instanceMap.set(this, instanceMap.get(base));
 		cField.set(this, cField.get(base));
-		this.managedPlayers = base.managedPlayers;
+		managedPlayers.set(this, managedPlayers.get(base));
 		this.base = base;
 		this.world = world;
 	}

@@ -30,6 +30,7 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
+import net.minecraft.server.INetworkManager;
 import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet53BlockChange;
@@ -39,6 +40,7 @@ import net.minecraft.server.WorldServer;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ChunkSendQueue extends LinkedList {
 	
+	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
 	private static SafeField<Integer> queuesizefield;
 	private static final long serialVersionUID = 1L;
 	private static Task task;
@@ -87,13 +89,13 @@ public class ChunkSendQueue extends LinkedList {
 				ChunkSendQueue queue = bind(ep);
 				if (queue == null) return;
 				LinkedList list = new LinkedList(queue.contained);
-				ep.chunkCoordIntPairQueue = list;
+				chunkQueueField.set(ep, list);
 			}
 		};
 	}
 		
 	private void enforceBufferFullSize() {
-		NetworkManager nm = this.ep.netServerHandler.networkManager;
+		INetworkManager nm = this.ep.netServerHandler.networkManager;
 		Object g = new SafeField<Object>(NetworkManager.class, "g").get(nm);
 		if (g != null && queuesizefield != null) {
 			
@@ -130,7 +132,7 @@ public class ChunkSendQueue extends LinkedList {
 	}
 	public static ChunkSendQueue bind(EntityPlayer with) {
 		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
-			with.chunkCoordIntPairQueue = new ChunkSendQueue(with);
+			chunkQueueField.set(with, new ChunkSendQueue(with));
 		}
 		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
 	}	

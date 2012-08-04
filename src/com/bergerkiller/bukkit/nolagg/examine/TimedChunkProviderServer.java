@@ -123,7 +123,6 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	            this.chunks.put(i, j, chunk); // CraftBukkit
 	            this.chunkList.add(chunk);
 	            if (chunk != null) {
-	                chunk.loadNOP();
 	                chunk.addEntities();
 	            }
 

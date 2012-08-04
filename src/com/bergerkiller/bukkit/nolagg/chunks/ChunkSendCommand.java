@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Collection;
 
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 
 import net.minecraft.server.Chunk;
@@ -31,7 +32,7 @@ public class ChunkSendCommand {
     	PacketUtil.sendPacket(queue.ep, mapPacket, !NoLaggChunks.useBufferedLoading);
     	Packet p;
     	for (TileEntity tile : (Collection<TileEntity>) chunk.tileEntities.values()) {
-    		if ((p = tile.d()) != null) {
+    		if ((p = BlockUtil.getUpdatePacket(tile)) != null) {
     			PacketUtil.sendPacket(queue.ep, p, !NoLaggChunks.useBufferedLoading);
     		}
     	}

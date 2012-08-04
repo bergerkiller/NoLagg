@@ -21,7 +21,6 @@ public class NoLaggSaving extends NoLaggComponent {
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		this.register(NLSListener.class);
 		this.loadConfig(config);
 		AutoSaveChanger.init();
 		RegionFileFlusher.init();
@@ -30,7 +29,12 @@ public class NoLaggSaving extends NoLaggComponent {
 	public void loadConfig(ConfigurationNode config) {
 		config.setHeader("autoSaveInterval", "The tick interval at which the server saves automatically (20 ticks = 1 second)");
 		autoSaveInterval = config.get("autoSaveInterval", 400);
-		
+		if (autoSaveInterval < 400) {
+			autoSaveInterval = 400;
+			config.set("autoSaveInterval", 400);
+			NoLaggSaving.plugin.log(Level.WARNING, "Save interval is set too low and has been limited to a 400 tick (20 second) interval");
+		}
+
 		config.setHeader("writeDataEnabled", "Whether NoLagg will attempt to write all world data to the region files at a set interval");
 		config.addHeader("writeDataEnabled", "This is done on another thread, so don't worry about the main thread lagging while this happens");
 		writeDataEnabled = config.get("writeDataEnabled", true);

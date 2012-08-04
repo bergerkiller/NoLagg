@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
@@ -9,10 +10,12 @@ import lishid.orebfuscator.obfuscation.Calculations;
 import com.bergerkiller.bukkit.common.AsyncTask;
 
 import net.minecraft.server.Chunk;
+import net.minecraft.server.ChunkMap;
 import net.minecraft.server.ChunkSection;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.NibbleArray;
 import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.Packet56MapChunkBulk;
 
 public class ChunkCompressionThread extends AsyncTask {	
 	//create a cyclic player compression queue loop
@@ -90,65 +93,71 @@ public class ChunkCompressionThread extends AsyncTask {
 		threads = null;
 	}
 	
-	private byte[] rawbuffer = new byte[81920];
+	private ChunkMap rawbuffer = new ChunkMap();
 	private final byte[] compbuffer = new byte[81920];
     private final Deflater deflater = new Deflater();
     
-    public static Packet51MapChunk createPacket(Chunk chunk, byte[] rawData) {
+    public static Packet56MapChunkBulk createBulk(Collection<Packet51MapChunk> packets) {
+    	return null; //TODO: Get bulk sending working!
+    }
+    
+    public static Packet51MapChunk createPacket(Chunk chunk, ChunkMap buffer) {
 		Packet51MapChunk mapchunk = new Packet51MapChunk();
 		mapchunk.a = chunk.x;
 		mapchunk.b = chunk.z;
-		mapchunk.rawData = rawData;
-		fill(chunk, mapchunk);
+		mapchunk.e = true; //yes, has biome data
+		fill(chunk, buffer);
+		mapchunk.d = buffer.c;
+		mapchunk.c = buffer.b;
+		mapchunk.inflatedBuffer = buffer.a;
 		return mapchunk;
     }
     
-    public static void fill(Chunk chunk, Packet51MapChunk packet) {
-		packet.f = true;
-        ChunkSection sections[] = chunk.h();
+    public static void fill(Chunk chunk, ChunkMap data, Packet51MapChunk packet) {
+    	fill(chunk, data);
+    	packet.inflatedBuffer = data.a;
+    }
+    public static void fill(Chunk chunk, ChunkMap data) {
+        ChunkSection sections[] = chunk.i();
         int j = 0;
         int k = 0;
         int l;
+        data.b = data.c = 0;
         for(l = 0; l < sections.length; l++)
         {
             if(sections[l] == null || sections[l].a() || (1 << l) == 0) {
                 continue;
             }
-            packet.c |= 1 << l;
+            data.b |= 1 << l;
             j++;
-            if(sections[l].h() != null) {
-                packet.d |= 1 << l;
+            if(sections[l].i() != null) {
+            	data.c |= 1 << l;
                 k++;
             }
         }
 
         l = 2048 * (5 * j + k) + 256;
-        if (packet.rawData == null || packet.rawData.length < l) {
-        	packet.rawData = new byte[l];
+        if (data.a == null) {
+        	data.a = new byte[81920];
         }
-        	
+        if (data.a.length < l) {
+        	data.a = new byte[l];
+        }
+
         int length = 0;
         for(int j1 = 0; j1 < sections.length; j1++) {
             if(sections[j1] != null && !sections[j1].a())
             {
                 byte abyte1[] = sections[j1].g();
-                System.arraycopy(abyte1, 0, packet.rawData, length, abyte1.length);
+                System.arraycopy(abyte1, 0, data.a, length, abyte1.length);
                 length += abyte1.length;
             }
         }
         for(int j1 = 0; j1 < sections.length; j1++) {
             if(sections[j1] != null && !sections[j1].a())
             {
-                NibbleArray nibblearray = sections[j1].i();
-                System.arraycopy(nibblearray.a, 0, packet.rawData, length, nibblearray.a.length);
-                length += nibblearray.a.length;
-            }
-        }
-        for(int j1 = 0; j1 < sections.length; j1++) {
-            if(sections[j1] != null && !sections[j1].a())
-            {
                 NibbleArray nibblearray = sections[j1].j();
-                System.arraycopy(nibblearray.a, 0, packet.rawData, length, nibblearray.a.length);
+                System.arraycopy(nibblearray.a, 0, data.a, length, nibblearray.a.length);
                 length += nibblearray.a.length;
             }
         }
@@ -156,29 +165,37 @@ public class ChunkCompressionThread extends AsyncTask {
             if(sections[j1] != null && !sections[j1].a())
             {
                 NibbleArray nibblearray = sections[j1].k();
-                System.arraycopy(nibblearray.a, 0, packet.rawData, length, nibblearray.a.length);
+                System.arraycopy(nibblearray.a, 0, data.a, length, nibblearray.a.length);
+                length += nibblearray.a.length;
+            }
+        }
+        for(int j1 = 0; j1 < sections.length; j1++) {
+            if(sections[j1] != null && !sections[j1].a())
+            {
+                NibbleArray nibblearray = sections[j1].l();
+                System.arraycopy(nibblearray.a, 0, data.a, length, nibblearray.a.length);
                 length += nibblearray.a.length;
             }
         }
         if(k > 0)
         {
             for(int j1 = 0; j1 < sections.length; j1++) {
-                if(sections[j1] != null && !sections[j1].a() && sections[j1].h() != null)
+                if(sections[j1] != null && !sections[j1].a() && sections[j1].i() != null)
                 {
-                    NibbleArray nibblearray = sections[j1].h();
-                    System.arraycopy(nibblearray.a, 0, packet.rawData, length, nibblearray.a.length);
+                    NibbleArray nibblearray = sections[j1].i();
+                    System.arraycopy(nibblearray.a, 0, data.a, length, nibblearray.a.length);
                     length += nibblearray.a.length;
                 }
             }
         }
-        byte abyte2[] = chunk.l();
-        System.arraycopy(abyte2, 0, packet.rawData, length, abyte2.length);
+        byte abyte2[] = chunk.m();
+        System.arraycopy(abyte2, 0, data.a, length, abyte2.length);
         length += abyte2.length;
     }
     private void deflate(Packet51MapChunk packet) {
         this.deflater.reset();
         this.deflater.setLevel(6);
-        this.deflater.setInput(packet.rawData);
+        this.deflater.setInput(packet.inflatedBuffer);
         this.deflater.finish();
         packet.size = this.deflater.deflate(this.compbuffer);
         if (packet.size == 0) {
@@ -186,7 +203,7 @@ public class ChunkCompressionThread extends AsyncTask {
         }
         packet.buffer = new byte[packet.size];
         System.arraycopy(this.compbuffer, 0, packet.buffer, 0, packet.size);
-        packet.rawData = null; //dereference
+        packet.inflatedBuffer = null; //dereference
     }
                                    
     public static double getBusyPercentage(long timescale) {
@@ -211,9 +228,6 @@ public class ChunkCompressionThread extends AsyncTask {
     	
 		//handle a packet		
 		Packet51MapChunk mapchunk = createPacket(chunk, rawbuffer);
-		if (mapchunk.rawData.length > rawbuffer.length) {
-			rawbuffer = mapchunk.rawData;
-		}
 		
 		//send chunk through possible plugins
 		//========================================
