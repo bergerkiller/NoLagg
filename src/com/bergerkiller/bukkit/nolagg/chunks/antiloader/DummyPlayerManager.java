@@ -16,7 +16,7 @@ import net.minecraft.server.WorldServer;
 
 public class DummyPlayerManager extends PlayerManager {
 	public static SafeField<LongHashMap> instanceMap = new SafeField<LongHashMap>(PlayerManager.class, "c");
-	public static SafeField<List<?>> cField = new SafeField<List<?>>(PlayerManager.class, "d");
+	public static SafeField<Object> cField = new SafeField<Object>(PlayerManager.class, "d");
 	public static SafeField<Integer> view = new SafeField<Integer>(PlayerManager.class, "e");
 	public static SafeField<List<?>> managedPlayers = new SafeField<List<?>>(PlayerManager.class, "managedPlayers");
 	public static SafeField<PlayerManager> worldManager = new SafeField<PlayerManager>(WorldServer.class, "manager");

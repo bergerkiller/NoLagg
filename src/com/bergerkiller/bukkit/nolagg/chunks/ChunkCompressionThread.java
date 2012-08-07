@@ -5,9 +5,8 @@ import java.util.Collection;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
-import lishid.orebfuscator.obfuscation.Calculations;
-
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.lishid.orebfuscator.obfuscation.Calculations;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkMap;
