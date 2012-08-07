@@ -15,8 +15,9 @@ public enum NoLaggComponents {
 	SPAWNLIMITER("SpawnLimiter", "Keeps entity counts below multiple configured thresholds"),
 	TNT("TNT", "Replaces explosion creation with a faster version and buffers TNT ignites to prevent TNT server crashes"),
 	SAVING("Saving", "Alters the way worlds are saved to reduce disk usage and to force proper saves"),
-	COMMON("Common", "Common features such as the clear and garbage collect commands");
-	
+	COMMON("Common", "Common features such as the clear and garbage collect commands"),
+	THREADLOCKNOTIFIER("ThreadLockNotifier", "Notifies the current stack trace of the main thread when the server freezes");
+
 	private boolean enabled;
 	private String name, mainclass, description;
 

@@ -162,6 +162,7 @@ public class TNTHandler {
 						++sentExplosions;
 						Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, Collections.EMPTY_LIST, null);
 						PacketUtil.broadcastPacketNearby(at, 64.0, packet);
+						world.makeSound(at.getX(), at.getY(), at.getZ(), "random.explode", 4.0f, (1.0f + (world.random.nextFloat() - world.random.nextFloat()) * 0.2f) * 0.7f);
 					}
 				} catch (Throwable t) {
 					NoLaggTNT.plugin.log(Level.WARNING, "Explosion did not go as planned!");

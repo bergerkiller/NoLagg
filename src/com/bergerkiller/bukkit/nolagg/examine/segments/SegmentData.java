@@ -13,7 +13,7 @@ public class SegmentData implements Comparable<SegmentData> {
 		this.times = new double[duration];
 		this.name = name;
 	}
-		
+
 	private final double[] times;
 	private final String name;
 	
@@ -50,6 +50,19 @@ public class SegmentData implements Comparable<SegmentData> {
 			}
 		}
 		return this;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null) {
+			return false;
+		} else if (o == this) {
+			return true;
+		} else if (o instanceof SegmentData) {
+			return ((SegmentData) o).getTotal() == this.getTotal();
+		} else {
+			return false;
+		}
 	}
 
 	@Override

@@ -45,7 +45,7 @@ public class ChunkSendQueue extends LinkedList {
 	private static final long serialVersionUID = 1L;
 	private static Task task;
 	public static void init() {
-		queuesizefield = new SafeField<Integer>(NetworkManager.class, "x");
+		queuesizefield = new SafeField<Integer>(NetworkManager.class, "y");
 		if (!queuesizefield.isValid()) {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Failed to hook into the player packet queue size field");
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
@@ -93,17 +93,16 @@ public class ChunkSendQueue extends LinkedList {
 			}
 		};
 	}
-		
+
 	private void enforceBufferFullSize() {
 		INetworkManager nm = this.ep.netServerHandler.networkManager;
-		Object g = new SafeField<Object>(NetworkManager.class, "g").get(nm);
-		if (g != null && queuesizefield != null) {
-			
+		Object lockObject = new SafeField<Object>(NetworkManager.class, "h").get(nm);
+		if (lockObject != null && queuesizefield != null) {
 			List<Packet> low = new SafeField<List<Packet>>(NetworkManager.class, "lowPriorityQueue").get(nm);
 			List<Packet> high = new SafeField<List<Packet>>(NetworkManager.class, "highPriorityQueue").get(nm);
 			if (low != null && high != null) {
 				int queuedsize = 0;
-				synchronized (g) {
+				synchronized (lockObject) {
 					for (Packet p : low) queuedsize += p.a() + 1;
 					for (Packet p : high) queuedsize += p.a() + 1;	
 					queuesizefield.set(nm, queuedsize - 9437184);	
@@ -135,7 +134,7 @@ public class ChunkSendQueue extends LinkedList {
 			chunkQueueField.set(with, new ChunkSendQueue(with));
 		}
 		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
-	}	
+	}
 	private ChunkSendQueue(final EntityPlayer ep) {
 		this.ep = ep;
 		this.addAll(ep.chunkCoordIntPairQueue);
@@ -408,10 +407,9 @@ public class ChunkSendQueue extends LinkedList {
 		synchronized (this) {
 			super.clear();
 		}
-		this.chunkQueue.clear();
 		this.contained.clear();
 	}
-	
+
 	/*
 	 * Prevent Spout from using this queue...seriously!
 	 */

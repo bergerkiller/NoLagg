@@ -12,6 +12,7 @@ import org.bukkit.craftbukkit.util.ServerShutdownThread;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.examine.TimedWrapper;
 import com.google.common.collect.Lists;
@@ -40,8 +41,6 @@ public class ThreadCheck {
 			
 	private final Listener listener = new Listener();
 
-	private static final Thread currentThread = Thread.currentThread();
-
 	private static HashSet<String> thrownErrors = new HashSet<String>();
 	
 	private static String getListenerName(String classname) {
@@ -62,7 +61,7 @@ public class ThreadCheck {
 	}
 	public static boolean check(String event) {
 		final Thread t = Thread.currentThread();
-		if (t != currentThread) {
+		if (t != CommonUtil.MAIN_THREAD) {
 			List<StackTraceElement> stack = Lists.newArrayList(t.getStackTrace());
 			stack.remove(0); //remove check function from stacktrace
 			stack.remove(0); //remove check function from stacktrace

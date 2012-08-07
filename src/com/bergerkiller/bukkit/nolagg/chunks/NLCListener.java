@@ -11,7 +11,7 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
+import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 
 public class NLCListener implements Listener {
 
@@ -41,7 +41,7 @@ public class NLCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldLoad(WorldLoadEvent event) {
 		if (NoLaggChunks.useDynamicView) {
-			DummyManager.convert(event.getWorld());
+			DummyPlayerManager.convert(event.getWorld());
 		}
 	}
 

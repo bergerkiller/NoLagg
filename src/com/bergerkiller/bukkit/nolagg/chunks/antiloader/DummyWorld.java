@@ -79,7 +79,7 @@ public class DummyWorld extends WorldServer {
 		this.entityList = null;
 		this.tileEntityList = null;
 		this.generator = null;
-		DummyManager.worldManager.set(this, null);
+		DummyPlayerManager.worldManager.set(this, null);
 		this.players = null;
 		this.tracker = null;
 		this.worldMaps = null;

@@ -106,17 +106,16 @@ public class ChunkCompressionThread extends AsyncTask {
 		mapchunk.a = chunk.x;
 		mapchunk.b = chunk.z;
 		mapchunk.e = true; //yes, has biome data
+		if (buffer == null) {
+			buffer = new ChunkMap();
+		}
 		fill(chunk, buffer);
 		mapchunk.d = buffer.c;
 		mapchunk.c = buffer.b;
 		mapchunk.inflatedBuffer = buffer.a;
 		return mapchunk;
     }
-    
-    public static void fill(Chunk chunk, ChunkMap data, Packet51MapChunk packet) {
-    	fill(chunk, data);
-    	packet.inflatedBuffer = data.a;
-    }
+
     public static void fill(Chunk chunk, ChunkMap data) {
         ChunkSection sections[] = chunk.i();
         int j = 0;
@@ -205,7 +204,7 @@ public class ChunkCompressionThread extends AsyncTask {
         System.arraycopy(this.compbuffer, 0, packet.buffer, 0, packet.size);
         packet.inflatedBuffer = null; //dereference
     }
-                                   
+
     public static double getBusyPercentage(long timescale) {
     	double per = 0;
     	if (threads != null) {
@@ -222,7 +221,7 @@ public class ChunkCompressionThread extends AsyncTask {
     public long busyDuration = 0;
     private long lasttime;
     private byte[] obfuscationBuffer;
-        
+
     public Packet51MapChunk getCompressedPacket(EntityPlayer player, Chunk chunk) {
     	this.lasttime = System.currentTimeMillis();
     	

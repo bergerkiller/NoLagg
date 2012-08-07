@@ -82,7 +82,20 @@ public abstract class Segment implements Comparable<Segment> {
 	public boolean isTask() {
 		return false;
 	}
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null) {
+			return false;
+		} else if (o == this) {
+			return true;
+		} else if (o instanceof Segment) {
+			return ((Segment) o).getTotal() == this.getTotal();
+		} else {
+			return false;
+		}
+	}
+
 	@Override
 	public int compareTo(Segment o) {
 		return (int) (o.getTotal() - this.getTotal());

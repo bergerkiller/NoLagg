@@ -14,7 +14,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
-import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyManager;
+import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 
 public class DynamicViewDistance {
 	public static int viewDistance = CommonUtil.view;
@@ -88,7 +88,7 @@ public class DynamicViewDistance {
 				this.doWorlds();
 			}
 			public void handle(WorldServer world) {
-				DummyManager.convert(world);
+				DummyPlayerManager.convert(world);
 			}
 		};
 
@@ -139,6 +139,6 @@ public class DynamicViewDistance {
 	public static void deinit() {
 		Task.stop(task);
 		task = null;
-		DummyManager.revert();
+		DummyPlayerManager.revert();
 	}
 }
