@@ -27,6 +27,7 @@ public class NoLaggChunks extends NoLaggComponent {
 	public static boolean isSpoutEnabled = false;
 	public static boolean useBufferedLoading = true;
 	public static boolean useDynamicView = true;
+	public static boolean hasDynamicView = false;
 
 	@Override
 	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
@@ -57,7 +58,7 @@ public class NoLaggChunks extends NoLaggComponent {
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("minRate", "The minimum chunk sending rate (chunks/tick)");
 		config.setHeader("maxRate", "The maximum chunk sending rate (chunks/tick)");
-		
+
 		config.setHeader("bufferedLoader", "If you use a plugin that depends on the net server handler for packets, disable this");
 		config.addHeader("bufferedLoader", "For example, Raw Critics' Ore Obfuscation does not function with this enabled.");
 		config.addHeader("bufferedLoader", "Orebfuscator is supported and works with this enabled.");
@@ -108,7 +109,7 @@ public class NoLaggChunks extends NoLaggComponent {
 			double compbus = MathUtil.round(ChunkSendQueue.compressBusyPercentage, 2);
 			if (sender instanceof Player) {
 				Permission.CHUNKS_SENDING.handle(sender);
-				
+
 				//show sending information of the player
 				ChunkSendQueue queue = ChunkSendQueue.bind((Player) sender);
 				if (queue != null) {
@@ -116,22 +117,22 @@ public class NoLaggChunks extends NoLaggComponent {
 					msg.green("You receive ").yellow(MathUtil.round(queue.getRate(), 2));
 					msg.green(" chunks each tick (");
 					msg.yellow(avgrate).yellow(" avg").green(")").newLine();
-				    msg.green("You have received ");
-				    int sent = CommonUtil.chunkArea - queue.getPendingSize();
-				    double per = MathUtil.round((double) sent / (double) CommonUtil.chunkArea * 100.0, 2);
-				    msg.yellow(sent).white("/").yellow(CommonUtil.chunkArea).green(" chunks (");
-				    msg.yellow(per, "%").green(")").newLine();
-				    msg.green("Your packet buffer is ").green(queue.getBufferLoadMsg()).green(" used");
-				    msg.newLine().green("Chunk compression is ");
-				    if (compbus > 70) {
-				    	msg.red(compbus, "%");
-				    } else if (compbus > 40) {
-				    	msg.yellow(compbus, "%");
-				    } else {
-				    	msg.green(compbus, "%");
-				    }
-				    msg.green(" of the time busy");
-				    
+					msg.green("You have received ");
+					int sent = CommonUtil.chunkArea - queue.getPendingSize();
+					double per = MathUtil.round((double) sent / (double) CommonUtil.chunkArea * 100.0, 2);
+					msg.yellow(sent).white("/").yellow(CommonUtil.chunkArea).green(" chunks (");
+					msg.yellow(per, "%").green(")").newLine();
+					msg.green("Your packet buffer is ").green(queue.getBufferLoadMsg()).green(" used");
+					msg.newLine().green("Chunk compression is ");
+					if (compbus > 70) {
+						msg.red(compbus, "%");
+					} else if (compbus > 40) {
+						msg.yellow(compbus, "%");
+					} else {
+						msg.green(compbus, "%");
+					}
+					msg.green(" of the time busy");
+
 					msg.send(sender);
 				} else {
 					sender.sendMessage("An unknown error occured!");
@@ -145,5 +146,5 @@ public class NoLaggChunks extends NoLaggComponent {
 		}
 		return false;
 	}
-	
+
 }

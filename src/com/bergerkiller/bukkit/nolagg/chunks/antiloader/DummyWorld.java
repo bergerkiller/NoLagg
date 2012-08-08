@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.io.File;
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -10,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.CraftServer;
 
+import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
@@ -70,9 +70,7 @@ public class DummyWorld extends WorldServer {
 	public DummyWorld(String worldname) throws Throwable {
 		super(CommonUtil.getMCServer(), getDummyDataManager(), worldname, 0, getDummySettings(), CommonUtil.getMCServer().methodProfiler, Environment.NORMAL, null);
 		//dereference this dummy world again...
-		Field worlds = CraftServer.class.getDeclaredField("worlds");
-		worlds.setAccessible(true);
-		((Map) worlds.get(getServer())).remove(worldname.toLowerCase());
+		new SafeField<Map>(CraftServer.class, "worlds").get(getServer()).remove(worldname.toLowerCase());
 		//set some variables to null
 		this.chunkProvider = this.chunkProviderServer = new DummyChunkProvider(this);
 		this.generator = null;

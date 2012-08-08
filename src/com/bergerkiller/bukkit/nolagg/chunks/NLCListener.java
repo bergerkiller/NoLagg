@@ -16,10 +16,10 @@ import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 public class NLCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	public void onPlayerJoin(PlayerJoinEvent event) {
+	public void onPlayerJoin(final PlayerJoinEvent event) {
 		ChunkSendQueue.bind(event.getPlayer());
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
 		ChunkSendQueue.bind(event.getPlayer()).idle(5);

@@ -39,7 +39,7 @@ import net.minecraft.server.WorldServer;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ChunkSendQueue extends LinkedList {
-	
+
 	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
 	private static SafeField<Integer> queuesizefield;
 	private static final long serialVersionUID = 1L;
@@ -110,7 +110,7 @@ public class ChunkSendQueue extends LinkedList {
 			}
 		}
 	}
-		
+
 	private static long prevtime;
 	public static double compressBusyPercentage = 0.0;
 	private int maxQueueSize = 300000;
@@ -125,13 +125,15 @@ public class ChunkSendQueue extends LinkedList {
 	private int getMaxQueueSize() {
 		return 10485760;
 	}
-		
+
 	public static ChunkSendQueue bind(Player with) {
 		return bind(((CraftPlayer) with).getHandle());
 	}
 	public static ChunkSendQueue bind(EntityPlayer with) {
 		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
-			chunkQueueField.set(with, new ChunkSendQueue(with));
+			ChunkSendQueue queue = new ChunkSendQueue(with);
+			with.chunkCoordIntPairQueue.clear();
+			chunkQueueField.set(with, queue);
 		}
 		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
 	}
@@ -146,7 +148,7 @@ public class ChunkSendQueue extends LinkedList {
 		ChunkCompressionThread.addQueue(this.chunkQueue);
 	    this.enforceBufferFullSize();
 	}
-		
+
 	public static double maxRate = 2;
 	public static double minRate = 0.25;
 	public static double globalTriggerRate = 1;

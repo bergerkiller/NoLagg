@@ -30,6 +30,7 @@ public class ChunkSendCommand {
 	public static void send(final ChunkSendQueue queue, final Packet51MapChunk mapPacket, final Chunk chunk) {
     	if (mapPacket == null) return;
     	PacketUtil.sendPacket(queue.ep, mapPacket, !NoLaggChunks.useBufferedLoading);
+    	chunk.seenByPlayer = true;
     	Packet p;
     	for (TileEntity tile : (Collection<TileEntity>) chunk.tileEntities.values()) {
     		if ((p = BlockUtil.getUpdatePacket(tile)) != null) {

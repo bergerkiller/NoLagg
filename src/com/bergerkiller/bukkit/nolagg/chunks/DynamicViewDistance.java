@@ -34,7 +34,7 @@ public class DynamicViewDistance {
 	}
 
 	public static boolean isNear(ChunkSendQueue queue, int x, int z) {
-		if (task == null) {
+		if (!NoLaggChunks.hasDynamicView) {
 			return true;
 		} else {
 			return queue.isNear(x, z, viewDistance - 1);
@@ -47,9 +47,21 @@ public class DynamicViewDistance {
 		chunks = 0;
 		Task.stop(task);
 		task = null;
+		NoLaggChunks.hasDynamicView = false;
 		if (!NoLaggChunks.useDynamicView) {
 			return;
 		}
+
+		// Alter player manager to prevent chunk loading outside range
+		new Operation() {
+			public void run() {
+				this.doWorlds();
+			}
+			public void handle(WorldServer world) {
+				DummyPlayerManager.convert(world);
+			}
+		};
+
 		int lowest = Integer.MAX_VALUE;
 		Iterator<String> iter = elements.iterator();
 		while (iter.hasNext()) {
@@ -68,9 +80,9 @@ public class DynamicViewDistance {
 			iter.remove();
 		}
 		if (nodes.isEmpty() || lowest >= CommonUtil.view) {
-			NoLaggChunks.useDynamicView = false;
 			return;
 		}
+		NoLaggChunks.hasDynamicView = true;
 		chunks = 0;
 		new Operation() {
 			public void run() {
@@ -81,16 +93,6 @@ public class DynamicViewDistance {
 			}
 		};
 		chunksChanged = true;
-
-		// Alter player manager to prevent chunk loading outside range
-		new Operation() {
-			public void run() {
-				this.doWorlds();
-			}
-			public void handle(WorldServer world) {
-				DummyPlayerManager.convert(world);
-			}
-		};
 
 		task = new Task(NoLagg.plugin) {
 			public void run() {
