@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
+import net.timedminecraft.server.TimedChunkProviderServer;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;

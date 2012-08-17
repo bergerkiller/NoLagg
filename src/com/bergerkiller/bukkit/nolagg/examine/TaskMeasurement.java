@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.bukkit.plugin.Plugin;
+import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 public class TaskMeasurement {
 	

@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.scheduler.CraftScheduler;
 import org.bukkit.craftbukkit.scheduler.CraftTask;
+import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.SafeField;
 
@@ -77,18 +78,17 @@ public class SchedulerWatcher extends TreeMap<CraftTask, Boolean> {
 		} catch (Throwable t) {
 			return;
 		}
-		
 		TreeMap<CraftTask, Boolean> repl = new TreeMap<CraftTask, Boolean>();
-		for (Map.Entry<CraftTask, Boolean> entry : old.entrySet()) {
-			CraftTask task = entry.getKey();
-			Runnable run = runnable.get(task);
-			if (run instanceof TimedWrapper) {
-				run = ((TimedWrapper) run).runnable;
+		synchronized (old) {
+			for (Map.Entry<CraftTask, Boolean> entry : old.entrySet()) {
+				CraftTask task = entry.getKey();
+				Runnable run = runnable.get(task);
+				if (run instanceof TimedWrapper) {
+					run = ((TimedWrapper) run).runnable;
+				}
+				repl.put(task, entry.getValue());
 			}
-			repl.put(task, entry.getValue());
 		}
 		queue.set(scheduler, repl);
-
 	}
-
 }

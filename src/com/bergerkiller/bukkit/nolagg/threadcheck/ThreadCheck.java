@@ -11,10 +11,10 @@ import org.bukkit.craftbukkit.scheduler.CraftWorker;
 import org.bukkit.craftbukkit.util.ServerShutdownThread;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
-import com.bergerkiller.bukkit.nolagg.examine.TimedWrapper;
 import com.google.common.collect.Lists;
 
 public class ThreadCheck {

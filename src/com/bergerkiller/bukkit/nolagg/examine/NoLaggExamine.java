@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
 import net.minecraft.server.WorldServer;
+import net.timedminecraft.server.TimedChunkProviderServer;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;

@@ -1,4 +1,4 @@
-package com.bergerkiller.bukkit.nolagg.examine;
+package net.timedminecraft.server;
 
 import java.util.Random;
 import java.util.logging.Level;
@@ -9,6 +9,9 @@ import org.bukkit.generator.BlockPopulator;
 
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.examine.NoLaggExamine;
+import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
+import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
 import net.minecraft.server.BlockSand;
 import net.minecraft.server.Chunk;
@@ -17,8 +20,12 @@ import net.minecraft.server.IChunkLoader;
 import net.minecraft.server.IChunkProvider;
 import net.minecraft.server.WorldServer;
 
+/*
+ * Please ignore the package leading to the net.minecraft.server namespace
+ * The author (me) got tired of all the reports with this showing up in stack traces
+ * To keep things fair, all rights for this Class go to the Mojang team
+ */
 public class TimedChunkProviderServer extends ChunkProviderServer {
-
 	public static SafeField<IChunkLoader> field;
 		
 	public static boolean initFields() {

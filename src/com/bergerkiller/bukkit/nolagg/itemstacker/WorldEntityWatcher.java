@@ -4,7 +4,10 @@ import java.util.LinkedHashSet;
 
 import com.bergerkiller.bukkit.common.WorldListener;
 
-import net.minecraft.server.*;
+import net.minecraft.server.Entity;
+import net.minecraft.server.EntityExperienceOrb;
+import net.minecraft.server.EntityItem;
+import net.minecraft.server.World;
 
 public class WorldEntityWatcher extends WorldListener {
 

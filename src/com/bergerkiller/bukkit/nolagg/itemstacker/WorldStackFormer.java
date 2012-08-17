@@ -84,7 +84,6 @@ public class WorldStackFormer implements Runnable {
 	}	
 
 	private void kill(Entity entity) {
-		this.tracker.untrackEntity(entity);
 		entity.dead = true;
 	}
 

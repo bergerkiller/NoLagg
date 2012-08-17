@@ -226,7 +226,7 @@ public class LightingFixThread extends AsyncTask {
 							ll = 0;
 						}
 						sec.c(x, y & 0xf, z, ll);
-						sec.d(x, y & 0xf, z, 0);
+						sec.d(x, y & 0xf, z, Block.lightEmission[sec.a(x, y & 0xf, z)]);
 					}
 				}
 			}

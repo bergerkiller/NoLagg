@@ -15,9 +15,14 @@ public class ThreadLockChecker extends AsyncTask {
 	private ArrayList<StackTraceElement> tmpelems = new ArrayList<StackTraceElement>();
 
 	public static boolean pulse = false;
+	public static boolean ignored = true;
 
 	@Override
 	public void run() {
+		if (ignored) {
+			sleep(5000);
+			return;
+		}
 		pulse = false;
 		try {
 			Thread.sleep(10000);
@@ -57,9 +62,22 @@ public class ThreadLockChecker extends AsyncTask {
 				}
 			}
 		} else {
+			boolean isNoLaggBug = false;
+			for (StackTraceElement elem : previous) {
+				if (elem.getClassName().startsWith("com.bergerkiller.bukkit.nolagg")) {
+					isNoLaggBug = true;
+					break;
+				}
+			}
 			previous = CommonUtil.MAIN_THREAD.getStackTrace();
 			maxidx = Integer.MAX_VALUE;
 			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] The main thread failed to respond after 10 seconds");
+			if (isNoLaggBug) {
+				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This appears to be caused by NoLagg, report it!");
+			} else {
+				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This is not caused by NoLagg, it is only being reported!");
+				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] Please read the stack trace to find the problematic plugin.");
+			}
 			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] What follows is the stack trace of the main thread");
 			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This stack trace will be further refined as long as the thread is stuck");
 			for (StackTraceElement elem : previous) {

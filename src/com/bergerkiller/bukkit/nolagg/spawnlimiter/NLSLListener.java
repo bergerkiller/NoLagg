@@ -59,7 +59,7 @@ public class NLSLListener implements Listener {
 				SpawnHandler.ignoreSpawn(event.getEntity());
 			} else if (event.getSpawnReason() == SpawnReason.SPAWNER) {
 				SpawnHandler.mobSpawnerSpawned(event.getEntity());
-			} else {
+			} else if (event.getSpawnReason() == SpawnReason.NATURAL) {
 				long time = System.currentTimeMillis();
 				long diff = time - prevSpawnWave - spawnWaitTime;
 				//to prevent lots of lag because of spammed spawn events

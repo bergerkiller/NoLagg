@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.nolagg.threadlocknotifier;
 
-import org.bukkit.plugin.Plugin;
-
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -19,10 +17,12 @@ public class NoLaggThreadLockNotifier extends NoLaggComponent {
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		this.register(TLNListener.class);
+		ThreadLockChecker.ignored = true; // wait for all plugins to enable
 		this.checkerThread = new ThreadLockChecker().start(true);
 		this.pulseTask = new Task(NoLagg.plugin) {
 			public void run() {
 				ThreadLockChecker.pulse = true;
+				ThreadLockChecker.ignored = false;
 			}
 		}.start(1, 1);
 	}
@@ -33,10 +33,5 @@ public class NoLaggThreadLockNotifier extends NoLaggComponent {
 		Task.stop(this.pulseTask);
 		this.checkerThread = null;
 		this.pulseTask = null;
-	}
-
-	@Override
-	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
-		ThreadLockChecker.pulse = true; // prevent lock notification upon startup
 	}
 }

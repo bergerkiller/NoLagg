@@ -11,7 +11,7 @@ public class TLNListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldInit(WorldInitEvent event) {
-		ThreadLockChecker.pulse = true;
+		ThreadLockChecker.ignored = true;
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
