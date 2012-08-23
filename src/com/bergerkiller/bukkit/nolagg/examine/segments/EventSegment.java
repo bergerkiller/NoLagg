@@ -10,7 +10,12 @@ public class EventSegment extends SegmentNode {
 	public EventSegment(String name, int duration, List<DataSegment> events) {
 		super(name, duration, events);
 	}
-	
+
+	@Override
+	public int getPluginCount() {
+		return this.getChildren().length;
+	}
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());

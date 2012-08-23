@@ -35,17 +35,21 @@ public class MultiEventSegment extends SegmentNode {
 	}
 	
 	private int plugincount;
-	
+
+	@Override
+	public int getPluginCount() {
+		return this.plugincount;
+	}
+
 	public MultiEventSegment(int duration, int plugincount, List<? extends Segment> data) {
 		super("Events", duration, data);
 		this.plugincount = plugincount;
 	}
-	
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());
 		builder.append('\n').append("Plugin count: ").append(this.plugincount);
 		return builder.toString();
 	}
-
 }

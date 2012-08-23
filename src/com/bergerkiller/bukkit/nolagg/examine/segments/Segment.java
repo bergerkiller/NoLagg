@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -96,11 +98,37 @@ public abstract class Segment implements Comparable<Segment> {
 		}
 	}
 
+	public static double round(double Rval, int Rpl) {
+		double p = Math.pow(10, Rpl);
+		return Math.round(Rval * p) / p;
+	}
+
+	public void export(BufferedWriter writer, int indent, String text) throws IOException {
+		for (String line : text.split("\n", -1)) {
+			for (int i = 0; i < indent; i++) {
+				writer.write('\t');
+			}
+			writer.write(line);
+			writer.newLine();
+		}
+	}
+
+	public void export(BufferedWriter writer, int indent) throws IOException {
+		if (this instanceof SegmentNode) {
+			export(writer, indent, "Name: " + this.getName());
+		} else if (this.isTask()) {
+			export(writer, indent, "Task name: " + this.getName());
+		} else {
+			export(writer, indent, "Event name: " + this.getName());
+		}
+		export(writer, indent, "Time: " + round(this.getTotal(), 3) + " ms in " + this.getDuration() + " ticks" + " (" + round(this.getAverage(), 3) + " ms/tick average)");
+	}
+
 	@Override
 	public int compareTo(Segment o) {
 		return (int) (o.getTotal() - this.getTotal());
 	}
-		
+
 	/**
 	 * Gets a child segment, null if not possible
 	 * @param index
@@ -108,14 +136,14 @@ public abstract class Segment implements Comparable<Segment> {
 	public Segment getSegment(int index) {
 		return null;
 	}
-	
+
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Total duration: ");
-		builder.append(Math.round(this.getTotal() * 1000.0) / 1000.0).append(" ms / ");
+		builder.append(round(this.getTotal(), 3)).append(" ms / ");
 		builder.append(this.getDuration()).append(" ticks");
 		builder.append("\nAverage duration: ");
-		builder.append(Math.round(this.getAverage() * 1000.0) / 1000.0).append(" ms/tick");
+		builder.append(round(this.getAverage(), 3)).append(" ms/tick");
 		return builder.toString();
 	}
 }

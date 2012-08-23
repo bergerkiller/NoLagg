@@ -20,6 +20,7 @@ public class WorldStackFormer implements Runnable {
 	private final List<EntityItem> items = new ArrayList<EntityItem>();
 	private final List<EntityExperienceOrb> orbs = new ArrayList<EntityExperienceOrb>();
 	private final Set<EntityItem> itemsToRespawn = new HashSet<EntityItem>();
+	private final List<Entity> entitiesToKill = new ArrayList<Entity>();
 	public final WorldEntityWatcher watcher;
 	public final EntityTracker tracker;
 	private boolean disabled = false;
@@ -41,7 +42,7 @@ public class WorldStackFormer implements Runnable {
 	public void update() {
 		synchronized (isProcessing) {
 			if (isProcessing) return;
-			
+
 			//re-spawn previously stacked items
 			for (EntityItem item : itemsToRespawn) {
 				item.dead = true;
@@ -54,8 +55,14 @@ public class WorldStackFormer implements Runnable {
 				newItem.motZ = item.motZ;
 				newItem.world.addEntity(newItem);
 			}
-			
+
+			//get rid of trackers of killed entities
+			for (Entity entity : entitiesToKill) {
+				WorldUtil.getTracker(entity.world).untrackEntity(entity);
+			}
+
 			//fill the collections with new items and orbs again
+			entitiesToKill.clear();
 			items.clear();
 			orbs.clear();
 			itemsToRespawn.clear();
@@ -85,6 +92,7 @@ public class WorldStackFormer implements Runnable {
 
 	private void kill(Entity entity) {
 		entity.dead = true;
+		entitiesToKill.add(entity);
 	}
 
 	@SuppressWarnings("unchecked")

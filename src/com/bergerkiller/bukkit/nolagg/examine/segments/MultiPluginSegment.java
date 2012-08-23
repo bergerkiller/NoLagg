@@ -33,15 +33,16 @@ public class MultiPluginSegment extends SegmentNode {
 
 		return new MultiPluginSegment(duration, plugins);
 	}
-	
+
+	@Override
 	public int getPluginCount() {
 		return this.getChildren().length;
 	}
-	
+
 	public MultiPluginSegment(int duration, List<PluginSegment> plugins) {
 		super("Plugins", duration, plugins);
 	}
-	
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());

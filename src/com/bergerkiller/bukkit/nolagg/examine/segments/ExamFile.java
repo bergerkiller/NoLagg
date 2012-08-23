@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -75,7 +76,12 @@ public class ExamFile extends Segment {
 		default : return "NORMAL";
 		}
 	}
-	
+
+	@Override
+	public void export(BufferedWriter writer, int indent) throws IOException {
+		this.multiPlugin.export(writer, indent);
+	}
+
 	public static ExamFile read(File file) {
 		ExamFile efile = null;
 		try {

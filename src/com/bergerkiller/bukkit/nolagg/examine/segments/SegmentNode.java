@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.List;
 
 public abstract class SegmentNode extends Segment {
@@ -37,7 +39,9 @@ public abstract class SegmentNode extends Segment {
 	public Segment[] getChildren() {
 		return this.segments;
 	}
-	
+
+	public abstract int getPluginCount();
+
 	@Override
 	public Segment getSegment(int index) {
 		if (index < 0 || index >= this.segments.length) {
@@ -46,7 +50,22 @@ public abstract class SegmentNode extends Segment {
 			return this.segments[index];
 		}
 	}
-	
+
+	@Override
+	public void export(BufferedWriter writer, int indent) throws IOException {
+		super.export(writer, indent);
+		int plugins = this.getPluginCount();
+		if (plugins != 0) {
+			export(writer, indent, "Plugin count: " + plugins);
+		}
+		export(writer, indent, "Event count: " + this.getEventCount());
+		export(writer, indent, "Task count: " + this.getTaskCount());
+		export(writer, indent, "=============================");
+		for (Segment segment : this.segments) {
+			segment.export(writer, indent + 1);
+		}
+	}
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());

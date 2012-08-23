@@ -85,8 +85,13 @@ public class DummyWorld extends WorldServer {
 		this.random = null;
 	}
 
+	protected void a(WorldSettings worldsettings) {};
+	protected void b(WorldSettings worldsettings) {};
 	public void c() {};
 	public void g() {};
+	public void v() {};
+	public void a() {};
 	public IChunkProvider b() {return null;}
+	public IChunkProvider h() {return null;}
 }
 

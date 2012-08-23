@@ -62,6 +62,7 @@ public class ThreadLockChecker extends AsyncTask {
 				}
 			}
 		} else {
+			previous = CommonUtil.MAIN_THREAD.getStackTrace();
 			boolean isNoLaggBug = false;
 			for (StackTraceElement elem : previous) {
 				if (elem.getClassName().startsWith("com.bergerkiller.bukkit.nolagg")) {
@@ -69,7 +70,6 @@ public class ThreadLockChecker extends AsyncTask {
 					break;
 				}
 			}
-			previous = CommonUtil.MAIN_THREAD.getStackTrace();
 			maxidx = Integer.MAX_VALUE;
 			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] The main thread failed to respond after 10 seconds");
 			if (isNoLaggBug) {

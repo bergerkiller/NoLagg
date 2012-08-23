@@ -321,9 +321,9 @@ public class PerformanceMonitor extends Task {
 		
 			int totalchunkcount = 0;
 			int totaluchunkcount = 0;
-			
+
 			for (WorldServer world : WorldUtil.getWorlds()) {
-				int count = world.chunkProviderServer.chunkList.size();
+				int count = world.chunkProviderServer.getLoadedChunks();
 				totalchunkcount += count;
 				totaluchunkcount += count;
 				if (world.keepSpawnInMemory) {

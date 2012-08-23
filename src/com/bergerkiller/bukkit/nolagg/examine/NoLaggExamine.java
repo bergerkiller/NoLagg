@@ -17,12 +17,14 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 public class NoLaggExamine extends NoLaggComponent {
 
 	public static NoLaggExamine plugin;
-	
+
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		for (WorldServer world : WorldUtil.getWorlds()) {
-			TimedChunkProviderServer.convert(world);
+		if (TimedChunkProviderServer.initFields()) {
+			for (WorldServer world : WorldUtil.getWorlds()) {
+				TimedChunkProviderServer.convert(world);
+			}
 		}
 		this.register(NLEListener.class);
 		SchedulerWatcher.init();

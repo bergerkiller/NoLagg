@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.Arrays;
 
 public class DataSegment extends Segment {
@@ -37,7 +39,19 @@ public class DataSegment extends Segment {
 	public boolean isServerOperation() {
 		return this.plugin.startsWith("#");
 	}
-		
+
+	@Override
+	public void export(BufferedWriter writer, int indent) throws IOException {
+		super.export(writer, indent);
+		if (this.isServerOperation()) {
+			export(writer, indent, "Server branch: " + this.getPlugin());
+		} else {
+			export(writer, indent, "Plugin: " + this.getPlugin());
+			export(writer, indent, "Location: " + this.getLocation());
+		}
+		export(writer, indent, "---------------------------------------------\n");
+	}
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());

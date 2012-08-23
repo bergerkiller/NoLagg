@@ -37,7 +37,7 @@ public class TimedWrapper implements Runnable {
 			List<StackTraceElement> stack = new ArrayList<StackTraceElement>();
 			boolean add = true;
 			for (StackTraceElement elem : t.getStackTrace()) {
-				if (elem.getClassName().equals("org.bukkit.craftbukkit.scheduler.TimedWrapper")) {
+				if (elem.getClassName().equals("org.timedbukkit.craftbukkit.scheduler.TimedWrapper")) {
 					add = false;
 				} else if (add) {
 					stack.add(elem);

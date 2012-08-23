@@ -1,5 +1,9 @@
 package net.timedminecraft.server;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -7,7 +11,6 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
-import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.examine.NoLaggExamine;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
@@ -16,7 +19,6 @@ import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 import net.minecraft.server.BlockSand;
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkProviderServer;
-import net.minecraft.server.IChunkLoader;
 import net.minecraft.server.IChunkProvider;
 import net.minecraft.server.WorldServer;
 
@@ -26,72 +28,102 @@ import net.minecraft.server.WorldServer;
  * To keep things fair, all rights for this Class go to the Mojang team
  */
 public class TimedChunkProviderServer extends ChunkProviderServer {
-	public static SafeField<IChunkLoader> field;
-		
+	private static ClassTemplate<ChunkProviderServer> template;
+
 	public static boolean initFields() {
-		if (field == null) {
-			field = new SafeField<IChunkLoader>(ChunkProviderServer.class, "e");
-			if (field.isValid()) {
-				return true;
-			} else {
-				NoLaggExamine.plugin.log(Level.WARNING, "Failed to hook into chunk loader; chunk load times will not be examine!");
-				return false;
+		try {
+			template = new ClassTemplate<ChunkProviderServer>(ChunkProviderServer.class);
+			return true;
+		} catch (Throwable t) {
+			NoLaggExamine.plugin.log(Level.WARNING, "Failed to hook into chunk loader; chunk load times will not be examine!");
+			t.printStackTrace();
+			return false;
+		}
+	}
+
+	public static class ClassTemplate<T> {
+		private final Class<T> type;
+		private final List<Field> fields;
+
+		public ClassTemplate(Class<T> type) {
+			this.type = type;
+			this.fields = new ArrayList<Field>();
+			this.fillFields(type);
+		}
+
+		private void fillFields(Class<?> clazz) {
+			if (clazz == null) {
+				return;
 			}
-		} else {
-			return field.isValid();
+			for (Field field : clazz.getDeclaredFields()) {
+				if (Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				field.setAccessible(true);
+				this.fields.add(field);
+			}
+			this.fillFields(clazz.getSuperclass());
+		}
+
+		public Class<T> getType() {
+			return this.type;
+		}
+
+		public void transfer(T from, T to) {
+			for (Field field : this.fields) {
+				try {
+					field.set(to, field.get(from));
+				} catch (IllegalArgumentException e) {
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
-	
+
 	public static void transfer(ChunkProviderServer to, WorldServer world) {
-		to.chunkList = world.chunkProviderServer.chunkList;
-		to.chunkProvider = world.chunkProviderServer.chunkProvider;
-		to.chunks = world.chunkProviderServer.chunks;
-		if (world.chunkProviderServer instanceof TimedChunkProviderServer) {
-			((TimedChunkProviderServer) world.chunkProviderServer).enabled = false;
+		try {
+			template.transfer(world.chunkProviderServer, to);
+			if (world.chunkProviderServer instanceof TimedChunkProviderServer) {
+				((TimedChunkProviderServer) world.chunkProviderServer).enabled = false;
+			}
+			world.chunkProvider = world.chunkProviderServer = to;
+		} catch (Throwable t) {
+			t.printStackTrace();
 		}
-		world.chunkProvider = world.chunkProviderServer = to;
 	}
-	
+
 	public static void convert(org.bukkit.World world) {
 		convert(WorldUtil.getNative(world));
 	}
 
 	public static void convert(WorldServer world) {
-		if (initFields()) {
-			try {
-				IChunkLoader old = field.get(world.chunkProviderServer);
-				transfer(new TimedChunkProviderServer(world, old, world.chunkProviderServer.chunkProvider), world);
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
+		if (template != null) {
+			transfer(new TimedChunkProviderServer(world), world);
 		}
 	}
-	
+
 	public static void restore(org.bukkit.World world) {
 		restore(WorldUtil.getNative(world));
 	}
-	
+
 	public static void restore(WorldServer world) {
-		if (initFields()) {
-			try {
-				IChunkLoader old = field.get(world.chunkProviderServer);
-				transfer(new ChunkProviderServer(world, old, world.chunkProviderServer.chunkProvider), world);
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
+		if (template != null) {
+			transfer(new ChunkProviderServer(world, null, null), world);
 		}
 	}
-	
+
 	private boolean enabled = true;
 	private TaskMeasurement loadmeas, genmeas;
 	private long prevtime;
-	
-	private TimedChunkProviderServer(WorldServer worldserver, IChunkLoader ichunkloader, IChunkProvider ichunkprovider) {
-		super(worldserver, ichunkloader, ichunkprovider);
+
+	private TimedChunkProviderServer(WorldServer world) {
+		super(world, null, null);
 		loadmeas = PluginLogger.getServerOperation("Chunk creation", "Chunk load", "Loads chunks from file");
 		genmeas = PluginLogger.getServerOperation("Chunk creation", "Chunk generate", "Generates the basic terrain");
 	}
-	
+
 	@Override
 	public Chunk loadChunk(int x, int z) {
 		if (enabled && PluginLogger.isRunning()) {
@@ -103,7 +135,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 			return super.loadChunk(x, z);
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
     public Chunk getChunkAt(int i, int j) {
@@ -153,7 +185,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 			return super.getChunkAt(i, j);
 		}
     }
-	
+
 	@Override
     public void getChunkAt(IChunkProvider ichunkprovider, int i, int j) {
 		if (enabled && PluginLogger.isRunning()) {
@@ -195,5 +227,4 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 			super.getChunkAt(ichunkprovider, i, j);
 		}
     }
-
 }

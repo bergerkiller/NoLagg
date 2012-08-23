@@ -6,11 +6,16 @@ import java.util.List;
  * Contains all the information of a single plugin
  */
 public class PluginSegment extends SegmentNode {
-	
+
 	public PluginSegment(String plugin, int duration, List<DataSegment> events) {
 		super(plugin, duration, events);
 	}
-		
+
+	@Override
+	public int getPluginCount() {
+		return 0;
+	}
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());

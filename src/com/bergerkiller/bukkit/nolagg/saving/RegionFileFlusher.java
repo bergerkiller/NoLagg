@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.saving;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.ref.Reference;
@@ -65,7 +66,10 @@ public class RegionFileFlusher {
 								for (Entry<RegionFile, RandomAccessFile> file : regions) {
 									synchronized (file.getKey()) {
 										try {
-											file.getValue().getFD().sync();
+											FileDescriptor fd = file.getValue().getFD();
+											if (fd.valid()) {
+												fd.sync();
+											}
 										} catch (IOException e) {
 											NoLaggSaving.plugin.log(Level.SEVERE, "Failed to sync region data to file:");
 											e.printStackTrace();

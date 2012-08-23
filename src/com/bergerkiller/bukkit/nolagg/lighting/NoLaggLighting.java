@@ -2,11 +2,13 @@ package com.bergerkiller.bukkit.nolagg.lighting;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
@@ -45,12 +47,14 @@ public class NoLaggLighting extends NoLaggComponent {
 						radius = Integer.parseInt(args[1]);
 					} catch (Exception ex) {}
 				}
-				//TODO DO SHIT HERE
 				int cx = p.getLocation().getBlockX() >> 4;
 				int cz = p.getLocation().getBlockZ() >> 4;
 				for (int a = -radius; a <= radius; a++) {
 					for (int b = -radius; b <= radius; b++) {
-						LightingFixThread.fix(p.getWorld().getChunkAt(cx + a, cz + b));
+						Chunk chunk = WorldUtil.getChunk(p.getWorld(), cx + a, cz + b);
+						if (chunk != null) {
+							LightingFixThread.fix(chunk);
+						}
 					} 
 				}
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");

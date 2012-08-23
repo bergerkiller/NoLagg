@@ -19,6 +19,7 @@ public class MainWindow extends JFrame {
 	
 	private GraphBox ticktimes1;
 	private SelectionBox selection;
+	public JButton exportbutton;
 	public JTextField filepath;
 	public JTextArea description;
 	private JScrollPane locscroll;
@@ -105,7 +106,12 @@ public class MainWindow extends JFrame {
 			}
 			
 		});
-		
+
+		// Export button
+		exportbutton = append(new JButton());
+		exportbutton.setText("Export");
+		exportbutton.setBounds(main.getWidth() - 121, 5, 100, 30);
+
 		this.getContentPane().addHierarchyBoundsListener(new HierarchyBoundsListener(){
             public void ancestorMoved(HierarchyEvent e) {}
             @Override
@@ -114,7 +120,8 @@ public class MainWindow extends JFrame {
             	main.ticktimes1.setSize(main.getWidth() - selectionWidth - 28, main.getHeight() - 80);
             	main.locscroll.setLocation(main.getWidth() - 310, main.getHeight() - 240);
             	main.selection.setBounds(main.getWidth() - 310, yoffset, selectionWidth, main.getHeight() - 285);
-            	main.filepath.setSize(main.getWidth() - 130, main.filepath.getHeight());
+            	main.filepath.setSize(main.getWidth() - 235, main.filepath.getHeight());
+            	main.exportbutton.setLocation(main.getWidth() - 121, 5);
             }
         });
 
