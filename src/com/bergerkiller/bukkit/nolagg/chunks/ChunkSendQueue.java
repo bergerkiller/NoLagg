@@ -139,12 +139,13 @@ public class ChunkSendQueue extends LinkedList {
 	}
 	private ChunkSendQueue(final EntityPlayer ep) {
 		this.ep = ep;
-		this.addAll(ep.chunkCoordIntPairQueue);
 		this.world = ep.world;
 		this.sendDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
 		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
 		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
 		this.chunkQueue = new ChunkCompressQueue(this);
+		this.addAll(ep.chunkCoordIntPairQueue);
+		this.add(new ChunkCoordIntPair(MathUtil.locToChunk(ep.locX), MathUtil.locToChunk(ep.locZ)));
 		ChunkCompressionThread.addQueue(this.chunkQueue);
 	    this.enforceBufferFullSize();
 	}

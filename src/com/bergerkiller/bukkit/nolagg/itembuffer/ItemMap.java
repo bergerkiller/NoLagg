@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg.itembuffer;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Operation;
@@ -61,14 +62,11 @@ public class ItemMap {
 		}.start(20, 40);
 	}
 	public static void deinit() {
-		new Operation() {
-			public void run() {
-				this.doChunks();
-			}
-			public void handle(Chunk chunk) {
+		for (World world : Bukkit.getWorlds()) {
+			for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
 				unloadChunk(chunk);
 			}
-		};
+		}
 		Task.stop(updateTask);
 	}
 	
