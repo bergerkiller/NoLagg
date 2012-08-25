@@ -142,9 +142,7 @@ public class ChunkCompressQueue {
     	ChunkSendCommand next = this.pollSendCommand();
         if (next == null) return false;
         next.send(this.owner);
-        this.owner.scheduleTrigger(next.chunk);
         this.owner.removeContained(next.chunk.x, next.chunk.z);
         return true;
     }
-   
 }

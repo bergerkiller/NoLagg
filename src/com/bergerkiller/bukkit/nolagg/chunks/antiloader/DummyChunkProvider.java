@@ -8,7 +8,6 @@ public class DummyChunkProvider extends ChunkProviderServer {
 
 	public DummyChunkProvider(WorldServer world) {
 		super(world, null, null);
-		this.chunkList = null;
 		this.chunks = null;
 	}
 

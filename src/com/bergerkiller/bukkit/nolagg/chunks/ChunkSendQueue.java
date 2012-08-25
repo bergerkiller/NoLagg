@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -19,16 +18,13 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.INetworkManager;
 import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet;
-import net.minecraft.server.Packet53BlockChange;
 import net.minecraft.server.World;
 import net.minecraft.server.WorldServer;
 
@@ -37,7 +33,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private static final long serialVersionUID = 1L;
 	public static double maxRate = 2;
 	public static double minRate = 0.25;
-	public static double globalTriggerRate = 1;
 	public static double compressBusyPercentage = 0.0;
 	private static long prevtime;
 	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
@@ -127,13 +122,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private int packetBufferQueueSize = 0;
 	private int buffersizeavg = 0;
 
-	/*
-	 * Trigger related variables
-	 */
-	private final IntRemainder triggerRate = new IntRemainder(globalTriggerRate, 1);
-	private int triggerintervalcounter = 200;
-	private final LinkedList<Packet53BlockChange> toTrigger = new LinkedList<Packet53BlockChange>();
-
 	private ChunkSendQueue(final EntityPlayer ep) {
 		this.ep = ep;
 		this.world = ep.world;
@@ -182,34 +170,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		return this.rate.get();
 	}
 
-	public void scheduleTrigger(Chunk chunk) {
-		this.toTrigger.offer(new Packet53BlockChange(chunk.x << 4, 0, chunk.x << 4, chunk.world));
-	}
-
-	public void sendTriggers() {
-		if (this.toTrigger.isEmpty()) return;
-		if (this.triggerRate.get() > 0) {
-			this.sendTriggers(this.triggerRate.next(), 1);
-		} else {
-			this.sendTriggers(1, (int) (1 / this.triggerRate.get()));
-		}
-	}
-
-	private void sendTriggers(int rate, int interval) {
-		if (interval == 0) interval = 1;
-		if (rate == 0) return;
-		if (this.triggerintervalcounter >= interval) {
-		    for (int i = 0; i < rate; i++) {
-				Packet53BlockChange p = this.toTrigger.poll();
-				if (p == null) break;
-				PacketUtil.sendPacket(this.ep, p, false);
-		    }
-			this.triggerintervalcounter = 1;
-		} else {
-			this.triggerintervalcounter++;
-		}
-	}
-
 	public String getBufferLoadMsg() {
 		double per = MathUtil.round(100D * this.buffersizeavg / getMaxQueueSize(), 2);
 		if (this.buffersizeavg > 300000) {
@@ -249,7 +209,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 * Main update routine - handles the calculation of the rate and interval and updates afterwards
 	 */
 	private void update() {
-		this.sendTriggers();
 		// Update queue size
 		if (queuesizefield.isValid()) {
 			this.packetBufferQueueSize = (Integer) queuesizefield.get(this.ep.netServerHandler.networkManager);

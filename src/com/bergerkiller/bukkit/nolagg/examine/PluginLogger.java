@@ -42,20 +42,17 @@ public class PluginLogger {
 
 	public static Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
 
-	public static TimedWrapper getWrapper(Runnable task, String location, Plugin plugin) {
-		return getTask(task, location, plugin).getWrapper(task);
+	public static TimedWrapper getWrapper(Runnable task, Plugin plugin) {
+		return getTask(task, plugin).getWrapper(task);
 	}
-	public static TaskMeasurement getTask(Runnable task, String location, Plugin plugin) {
-		return getTask(task.getClass().getName(), location, plugin);
+	public static TaskMeasurement getTask(Runnable task, Plugin plugin) {
+		return getTask(task.getClass().getName(), plugin);
 	}
-	public static TaskMeasurement getTask(String name, String location, Plugin plugin) {
+	public static TaskMeasurement getTask(String name, Plugin plugin) {
 		TaskMeasurement tm = tasks.get(name);
 		if (tm == null) {
 			tm = new TaskMeasurement(name, plugin);
 			tasks.put(name, tm);
-		}
-		if (location != null) {
-			tm.locations.add(location);
 		}
 		return tm;
 	}

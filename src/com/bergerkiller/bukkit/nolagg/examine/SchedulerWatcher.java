@@ -1,94 +1,68 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.PriorityQueue;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.scheduler.CraftScheduler;
-import org.bukkit.craftbukkit.scheduler.CraftTask;
+import org.bukkit.plugin.Plugin;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.SafeField;
 
-public class SchedulerWatcher extends TreeMap<CraftTask, Boolean> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class SchedulerWatcher extends PriorityQueue {
+	private static final long serialVersionUID = -3457587669129548810L;
+	private static SafeField<PriorityQueue> pending;
+	private static SafeField<Runnable> runnable;
+	private static SafeField<Plugin> plugin;
+	private static boolean isValid;
 
-	private static final long serialVersionUID = -3457587669126958810L;
-	
-	private static SafeField<Runnable> runnable = new SafeField<Runnable>(CraftTask.class, "task");	
-	public SchedulerWatcher(TreeMap<CraftTask, Boolean> input) {
-		for (Map.Entry<CraftTask, Boolean> entry : input.entrySet()) {
-			CraftTask task = entry.getKey();
-			Runnable run = runnable.get(task);
-			if (!(run instanceof TimedWrapper)) {
-				runnable.set(task, PluginLogger.getWrapper(run, null, task.getOwner()));
-			}
-			super.put(task, entry.getValue());
+	static {
+		try {
+			Class<?> craftTaskClass = Class.forName("org.bukkit.craftbukkit.scheduler.CraftTask");
+			pending = new SafeField<PriorityQueue>(CraftScheduler.class, "pending");
+			runnable = new SafeField<Runnable>(craftTaskClass, "task");
+			plugin = new SafeField<Plugin>(craftTaskClass, "plugin");
+			isValid = pending.isValid() && runnable.isValid() && plugin.isValid();
+		} catch (Throwable t) {
+			t.printStackTrace();
+			isValid = false;
 		}
-	}
-	
-	public Boolean put(CraftTask task, Boolean value) {
-		if (value) {
-			Runnable run = runnable.get(task);
-			if (!(run instanceof TimedWrapper)) {
-				runnable.set(task, PluginLogger.getWrapper(run, getStackTrace(), task.getOwner()));
-			}
-		}
-		return super.put(task, value);
 	}
 
-	public String getStackTrace() {
-		StackTraceElement[] elem = Thread.currentThread().getStackTrace();
-		StringBuilder builder = new StringBuilder();
-		boolean started = false;
-		for (int i = 5; i < elem.length && !elem[i].getClassName().startsWith("net.minecraft.server"); i++) {
-			if (!started) {
-				if (elem[i].getClassName().startsWith("org.bukkit.craftbukkit")) {
-					continue;
-				} else {
-					started = true;
-				}
-			} else {
-				builder.append('\n');
-			}
-			builder.append(elem[i].getClassName()).append('.').append(elem[i].getMethodName());
-			builder.append("(").append(elem[i].getLineNumber()).append(')');
-		}
-		return builder.toString();
+	private SchedulerWatcher(PriorityQueue queue) {
+		super(queue);
 	}
-	
-	private static SafeField<TreeMap<CraftTask, Boolean>> queue = new SafeField<TreeMap<CraftTask, Boolean>>(CraftScheduler.class, "schedulerQueue");
+
+	@Override
+	public Object remove() {
+		if (!PluginLogger.isRunning()) {
+			return super.remove();
+		}
+		Object o = super.remove();
+		Runnable run = runnable.get(o);
+		if (!(run instanceof TimedWrapper)) {
+			runnable.set(o, PluginLogger.getWrapper(run, plugin.get(o)));
+		}
+		return o;
+	}
+
 	public static void init() {
-		if (runnable.isValid() && queue.isValid()) {
+		if (isValid) {
 			CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
-			TreeMap<CraftTask, Boolean> old = queue.get(scheduler);
-			synchronized (old) {
-				queue.set(scheduler, new SchedulerWatcher(old));
-				old.notify();
-			}
+			pending.set(scheduler, new SchedulerWatcher(pending.get(scheduler)));
 		} else {
 			NoLaggExamine.plugin.log(Level.SEVERE, "Failed to hook into craft scheduler: scheduled tasks will not be logged when examining!");
 		}
 	}
+
 	public static void deinit() {
-		CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
-		SchedulerWatcher old = null;
-		try {
-			old = (SchedulerWatcher) queue.get(scheduler);
-		} catch (Throwable t) {
-			return;
+		if (isValid) {
+			CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
+			try {
+				pending.set(scheduler, new PriorityQueue(pending.get(scheduler)));
+			} catch (Throwable t) {}
 		}
-		TreeMap<CraftTask, Boolean> repl = new TreeMap<CraftTask, Boolean>();
-		synchronized (old) {
-			for (Map.Entry<CraftTask, Boolean> entry : old.entrySet()) {
-				CraftTask task = entry.getKey();
-				Runnable run = runnable.get(task);
-				if (run instanceof TimedWrapper) {
-					run = ((TimedWrapper) run).runnable;
-				}
-				repl.put(task, entry.getValue());
-			}
-		}
-		queue.set(scheduler, repl);
 	}
 }

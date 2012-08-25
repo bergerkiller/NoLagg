@@ -136,7 +136,6 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
     public Chunk getChunkAt(int i, int j) {
 		if (enabled && PluginLogger.isRunning()) {
@@ -160,7 +159,6 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	            }
 
 	            this.chunks.put(i, j, chunk); // CraftBukkit
-	            this.chunkList.add(chunk);
 	            if (chunk != null) {
 	                chunk.addEntities();
 	            }

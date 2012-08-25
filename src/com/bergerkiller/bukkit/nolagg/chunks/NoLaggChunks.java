@@ -63,7 +63,6 @@ public class NoLaggChunks extends NoLaggComponent {
 		config.addHeader("bufferedLoader", "For example, Raw Critics' Ore Obfuscation does not function with this enabled.");
 		config.addHeader("bufferedLoader", "Orebfuscator is supported and works with this enabled.");
 
-		config.setHeader("triggerRate", "The rate at which chunks are 'triggered' (refreshed, make visible) (trigger packets/tick)");
 		config.setHeader("bufferedLoader.enabled", "Whether or not to use the buffered packet loader to reduce new memory allocation");
 		config.setHeader("bufferedLoader.threadCount", "The amount of threads to use to compress the chunk packets (increase if it can't keep up)");
 
@@ -74,8 +73,7 @@ public class NoLaggChunks extends NoLaggComponent {
 		config.addHeader("dynamicView", "The dynamic view distance will never be higher than the server view distance!");
 
 		ChunkSendQueue.minRate = config.get("minRate", 0.25);
-		ChunkSendQueue.maxRate = config.get("maxRate", 2.00);
-		ChunkSendQueue.globalTriggerRate = config.get("triggerRate", 0.5);
+		ChunkSendQueue.maxRate = config.get("maxRate", 1.50);
 		useBufferedLoading = config.get("bufferedLoader.enabled", true);
 		useDynamicView = config.get("useDynamicView", true);
 		ChunkCompressionThread.init(config.get("bufferedLoader.threadCount", 2));

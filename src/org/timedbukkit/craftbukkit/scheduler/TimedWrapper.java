@@ -26,10 +26,13 @@ public class TimedWrapper implements Runnable {
 		try {
 			if (PluginLogger.isRunning()) {
 				long time = System.nanoTime();
-				this.runnable.run();
 				try {
-					this.dest.setTime(time);
-				} catch (ArrayIndexOutOfBoundsException ex) {}
+					this.runnable.run();
+				} finally {
+					try {
+						this.dest.setTime(time);
+					} catch (ArrayIndexOutOfBoundsException ex) {}
+				}
 			} else {
 				this.runnable.run();
 			}

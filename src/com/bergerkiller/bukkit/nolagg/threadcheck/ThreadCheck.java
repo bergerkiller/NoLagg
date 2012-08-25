@@ -7,7 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.scheduler.CraftWorker;
+import org.bukkit.craftbukkit.scheduler.CraftScheduler;
 import org.bukkit.craftbukkit.util.ServerShutdownThread;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -85,7 +85,7 @@ public class ThreadCheck {
 			if (classCheck(stack.get(stack.size() - 1), Thread.class)) {
 				stack.remove(stack.size() - 1);
 				//bukkit task?
-				if (classCheck(stack.get(stack.size() - 1), CraftWorker.class)) {
+				if (classCheck(stack.get(stack.size() - 1), CraftScheduler.class)) {
 					classname = stack.get(stack.size() - 2).getClassName();
 				} else {
 					classname = stack.get(stack.size() - 1).getClassName();
