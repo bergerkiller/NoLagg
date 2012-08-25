@@ -1,14 +1,10 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.Set;
-import java.util.HashSet;
 
 import org.bukkit.ChatColor;
 import org.bukkit.block.BlockFace;
@@ -20,7 +16,6 @@ import com.bergerkiller.bukkit.common.IntRemainder;
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -38,18 +33,21 @@ import net.minecraft.server.World;
 import net.minecraft.server.WorldServer;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class ChunkSendQueue extends LinkedList {
-
-	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
-	private static SafeField<Integer> queuesizefield;
+public class ChunkSendQueue extends ChunkSendQueueBase {
 	private static final long serialVersionUID = 1L;
+	public static double maxRate = 2;
+	public static double minRate = 0.25;
+	public static double globalTriggerRate = 1;
+	public static double compressBusyPercentage = 0.0;
+	private static long prevtime;
+	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
+	private static SafeField<Integer> queuesizefield = new SafeField<Integer>(NetworkManager.class, "y");
 	private static Task task;
+
 	public static void init() {
-		queuesizefield = new SafeField<Integer>(NetworkManager.class, "y");
 		if (!queuesizefield.isValid()) {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Failed to hook into the player packet queue size field");
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
-			queuesizefield = null;
 		}
 		prevtime = System.currentTimeMillis();
 		task = new Task(NoLagg.plugin) {
@@ -64,7 +62,10 @@ public class ChunkSendQueue extends LinkedList {
 							this.doPlayers();
 						}
 						public void handle(EntityPlayer ep) {
-							bind(ep).update();
+							ChunkSendQueue queue = bind(ep);
+							queue.setUpdating(true);
+							queue.update();
+							queue.setUpdating(false);
 						}
 					};
 				} catch (Exception ex) {
@@ -77,6 +78,7 @@ public class ChunkSendQueue extends LinkedList {
 			}
 		}.start(1, 1);
 	}
+
 	public static void deinit() {
 		Task.stop(task);
 		task = null;
@@ -87,11 +89,62 @@ public class ChunkSendQueue extends LinkedList {
 			}
 			public void handle(EntityPlayer ep) {
 				ChunkSendQueue queue = bind(ep);
-				if (queue == null) return;
-				LinkedList list = new LinkedList(queue.contained);
-				chunkQueueField.set(ep, list);
+				if (queue != null) {
+					chunkQueueField.set(ep, queue.toLinkedList());
+				}
 			}
 		};
+	}
+
+	public static ChunkSendQueue bind(Player with) {
+		return bind(((CraftPlayer) with).getHandle());
+	}
+
+	public static ChunkSendQueue bind(EntityPlayer with) {
+		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
+			ChunkSendQueue queue = new ChunkSendQueue(with);
+			with.chunkCoordIntPairQueue.clear();
+			chunkQueueField.set(with, queue);
+		}
+		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
+	}
+
+	public final EntityPlayer ep;
+	private int idleTicks = 0;
+	public BlockFace sendDirection = BlockFace.NORTH;
+	public World world;
+	public int x;
+	public int z;
+	private IntRemainder rate = new IntRemainder(2.0, 1);
+	private int intervalcounter = 200;
+	private ChunkCompressQueue chunkQueue;
+
+	/*
+	 * Packet queue related variables
+	 */
+	private int prevQueueSize = 0;
+	private int maxQueueSize = 300000;
+	private int packetBufferQueueSize = 0;
+	private int buffersizeavg = 0;
+
+	/*
+	 * Trigger related variables
+	 */
+	private final IntRemainder triggerRate = new IntRemainder(globalTriggerRate, 1);
+	private int triggerintervalcounter = 200;
+	private final LinkedList<Packet53BlockChange> toTrigger = new LinkedList<Packet53BlockChange>();
+
+	private ChunkSendQueue(final EntityPlayer ep) {
+		this.ep = ep;
+		this.world = ep.world;
+		this.sendDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
+		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
+		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
+		this.chunkQueue = new ChunkCompressQueue(this);
+		this.addAll(ep.chunkCoordIntPairQueue);
+		this.add(new ChunkCoordIntPair(MathUtil.locToChunk(ep.locX), MathUtil.locToChunk(ep.locZ)));
+		ChunkCompressionThread.addQueue(this.chunkQueue);
+	    this.enforceBufferFullSize();
 	}
 
 	private void enforceBufferFullSize() {
@@ -111,49 +164,6 @@ public class ChunkSendQueue extends LinkedList {
 		}
 	}
 
-	private static long prevtime;
-	public static double compressBusyPercentage = 0.0;
-	private int maxQueueSize = 300000;
-	private int packetBufferQueueSize = 0;
-	private int updateQueueSize() {
-		if (queuesizefield != null && queuesizefield.isValid()) {
-			this.packetBufferQueueSize = (Integer) queuesizefield.get(this.ep.netServerHandler.networkManager);
-			this.packetBufferQueueSize += 9437184;
-		}
-		return this.packetBufferQueueSize;
-	}
-	private int getMaxQueueSize() {
-		return 10485760;
-	}
-
-	public static ChunkSendQueue bind(Player with) {
-		return bind(((CraftPlayer) with).getHandle());
-	}
-	public static ChunkSendQueue bind(EntityPlayer with) {
-		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
-			ChunkSendQueue queue = new ChunkSendQueue(with);
-			with.chunkCoordIntPairQueue.clear();
-			chunkQueueField.set(with, queue);
-		}
-		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
-	}
-	private ChunkSendQueue(final EntityPlayer ep) {
-		this.ep = ep;
-		this.world = ep.world;
-		this.sendDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
-		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
-		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
-		this.chunkQueue = new ChunkCompressQueue(this);
-		this.addAll(ep.chunkCoordIntPairQueue);
-		this.add(new ChunkCoordIntPair(MathUtil.locToChunk(ep.locX), MathUtil.locToChunk(ep.locZ)));
-		ChunkCompressionThread.addQueue(this.chunkQueue);
-	    this.enforceBufferFullSize();
-	}
-
-	public static double maxRate = 2;
-	public static double minRate = 0.25;
-	public static double globalTriggerRate = 1;
-			
 	public static double getAverageRate() {
 		return new Operation() {
 			public void run() {
@@ -171,31 +181,12 @@ public class ChunkSendQueue extends LinkedList {
 	public double getRate() {
 		return this.rate.get();
 	}
-	
-	public final EntityPlayer ep;
-	public BlockFace sendDirection = BlockFace.NORTH;
-	public World world;
-	public int x;
-	public int z;
-	private IntRemainder rate = new IntRemainder(2.0, 1);
-	private final IntRemainder triggerRate = new IntRemainder(globalTriggerRate, 1);
-	private ChunkCompressQueue chunkQueue;
-	private final LinkedList<Packet53BlockChange> toTrigger = new LinkedList<Packet53BlockChange>();
-	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
-	public void removeContained(int x, int z) {
-	    this.removeContained(new ChunkCoordIntPair(x, z));
-	}
-	public void removeContained(ChunkCoordIntPair pair) {
-		this.contained.remove(pair);
-	}
-	
+
 	public void scheduleTrigger(Chunk chunk) {
-    	this.scheduleTrigger(new Packet53BlockChange(chunk.x << 4, 0, chunk.x << 4, chunk.world));
+		this.toTrigger.offer(new Packet53BlockChange(chunk.x << 4, 0, chunk.x << 4, chunk.world));
 	}
-	public void scheduleTrigger(Packet53BlockChange packet) {
-		this.toTrigger.offer(packet);
-	}
-	public void updateTriggers() {
+
+	public void sendTriggers() {
 		if (this.toTrigger.isEmpty()) return;
 		if (this.triggerRate.get() > 0) {
 			this.sendTriggers(this.triggerRate.next(), 1);
@@ -203,6 +194,7 @@ public class ChunkSendQueue extends LinkedList {
 			this.sendTriggers(1, (int) (1 / this.triggerRate.get()));
 		}
 	}
+
 	private void sendTriggers(int rate, int interval) {
 		if (interval == 0) interval = 1;
 		if (rate == 0) return;
@@ -217,14 +209,7 @@ public class ChunkSendQueue extends LinkedList {
 			this.triggerintervalcounter++;
 		}
 	}
-	
-	/*
-	 * Used to send packets and triggers
-	 */
-	private int intervalcounter = 200;
-	private int triggerintervalcounter = 200;
-	private int buffersizeavg = 0;
-	private int idleTicks = 0;
+
 	public String getBufferLoadMsg() {
 		double per = MathUtil.round(100D * this.buffersizeavg / getMaxQueueSize(), 2);
 		if (this.buffersizeavg > 300000) {
@@ -235,27 +220,16 @@ public class ChunkSendQueue extends LinkedList {
 			return ChatColor.GREEN.toString() + per + "%";
 		}
 	}
-		
-	private int prevQueueSize = 0;
 
-	public Object[] toArray(Object[] value) {
-		synchronized (this) {
-			return super.toArray(value);
-		}
-	}
-		
 	public void sort() {
 	    this.chunkQueue.sort();
 	    synchronized (this) {
-	    	if (this.isUpdating) {
-	    		this.sort(this);
-	    	} else {
-	    		this.isUpdating = true;
-	    		this.sort(this);
-	    		this.isUpdating = false;
-	    	}
+	    	boolean old = this.setUpdating(true);
+	    	this.sort(this);
+	    	this.setUpdating(old);
 	    }
 	}
+
 	public void sort(List elements) {
 		if (elements.isEmpty()) return;
 		ChunkCoordIntPair middle = new ChunkCoordIntPair(this.x, this.z);
@@ -270,22 +244,30 @@ public class ChunkSendQueue extends LinkedList {
 			t.printStackTrace();
 		}
 	}
-	
-	private boolean isUpdating = false;
+
+	/**
+	 * Main update routine - handles the calculation of the rate and interval and updates afterwards
+	 */
 	private void update() {
-		this.updateTriggers();
-		this.updateQueueSize();
+		this.sendTriggers();
+		// Update queue size
+		if (queuesizefield.isValid()) {
+			this.packetBufferQueueSize = (Integer) queuesizefield.get(this.ep.netServerHandler.networkManager);
+			this.packetBufferQueueSize += 9437184;
+		}
+		// Update current buffer size
 		if (this.buffersizeavg == 0) {
 			this.buffersizeavg = this.packetBufferQueueSize;
 		} else {
 			this.buffersizeavg += 0.3 * (this.packetBufferQueueSize - this.buffersizeavg);
 		}
+		// Idling
 		if (this.idleTicks > 0) {
 			this.idleTicks--;
 			return;
 		}
-		
-		if (super.size() == 0 && !this.chunkQueue.canSend()) return;
+
+		if (this.isEmpty() && !this.chunkQueue.canSend()) return;
 		double newrate = this.rate.get();
 		if (this.packetBufferQueueSize > this.maxQueueSize) {
 			newrate = minRate;
@@ -320,10 +302,16 @@ public class ChunkSendQueue extends LinkedList {
 			this.update((int) (1 / this.rate.get()), 1);
 		}
 	}
+
+	/**
+	 * Performs sorting and batch sending at the interval and rate settings specified
+	 * 
+	 * @param interval to send at
+	 * @param rate to send at
+	 */
 	private void update(int interval, int rate) {
 		if (interval == 0) interval = 1;
 		if (rate == 0) return;
-		this.isUpdating = true;
 		if (this.intervalcounter >= interval)  {
 			//sorting
 			BlockFace newDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
@@ -341,28 +329,17 @@ public class ChunkSendQueue extends LinkedList {
 		} else {
 			this.intervalcounter++;
 		}
-		this.isUpdating = false;
 	}
 
-	private ChunkCoordIntPair pollPair() {
-		Iterator<ChunkCoordIntPair> iter = super.iterator();
-		while (iter.hasNext()) {
-			ChunkCoordIntPair pair = iter.next();
-			if (DynamicViewDistance.isNear(this, pair.x, pair.z)) {
-				iter.remove();
-				return pair;
-			} else if (!this.isNear(pair, CommonUtil.view)) {
-				iter.remove();
-				this.contained.remove(pair);
-			}
-		}
-		return null;
-	}
-
+	/**
+	 * Prepares the given amount of chunks for sending and flushed compressed chunks
+	 * 
+	 * @param count of chunks to load
+	 */
 	private void sendBatch(int count) {				
 		//load chunks
 		for (int i = 0; i < count; i++) {
-			ChunkCoordIntPair pair = this.pollPair();
+			ChunkCoordIntPair pair = this.pollNextChunk();
 			if (pair == null) break;
 			this.chunkQueue.enqueue(((WorldServer) this.ep.world).chunkProviderServer.getChunkAt(pair.x, pair.z));
 		}
@@ -377,110 +354,46 @@ public class ChunkSendQueue extends LinkedList {
 		}
 	}
 
+	/**
+	 * Waits the amount of ticks specified, doing nothing
+	 * 
+	 * @param ticks to wait
+	 */
 	public void idle(int ticks) {
 		this.idleTicks += ticks;
 	}
 
-	public boolean containsAll(Collection coll) {
-		synchronized (this) {
-			for (Object o : coll) {
-				if (!this.contains(o)) return false;
-			}
-			return true;
-		}
-	}
-	public boolean contains(Object o) {
-		synchronized (this) {
-			return this.contained.contains(o);
-		}
-	}
-	public boolean addAll(Collection coll) {
-		synchronized (this) {
-			for (Object o : coll) this.add(o);
-			return true;
-		}
-	}
-	public boolean addAll(int index, Collection coll) {
-		synchronized (this) {
-			for (Object o : coll) this.add(index, o);
-			return true;
-		}
-	}
-	public void clear() {
-		synchronized (this) {
-			super.clear();
-		}
-		this.contained.clear();
+	private int getMaxQueueSize() {
+		return 10485760;
 	}
 
-	/*
-	 * Prevent Spout from using this queue...seriously!
+	/**
+	 * Gets the remaining chunks that need sending
+	 * 
+	 * @return to send size
 	 */
-	public boolean isEmpty() {
-		return this.isUpdating ? super.isEmpty() : true;
-	}
-	public int size() {
-		return this.isUpdating ? super.size() : 0;
-	}
-	
 	public int getPendingSize() {
 		return super.size() + this.chunkQueue.getPendingSize();
 	}
-	
-	/*
-	 * get(0) is called in EntityPlayer to get the next chunk to send
-	 */
-	public Object get(int index) {
-		return this.isUpdating ? super.get(index) : null;
-	}
-	public boolean remove(Object object) {
-		ChunkCoordIntPair pair = (ChunkCoordIntPair) object;
-		synchronized (this) {
-			if (super.remove(object)) {
-				this.contained.remove(pair);
-				return true;
-			}
-		}
-		if (this.chunkQueue.remove(pair.x, pair.z)) {
-			this.contained.remove(pair);
-			return true;
-		}
-		return false;
+
+	@Override
+	public boolean remove(ChunkCoordIntPair pair) {
+		return super.remove(pair) || this.chunkQueue.remove(pair.x, pair.z);
 	}
 
-	public boolean isNear(ChunkCoordIntPair coord, final int view) {
-		return this.isNear(coord.x, coord.z, view);
-	}
+	@Override
 	public boolean isNear(final int chunkx, final int chunkz, final int view) {
 		return EntityUtil.isNearChunk(this.ep, chunkx, chunkz, view + 1);
 	}
 
-	private boolean add(ChunkCoordIntPair pair) {
-		if (this.isUpdating) return true;
-		if (!this.isNear(pair, CommonUtil.view)) return false;
-		if (this.contained.add(pair) || this.chunkQueue.remove(pair.x, pair.z)) {
+	@Override
+	protected boolean add(ChunkCoordIntPair pair) {
+		if (super.add(pair)) {
+			this.chunkQueue.remove(pair.x, pair.z);
 			this.sendDirection = null; //invalidate
 			return true;
-		}
-		return false;
-	}
-	
-	/*
-	 * add(o) is called in PlayerInstance to queue a new chunk coordinate
-	 */
-	public synchronized void add(int index, Object object) {
-		if (object == null) return;
-		if (this.add((ChunkCoordIntPair) object)) {
-			super.add(index, object);
-		}
-	}
-	public synchronized boolean add(Object object) {
-		if (object == null) return false;
-		if (this.add((ChunkCoordIntPair) object)) {
-			return super.add(object);
 		} else {
 			return false;
 		}
 	}
-
 }

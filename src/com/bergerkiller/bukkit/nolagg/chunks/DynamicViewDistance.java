@@ -33,14 +33,6 @@ public class DynamicViewDistance {
 		chunksChanged = true;
 	}
 
-	public static boolean isNear(ChunkSendQueue queue, int x, int z) {
-		if (!NoLaggChunks.hasDynamicView) {
-			return true;
-		} else {
-			return queue.isNear(x, z, viewDistance - 1);
-		}
-	}
-
 	public static void init(List<String> elements) {
 		nodes.clear();
 		viewDistance = CommonUtil.view;
