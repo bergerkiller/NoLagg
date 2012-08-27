@@ -41,9 +41,14 @@ public class SchedulerWatcher extends PriorityQueue {
 			return super.remove();
 		}
 		Object o = super.remove();
+		if (o == null) {
+			return null;
+		}
 		Runnable run = runnable.get(o);
-		if (!(run instanceof TimedWrapper)) {
-			runnable.set(o, PluginLogger.getWrapper(run, plugin.get(o)));
+		if (run != null) {
+			if (!(run instanceof TimedWrapper)) {
+				runnable.set(o, PluginLogger.getWrapper(run, plugin.get(o)));
+			}
 		}
 		return o;
 	}

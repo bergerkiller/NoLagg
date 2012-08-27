@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.scheduler.CraftScheduler;
 import org.bukkit.craftbukkit.util.ServerShutdownThread;
 import org.bukkit.plugin.Plugin;
@@ -15,6 +14,7 @@ import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.google.common.collect.Lists;
 
 public class ThreadCheck {
@@ -52,9 +52,7 @@ public class ThreadCheck {
 		if (classname.equals("BlockListener")) return "org.bukkit.event.block.BlockListener";
 		return "org.bukkit.event." + classname;
 	}
-	
-    //java.lang.Thread.run(Unknown Source)
-    //org.bukkit.craftbukkit.scheduler.CraftWorker.run(CraftWorker.java:34)
+
 	@SuppressWarnings("rawtypes")
 	private static boolean classCheck(StackTraceElement element, Class classtocheck) {
 		return element.getClassName().equals(classtocheck.getName());
@@ -123,17 +121,19 @@ public class ThreadCheck {
 				logger.log(Level.INFO, "This error is logged only once: it could have occurred multiple times by now.");
 				//get the plugin that caused this
 				try {
-					classname = classname.substring(0, classname.lastIndexOf('.')).toLowerCase();
-					for (Plugin p : Bukkit.getServer().getPluginManager().getPlugins()) {
-						if (p.getDescription().getMain().toLowerCase().startsWith(classname)) {
-							msg = "Please contact one of the authors of plugin '" + p.getDescription().getName() + "': ";
-							List<String> authors = p.getDescription().getAuthors();
-							for (int i = 0; i < authors.size(); i++) {
-								if (i != 0) msg += ", ";
-								msg += authors.get(i);
-							}
-							logger.log(Level.INFO, msg);
+					Plugin[] plugins = NoLaggUtil.findPlugins(elements);
+					if (plugins.length == 0) {
+						StackTraceElement cause = NoLaggUtil.findExternal(elements);
+						logger.log(Level.INFO, "Appears to be caused by: " + cause.toString());
+					} else {
+						Plugin plugin = plugins[plugins.length - 1];
+						msg = "Please contact one of the authors of plugin '" + plugin.getDescription().getName() + "': ";
+						List<String> authors = plugin.getDescription().getAuthors();
+						for (int i = 0; i < authors.size(); i++) {
+							if (i != 0) msg += ", ";
+							msg += authors.get(i);
 						}
+						logger.log(Level.INFO, msg);
 					}
 				} catch (Throwable tt) {}
 			}

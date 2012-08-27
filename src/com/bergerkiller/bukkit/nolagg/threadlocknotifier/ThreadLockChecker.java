@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 
 public class ThreadLockChecker extends AsyncTask {
 	private StackTraceElement[] previous = null;
@@ -20,7 +23,7 @@ public class ThreadLockChecker extends AsyncTask {
 	@Override
 	public void run() {
 		if (ignored) {
-			sleep(5000);
+			sleep(10000);
 			return;
 		}
 		pulse = false;
@@ -31,6 +34,8 @@ public class ThreadLockChecker extends AsyncTask {
 			previous = null;
 			maxidx = Integer.MAX_VALUE;
 		} else if (previous != null) {
+			boolean found = false;
+			int foundCounter = 0;
 			while (true) {
 				tmpelems.clear();
 				StackTraceElement[] newstack = CommonUtil.MAIN_THREAD.getStackTrace();
@@ -46,43 +51,48 @@ public class ThreadLockChecker extends AsyncTask {
 					}
 				}
 				if (tmpelems.size() != elems.size()) {
-					break;
-				} else {
-					try {
-						Thread.sleep(200);
-					} catch (InterruptedException ex) {}
+					elems.clear();
+					elems.addAll(tmpelems);
+					found = true;
 				}
+				if (found && foundCounter++ > 40) {
+					break;
+				}
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException ex) {}
 			}
-			elems.clear();
-			elems.addAll(tmpelems);
 			if (!elems.isEmpty()) {
-				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] The main thread is still stuck, updated stack trace is:");
-				for (StackTraceElement elem : elems) {
-					Bukkit.getLogger().log(Level.INFO, "    at " + elem);
+				StackTraceElement head = elems.get(0);
+				if (head.getMethodName().equals("sleep") && head.getClassName().equals(Thread.class.getName())) {
+					head = elems.get(1);
+				}
+				Plugin[] plugins = NoLaggUtil.findPlugins(previous);
+				Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread is still stuck, current loop line is:");
+				Bukkit.getLogger().log(Level.WARNING, "[Server]    at " + head.toString());
+				if (plugins.length > 0) {
+					Bukkit.getLogger().log(Level.WARNING, "[Server] This appears to be plugin '" + plugins[0].getName() + "'!");
 				}
 			}
 		} else {
 			previous = CommonUtil.MAIN_THREAD.getStackTrace();
-			boolean isNoLaggBug = false;
-			for (StackTraceElement elem : previous) {
-				if (elem.getClassName().startsWith("com.bergerkiller.bukkit.nolagg")) {
-					isNoLaggBug = true;
-					break;
-				}
-			}
 			maxidx = Integer.MAX_VALUE;
-			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] The main thread failed to respond after 10 seconds");
-			if (isNoLaggBug) {
-				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This appears to be caused by NoLagg, report it!");
-			} else {
-				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This is not caused by NoLagg, it is only being reported!");
-				Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] Please read the stack trace to find the problematic plugin.");
+			Plugin[] plugins = NoLaggUtil.findPlugins(previous);
+			Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread failed to respond after 10 seconds");
+			if (plugins.length > 0) {
+				if (plugins.length == 1) {
+					Bukkit.getLogger().log(Level.WARNING, "[Server] Probable Plugin cause: '" + plugins[0].getName() + "'");
+				} else {
+					String[] names = new String[plugins.length];
+					for (int i = 0; i < names.length; i++) {
+						names[i] = plugins[i].getName();
+					}
+					Bukkit.getLogger().log(Level.WARNING, "[Server] Probable Plugin causes: '" + StringUtil.combineNames(names) + "'");
+				}
+
 			}
-			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] What follows is the stack trace of the main thread");
-			Bukkit.getLogger().log(Level.WARNING, "[NoLagg TLN] This stack trace will be further refined as long as the thread is stuck");
-			for (StackTraceElement elem : previous) {
-				Bukkit.getLogger().log(Level.INFO, "    at " + elem);
-			}
+			Bukkit.getLogger().log(Level.WARNING, "[Server] What follows is the stack trace of the main thread");
+			NoLaggUtil.logFilterMainThread(previous, Level.WARNING, "[Server]");
 		}
 	}
 }
