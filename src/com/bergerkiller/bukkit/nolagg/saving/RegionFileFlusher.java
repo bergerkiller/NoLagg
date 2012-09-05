@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.SyncFailedException;
 import java.lang.ref.Reference;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
@@ -70,6 +71,8 @@ public class RegionFileFlusher {
 											if (fd.valid()) {
 												fd.sync();
 											}
+										} catch (SyncFailedException e) {
+											// Suppress
 										} catch (IOException e) {
 											NoLaggSaving.plugin.log(Level.SEVERE, "Failed to sync region data to file:");
 											e.printStackTrace();

@@ -35,7 +35,7 @@ public class NLCListener implements Listener {
 		if (event.isCancelled()) {
 			return;
 		}
-		DynamicViewDistance.addChunk();
+		DynamicViewDistance.removeChunk();
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)

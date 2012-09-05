@@ -21,7 +21,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		if (TimedChunkProviderServer.initFields()) {
+		if (TimedChunkProviderServer.VALID) {
 			for (WorldServer world : WorldUtil.getWorlds()) {
 				TimedChunkProviderServer.convert(world);
 			}

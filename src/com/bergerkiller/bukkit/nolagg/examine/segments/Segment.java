@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg.examine.segments;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class Segment implements Comparable<Segment> {
@@ -127,6 +128,15 @@ public abstract class Segment implements Comparable<Segment> {
 	@Override
 	public int compareTo(Segment o) {
 		return (int) (o.getTotal() - this.getTotal());
+	}
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	public static <T extends Comparable> void trySort(List<T> collection) {
+		try {
+			Collections.sort(collection);
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
 	}
 
 	/**

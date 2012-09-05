@@ -38,13 +38,11 @@ public class TimedWrapper implements Runnable {
 			}
 		} catch (Throwable t) {
 			List<StackTraceElement> stack = new ArrayList<StackTraceElement>();
-			boolean add = true;
 			for (StackTraceElement elem : t.getStackTrace()) {
 				if (elem.getClassName().equals("org.timedbukkit.craftbukkit.scheduler.TimedWrapper")) {
-					add = false;
-				} else if (add) {
-					stack.add(elem);
+					break;
 				}
+				stack.add(elem);
 			}
 			t.setStackTrace(stack.toArray(new StackTraceElement[0]));
 			Bukkit.getLogger().log(Level.WARNING, "Task of '" + this.dest.plugin + "' generated an exception", t);

@@ -1,18 +1,13 @@
 package net.timedminecraft.server;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
 
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.examine.NoLaggExamine;
+import com.bergerkiller.bukkit.nolagg.ClassTemplate;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
@@ -28,59 +23,8 @@ import net.minecraft.server.WorldServer;
  * To keep things fair, all rights for this Class go to the Mojang team
  */
 public class TimedChunkProviderServer extends ChunkProviderServer {
-	private static ClassTemplate<ChunkProviderServer> template;
-
-	public static boolean initFields() {
-		try {
-			template = new ClassTemplate<ChunkProviderServer>(ChunkProviderServer.class);
-			return true;
-		} catch (Throwable t) {
-			NoLaggExamine.plugin.log(Level.WARNING, "Failed to hook into chunk loader; chunk load times will not be examine!");
-			t.printStackTrace();
-			return false;
-		}
-	}
-
-	public static class ClassTemplate<T> {
-		private final Class<T> type;
-		private final List<Field> fields;
-
-		public ClassTemplate(Class<T> type) {
-			this.type = type;
-			this.fields = new ArrayList<Field>();
-			this.fillFields(type);
-		}
-
-		private void fillFields(Class<?> clazz) {
-			if (clazz == null) {
-				return;
-			}
-			for (Field field : clazz.getDeclaredFields()) {
-				if (Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				field.setAccessible(true);
-				this.fields.add(field);
-			}
-			this.fillFields(clazz.getSuperclass());
-		}
-
-		public Class<T> getType() {
-			return this.type;
-		}
-
-		public void transfer(T from, T to) {
-			for (Field field : this.fields) {
-				try {
-					field.set(to, field.get(from));
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+	private static final ClassTemplate<ChunkProviderServer> template = ClassTemplate.create(ChunkProviderServer.class);
+	public static final boolean VALID = template != null;
 
 	public static void transfer(ChunkProviderServer to, WorldServer world) {
 		try {
@@ -99,7 +43,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	public static void convert(WorldServer world) {
-		if (template != null) {
+		if (VALID) {
 			transfer(new TimedChunkProviderServer(world), world);
 		}
 	}
@@ -109,7 +53,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	public static void restore(WorldServer world) {
-		if (template != null) {
+		if (VALID) {
 			transfer(new ChunkProviderServer(world, null, null), world);
 		}
 	}

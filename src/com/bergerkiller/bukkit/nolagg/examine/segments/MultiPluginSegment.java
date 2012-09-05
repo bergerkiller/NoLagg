@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +25,10 @@ public class MultiPluginSegment extends SegmentNode {
 		//sort
 		List<PluginSegment> plugins = new ArrayList<PluginSegment>();
 		for (Entry<String, List<DataSegment>> entry : pluginsegments.entrySet()) {
-			Collections.sort(entry.getValue());
+			trySort(entry.getValue());
 			plugins.add(new PluginSegment(entry.getKey(), duration, entry.getValue()));
 		}
-		Collections.sort(plugins);
+		trySort(plugins);
 
 		return new MultiPluginSegment(duration, plugins);
 	}

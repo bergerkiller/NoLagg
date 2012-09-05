@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.examine.segments;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +25,10 @@ public class MultiEventSegment extends SegmentNode {
 		//sort
 		List<EventSegment> events = new ArrayList<EventSegment>();
 		for (Entry<String, List<DataSegment>> entry : eventMap.entrySet()) {
-			Collections.sort(entry.getValue());
+			trySort(entry.getValue());
 			events.add(new EventSegment(entry.getKey(), duration, entry.getValue()));
 		}
-		Collections.sort(events);
+		trySort(events);
 
 		return new MultiEventSegment(duration, plugincount, events);
 	}

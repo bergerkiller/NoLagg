@@ -96,11 +96,13 @@ public class ExamFile extends Segment {
 				}
 			} catch (Exception ex) {
 				ExamReader.msgbox("Failed to load file: \n\n" + ex.toString());
+				ex.printStackTrace();
 			} finally {
 				stream.close();
 			}
 		} catch (Throwable ex) {
 			ExamReader.msgbox("Failed to load file: \n\n" + ex.toString());
+			ex.printStackTrace();
 		}
 		return efile;
 	}

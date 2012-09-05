@@ -7,8 +7,6 @@ import java.util.Map;
 
 import net.minecraft.server.WorldServer;
 
-import org.bukkit.craftbukkit.CraftChunk;
-
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -78,10 +76,10 @@ public class DynamicViewDistance {
 		chunks = 0;
 		new Operation() {
 			public void run() {
-				this.doChunks();
+				this.doWorlds();
 			}
-			public void handle(CraftChunk chunk) {
-				chunks++;
+			public void handle(WorldServer world) {
+				chunks += world.chunkProviderServer.getLoadedChunks();
 			}
 		};
 		chunksChanged = true;

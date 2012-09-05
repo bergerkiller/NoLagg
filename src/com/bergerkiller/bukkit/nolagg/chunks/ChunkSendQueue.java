@@ -125,7 +125,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private ChunkSendQueue(final EntityPlayer ep) {
 		this.ep = ep;
 		this.world = ep.world;
-		this.sendDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
+		this.sendDirection = null; // Force a sorting operation the next tick
 		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
 		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
 		this.chunkQueue = new ChunkCompressQueue(this);
@@ -181,7 +181,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		}
 	}
 
+	@Override
 	public void sort() {
+		super.sort();
 	    this.chunkQueue.sort();
 	    synchronized (this) {
 	    	boolean old = this.setUpdating(true);

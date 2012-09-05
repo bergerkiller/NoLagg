@@ -18,6 +18,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
 	private boolean isUpdating = true;
 	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
+	protected final Set<ChunkCoordIntPair> sentChunks = new HashSet<ChunkCoordIntPair>();
 
 	/**
 	 * Sets whether this collection is being updated
@@ -31,6 +32,29 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		return old;
 	}
 
+	/**
+	 * Sorts the contents of this queue to send in direction of the player<br>
+	 * Also cleans up some of the other internal collections (to handle chunk change movement)
+	 */
+	public void sort() {
+		for (Iterator<ChunkCoordIntPair> iter = sentChunks.iterator(); iter.hasNext(); ) {
+			if (!this.isNear(iter.next(), CommonUtil.view)) {
+				iter.remove();
+			}
+		}
+	}
+
+	/**
+	 * Performs a pre-unload operation on this queue
+	 * 
+	 * @param chunkCoord of the chunk to unload
+	 * @return True if an unload packet is required, False if not
+	 */
+	public boolean preUnloadChunk(ChunkCoordIntPair chunkCoord) {
+		this.remove(chunkCoord);
+		return this.sentChunks.contains(chunkCoord);
+	}
+
 	protected boolean remove(ChunkCoordIntPair pair) {
 		synchronized (this) {
 			return this.contained.remove(pair) && super.remove(pair);
@@ -40,10 +64,12 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	protected boolean add(ChunkCoordIntPair pair) {
 		if (!this.isNear(pair, CommonUtil.view)) return false;
 		synchronized (this) {
-			if (super.contains(pair)) {
+			// Add to sending queue if not contained, or a re-send is requested
+			if (this.contained.add(pair) || !super.contains(pair)) {
+				return super.add(pair);
+			} else {
 				return false;
 			}
-			return this.contained.add(pair) | super.add(pair);
 		}
 	}
 
@@ -125,10 +151,14 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 
 	@Override
 	public void clear() {
+		if (this.isUpdating) {
+			super.clear();
+			return;
+		}
 		synchronized (this) {
+			this.contained.removeAll(this);
 			super.clear();
 		}
-		this.contained.clear();
 	}
 
 	@Override

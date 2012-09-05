@@ -58,6 +58,7 @@ public class WorldStackFormer implements Runnable {
 
 			//get rid of trackers of killed entities
 			for (Entity entity : entitiesToKill) {
+				entity.world.removeEntity(entity);
 				WorldUtil.getTracker(entity.world).untrackEntity(entity);
 			}
 

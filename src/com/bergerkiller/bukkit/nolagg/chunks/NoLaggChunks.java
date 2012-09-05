@@ -14,6 +14,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
+import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
 
 /*
  * Important note:
@@ -91,12 +92,14 @@ public class NoLaggChunks extends NoLaggComponent {
 		this.register(NLCListener.class);
 		this.onReload(config);
 		ChunkSendQueue.init();
+		DummyInstanceMap.ENABLED = true;
 	}
 
 	public void onDisable(ConfigurationNode config) {
 		ChunkSendQueue.deinit();
 		ChunkCompressionThread.deinit();
 		DynamicViewDistance.deinit();
+		DummyInstanceMap.ENABLED = false;
 	}
 
 	@Override
