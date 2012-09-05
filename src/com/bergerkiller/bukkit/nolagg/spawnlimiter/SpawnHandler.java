@@ -13,28 +13,34 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 public class SpawnHandler {
 	private static WeakHashMap<Entity, Boolean> ignoredEntities = new WeakHashMap<Entity, Boolean>();
 	private static WeakHashMap<Entity, Boolean> mobSpawnedEntities = new WeakHashMap<Entity, Boolean>();
+
 	public static void ignoreSpawn(Entity entity) {
 		ignoredEntities.put(entity, true);
 	}
+
 	public static boolean isIgnored(Entity entity) {
 		return ignoredEntities.containsKey(entity);
 	}
+
 	public static void mobSpawnerSpawned(Entity entity) {
 		mobSpawnedEntities.put(entity, true);
 	}
+
 	public static boolean isMobSpawnerSpawned(Entity entity) {
 		return mobSpawnedEntities.containsKey(entity);
 	}
-	
+
 	public static SpawnHandler MOBSPAWNERHANDLER = new SpawnHandler();
 	public static SpawnHandler GENERALHANDLER = new SpawnHandler();
 
 	public final GroupLimiter GLOBAL = new GroupLimiter();
 	public final GroupLimiter WORLDDEFAULT = new GroupLimiter();
 	private final Map<String, WorldLimiter> limiters = new HashMap<String, WorldLimiter>();
+
 	public WorldLimiter getWorldLimiter(World world) {
 		return getWorldLimiter(world.getName());
 	}
+
 	public WorldLimiter getWorldLimiter(String worldname) {
 		worldname = worldname.toLowerCase();
 		WorldLimiter lim = limiters.get(worldname);
@@ -45,41 +51,46 @@ public class SpawnHandler {
 		}
 		return lim;
 	}
-	
+
 	public static boolean isItem(String name) {
 		return name.toLowerCase().startsWith("item");
 	}
+
 	public static boolean isFalling(String name) {
 		return name.toLowerCase().startsWith("falling");
 	}
 
 	public static EntityLimiter getEntityLimits(Entity entity) {
-		if (isIgnored(entity)) return new EntityLimiter();
+		if (isIgnored(entity))
+			return new EntityLimiter();
 		if (isMobSpawnerSpawned(entity)) {
 			return MOBSPAWNERHANDLER.getWorldLimiter(entity.getWorld()).getEntityLimits(entity);
 		} else {
 			return GENERALHANDLER.getWorldLimiter(entity.getWorld()).getEntityLimits(entity);
 		}
 	}
+
 	public EntityLimiter getEntityLimits(World world, String entityname) {
 		return getWorldLimiter(world).getEntityLimits(entityname);
 	}
-	
+
 	public static void handleDespawn(Entity entity) {
-		if (ignoredEntities.remove(entity) != null) return;
+		if (ignoredEntities.remove(entity) != null)
+			return;
 		getEntityLimits(entity).despawn();
 		mobSpawnedEntities.remove(entity);
 	}
-	
+
 	public static void reset() {
 		MOBSPAWNERHANDLER.resetHandler();
 		GENERALHANDLER.resetHandler();
 	}
+
 	public static void clear() {
 		MOBSPAWNERHANDLER.clearHandler();
 		GENERALHANDLER.clearHandler();
 	}
-	
+
 	public void load(ConfigurationNode limits) {
 		ConfigurationNode node = limits.getNode("default");
 		for (String key : node.getKeys()) {
@@ -97,11 +108,13 @@ public class SpawnHandler {
 			}
 		}
 	}
-	
+
 	private void resetHandler() {
 		GLOBAL.reset();
-		for (WorldLimiter lim : limiters.values()) lim.reset();
+		for (WorldLimiter lim : limiters.values())
+			lim.reset();
 	}
+
 	private void clearHandler() {
 		GLOBAL.clear();
 		WORLDDEFAULT.clear();
@@ -109,15 +122,18 @@ public class SpawnHandler {
 	}
 
 	public static void update(World world, List<Entity> entities) {
-		//general entities
+		// general entities
 		WorldLimiter limmob = MOBSPAWNERHANDLER.getWorldLimiter(world);
 		WorldLimiter limgen = GENERALHANDLER.getWorldLimiter(world);
 		for (Entity e : entities) {
-			if (ignoredEntities.containsKey(e)) continue;
+			if (ignoredEntities.containsKey(e))
+				continue;
 			if (isMobSpawnerSpawned(e)) {
-				if (limmob.getEntityLimits(e).handleSpawn()) continue;
+				if (limmob.getEntityLimits(e).handleSpawn())
+					continue;
 			} else {
-				if (limgen.getEntityLimits(e).handleSpawn()) continue;
+				if (limgen.getEntityLimits(e).handleSpawn())
+					continue;
 			}
 			e.remove();
 		}

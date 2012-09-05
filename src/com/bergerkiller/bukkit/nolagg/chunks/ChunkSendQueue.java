@@ -28,7 +28,7 @@ import net.minecraft.server.Packet;
 import net.minecraft.server.World;
 import net.minecraft.server.WorldServer;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
 	private static final long serialVersionUID = 1L;
 	public static double maxRate = 2;
@@ -56,6 +56,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 						public void run() {
 							this.doPlayers();
 						}
+
 						public void handle(EntityPlayer ep) {
 							ChunkSendQueue queue = bind(ep);
 							queue.setUpdating(true);
@@ -77,11 +78,12 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	public static void deinit() {
 		Task.stop(task);
 		task = null;
-		//clear bound queues
+		// clear bound queues
 		new Operation() {
 			public void run() {
 				this.doPlayers();
 			}
+
 			public void handle(EntityPlayer ep) {
 				ChunkSendQueue queue = bind(ep);
 				if (queue != null) {
@@ -132,7 +134,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		this.addAll(ep.chunkCoordIntPairQueue);
 		this.add(new ChunkCoordIntPair(MathUtil.locToChunk(ep.locX), MathUtil.locToChunk(ep.locZ)));
 		ChunkCompressionThread.addQueue(this.chunkQueue);
-	    this.enforceBufferFullSize();
+		this.enforceBufferFullSize();
 	}
 
 	private void enforceBufferFullSize() {
@@ -144,9 +146,11 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			if (low != null && high != null) {
 				int queuedsize = 0;
 				synchronized (lockObject) {
-					for (Packet p : low) queuedsize += p.a() + 1;
-					for (Packet p : high) queuedsize += p.a() + 1;	
-					queuesizefield.set(nm, queuedsize - 9437184);	
+					for (Packet p : low)
+						queuedsize += p.a() + 1;
+					for (Packet p : high)
+						queuedsize += p.a() + 1;
+					queuesizefield.set(nm, queuedsize - 9437184);
 				}
 			}
 		}
@@ -158,14 +162,17 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 				this.doPlayers();
 				super.set(0, this.totalrate / (double) pcount);
 			}
+
 			private double totalrate = 0;
 			private int pcount = 0;
+
 			public void handle(EntityPlayer ep) {
 				this.totalrate += bind(ep).rate.get();
 				this.pcount++;
 			}
 		}.arg(0, Double.class);
 	}
+
 	public double getRate() {
 		return this.rate.get();
 	}
@@ -184,16 +191,17 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	@Override
 	public void sort() {
 		super.sort();
-	    this.chunkQueue.sort();
-	    synchronized (this) {
-	    	boolean old = this.setUpdating(true);
-	    	this.sort(this);
-	    	this.setUpdating(old);
-	    }
+		this.chunkQueue.sort();
+		synchronized (this) {
+			boolean old = this.setUpdating(true);
+			this.sort(this);
+			this.setUpdating(old);
+		}
 	}
 
 	public void sort(List elements) {
-		if (elements.isEmpty()) return;
+		if (elements.isEmpty())
+			return;
 		ChunkCoordIntPair middle = new ChunkCoordIntPair(this.x, this.z);
 		try {
 			Collections.sort(elements, ChunkCoordComparator.get(this.sendDirection, middle));
@@ -208,7 +216,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	/**
-	 * Main update routine - handles the calculation of the rate and interval and updates afterwards
+	 * Main update routine - handles the calculation of the rate and interval
+	 * and updates afterwards
 	 */
 	private void update() {
 		// Update queue size
@@ -228,7 +237,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			return;
 		}
 
-		if (this.isEmpty() && !this.chunkQueue.canSend()) return;
+		if (this.isEmpty() && !this.chunkQueue.canSend())
+			return;
 		double newrate = this.rate.get();
 		if (this.packetBufferQueueSize > this.maxQueueSize) {
 			newrate = minRate;
@@ -236,7 +246,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			if (this.prevQueueSize > this.packetBufferQueueSize) {
 				newrate += 0.07;
 			} else {
-				//to force the rate to be optimal
+				// to force the rate to be optimal
 				if (this.packetBufferQueueSize > 80000) {
 					newrate -= 0.17;
 				} else if (this.packetBufferQueueSize > 20000) {
@@ -246,9 +256,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 				}
 			}
 			newrate += 0.9 * (this.rate.get() - newrate);
-			//set rate bounds
+			// set rate bounds
 			if (newrate > maxRate) {
-				newrate= maxRate;
+				newrate = maxRate;
 			} else if (newrate < minRate) {
 				newrate = minRate;
 			}
@@ -256,7 +266,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 
 		this.rate.set(newrate);
 		this.prevQueueSize = this.packetBufferQueueSize;
-		//send chunks
+		// send chunks
 		if (newrate >= 1) {
 			this.update(1, (int) this.rate.next());
 		} else {
@@ -265,16 +275,21 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	/**
-	 * Performs sorting and batch sending at the interval and rate settings specified
+	 * Performs sorting and batch sending at the interval and rate settings
+	 * specified
 	 * 
-	 * @param interval to send at
-	 * @param rate to send at
+	 * @param interval
+	 *            to send at
+	 * @param rate
+	 *            to send at
 	 */
 	private void update(int interval, int rate) {
-		if (interval == 0) interval = 1;
-		if (rate == 0) return;
-		if (this.intervalcounter >= interval)  {
-			//sorting
+		if (interval == 0)
+			interval = 1;
+		if (rate == 0)
+			return;
+		if (this.intervalcounter >= interval) {
+			// sorting
 			BlockFace newDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
 			int newx = (int) (ep.locX + ep.motX * 16) >> 4;
 			int newz = (int) (ep.locZ + ep.motZ * 16) >> 4;
@@ -293,19 +308,22 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	/**
-	 * Prepares the given amount of chunks for sending and flushed compressed chunks
+	 * Prepares the given amount of chunks for sending and flushed compressed
+	 * chunks
 	 * 
-	 * @param count of chunks to load
+	 * @param count
+	 *            of chunks to load
 	 */
-	private void sendBatch(int count) {				
-		//load chunks
+	private void sendBatch(int count) {
+		// load chunks
 		for (int i = 0; i < count; i++) {
 			ChunkCoordIntPair pair = this.pollNextChunk();
-			if (pair == null) break;
+			if (pair == null)
+				break;
 			this.chunkQueue.enqueue(((WorldServer) this.ep.world).chunkProviderServer.getChunkAt(pair.x, pair.z));
 		}
 
-		//send chunks
+		// send chunks
 		for (int i = 0; i < count; i++) {
 			if (!this.chunkQueue.sendNext()) {
 				// Wait a few ticks to make chunks visible
@@ -318,7 +336,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	/**
 	 * Waits the amount of ticks specified, doing nothing
 	 * 
-	 * @param ticks to wait
+	 * @param ticks
+	 *            to wait
 	 */
 	public void idle(int ticks) {
 		this.idleTicks += ticks;
@@ -351,7 +370,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	protected boolean add(ChunkCoordIntPair pair) {
 		if (super.add(pair)) {
 			this.chunkQueue.remove(pair.x, pair.z);
-			this.sendDirection = null; //invalidate
+			this.sendDirection = null; // invalidate
 			return true;
 		} else {
 			return false;

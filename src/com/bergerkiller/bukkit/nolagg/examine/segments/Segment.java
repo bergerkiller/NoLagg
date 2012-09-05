@@ -7,7 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class Segment implements Comparable<Segment> {
-	
+
 	private SegmentData[] data;
 	private SegmentData mergedData;
 	private int duration;
@@ -23,7 +23,7 @@ public abstract class Segment implements Comparable<Segment> {
 		}
 		return data;
 	}
-	
+
 	public Segment(Segment segment) {
 		this.name = segment.name;
 		this.total = segment.total;
@@ -36,7 +36,7 @@ public abstract class Segment implements Comparable<Segment> {
 		}
 		this.mergedData = segment.mergedData.clone();
 	}
-	
+
 	public Segment(String name, int duration, List<SegmentData> data) {
 		this.duration = duration;
 		this.data = data.toArray(new SegmentData[0]);
@@ -45,43 +45,43 @@ public abstract class Segment implements Comparable<Segment> {
 		this.name = name;
 		this.average = this.total / (double) this.duration;
 	}
-	
+
 	public SegmentData getMergedData() {
 		return this.mergedData;
 	}
-	
+
 	public SegmentData[] getData() {
 		return this.data;
 	}
-	
+
 	public void setParent(Segment parent) {
 		this.parent = parent;
 	}
-	
+
 	public Segment getParent() {
 		return this.parent;
 	}
-	
+
 	public String getName() {
 		return this.name;
 	}
-	
+
 	public boolean hasParent() {
 		return this.parent != null;
 	}
-	
+
 	public int getDuration() {
 		return this.duration;
 	}
-	
+
 	public double getTotal() {
 		return this.total;
 	}
-	
+
 	public double getAverage() {
 		return this.average;
 	}
-	
+
 	public boolean isTask() {
 		return false;
 	}
@@ -130,7 +130,7 @@ public abstract class Segment implements Comparable<Segment> {
 		return (int) (o.getTotal() - this.getTotal());
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static <T extends Comparable> void trySort(List<T> collection) {
 		try {
 			Collections.sort(collection);
@@ -141,6 +141,7 @@ public abstract class Segment implements Comparable<Segment> {
 
 	/**
 	 * Gets a child segment, null if not possible
+	 * 
 	 * @param index
 	 */
 	public Segment getSegment(int index) {

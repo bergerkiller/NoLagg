@@ -49,7 +49,7 @@ public class RegionFileFlusher {
 			if (regionFiles.isValid() && rafField.isValid()) {
 				flushTask = new Task(NoLagg.plugin) {
 					public void run() {
-						//get all the required region files to flush
+						// get all the required region files to flush
 						final List<Entry<RegionFile, RandomAccessFile>> regions = new ArrayList<Entry<RegionFile, RandomAccessFile>>();
 						for (Reference<RegionFile> ref : regionFiles.get(null).values()) {
 							RegionFile regionfile = ref.get();
@@ -61,7 +61,7 @@ public class RegionFileFlusher {
 							}
 						}
 
-						//create an async task to write stuff to file
+						// create an async task to write stuff to file
 						new AsyncTask("NoLagg saving data writer") {
 							public void run() {
 								for (Entry<RegionFile, RandomAccessFile> file : regions) {

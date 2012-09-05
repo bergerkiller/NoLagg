@@ -9,7 +9,7 @@ public abstract class SegmentNode extends Segment {
 	private Segment[] segments;
 	private int taskcount;
 	private int eventcount;
-		
+
 	public SegmentNode(String name, int duration, List<? extends Segment> data) {
 		super(name, duration, getData(data));
 		this.segments = data.toArray(new Segment[0]);
@@ -27,15 +27,15 @@ public abstract class SegmentNode extends Segment {
 			}
 		}
 	}
-	
+
 	public int getTaskCount() {
 		return this.taskcount;
 	}
-	
+
 	public int getEventCount() {
 		return this.eventcount;
 	}
-	
+
 	public Segment[] getChildren() {
 		return this.segments;
 	}

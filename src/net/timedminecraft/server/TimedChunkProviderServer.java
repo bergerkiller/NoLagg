@@ -81,92 +81,93 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	@Override
-    public Chunk getChunkAt(int i, int j) {
+	public Chunk getChunkAt(int i, int j) {
 		if (enabled && PluginLogger.isRunning()) {
-	        // CraftBukkit start
-	        this.unloadQueue.remove(i, j);
-	        Chunk chunk = (Chunk) this.chunks.get(i, j);
-	        boolean newChunk = false;
-	        // CraftBukkit end
+			// CraftBukkit start
+			this.unloadQueue.remove(i, j);
+			Chunk chunk = (Chunk) this.chunks.get(i, j);
+			boolean newChunk = false;
+			// CraftBukkit end
 
-	        if (chunk == null) {
-	            chunk = this.loadChunk(i, j);
-	            if (chunk == null) {
-	                if (this.chunkProvider == null) {
-	                    chunk = this.emptyChunk;
-	                } else {
-	                	prevtime = System.nanoTime();
-	                    chunk = this.chunkProvider.getOrCreateChunk(i, j);
-	                    this.genmeas.setTime(prevtime);
-	                }
-	                newChunk = true; // CraftBukkit
-	            }
+			if (chunk == null) {
+				chunk = this.loadChunk(i, j);
+				if (chunk == null) {
+					if (this.chunkProvider == null) {
+						chunk = this.emptyChunk;
+					} else {
+						prevtime = System.nanoTime();
+						chunk = this.chunkProvider.getOrCreateChunk(i, j);
+						this.genmeas.setTime(prevtime);
+					}
+					newChunk = true; // CraftBukkit
+				}
 
-	            this.chunks.put(i, j, chunk); // CraftBukkit
-	            if (chunk != null) {
-	                chunk.addEntities();
-	            }
+				this.chunks.put(i, j, chunk); // CraftBukkit
+				if (chunk != null) {
+					chunk.addEntities();
+				}
 
-	            // CraftBukkit start
-	            org.bukkit.Server server = this.world.getServer();
-	            if (server != null) {
-	                /*
-	                 * If it's a new world, the first few chunks are generated inside
-	                 * the World constructor. We can't reliably alter that, so we have
-	                 * no way of creating a CraftWorld/CraftServer at that point.
-	                 */
-	                server.getPluginManager().callEvent(new ChunkLoadEvent(chunk.bukkitChunk, newChunk));
-	            }
-	            // CraftBukkit end
+				// CraftBukkit start
+				org.bukkit.Server server = this.world.getServer();
+				if (server != null) {
+					/*
+					 * If it's a new world, the first few chunks are generated
+					 * inside the World constructor. We can't reliably alter
+					 * that, so we have no way of creating a
+					 * CraftWorld/CraftServer at that point.
+					 */
+					server.getPluginManager().callEvent(new ChunkLoadEvent(chunk.bukkitChunk, newChunk));
+				}
+				// CraftBukkit end
 
-	            chunk.a(this, this, i, j);
-	        }
+				chunk.a(this, this, i, j);
+			}
 
-	        return chunk;
+			return chunk;
 		} else {
 			return super.getChunkAt(i, j);
 		}
-    }
+	}
 
 	@Override
-    public void getChunkAt(IChunkProvider ichunkprovider, int i, int j) {
+	public void getChunkAt(IChunkProvider ichunkprovider, int i, int j) {
 		if (enabled && PluginLogger.isRunning()) {
-	        Chunk chunk = this.getOrCreateChunk(i, j);
+			Chunk chunk = this.getOrCreateChunk(i, j);
 
-	        if (!chunk.done) {
-	            chunk.done = true;
-	            if (this.chunkProvider != null) {
-	                this.chunkProvider.getChunkAt(ichunkprovider, i, j);
+			if (!chunk.done) {
+				chunk.done = true;
+				if (this.chunkProvider != null) {
+					this.chunkProvider.getChunkAt(ichunkprovider, i, j);
 
-	                // CraftBukkit start
-	                BlockSand.instaFall = true;
-	                Random random = new Random();
-	                random.setSeed(world.getSeed());
-	                long xRand = random.nextLong() / 2L * 2L + 1L;
-	                long zRand = random.nextLong() / 2L * 2L + 1L;
-	                random.setSeed((long) i * xRand + (long) j * zRand ^ world.getSeed());
+					// CraftBukkit start
+					BlockSand.instaFall = true;
+					Random random = new Random();
+					random.setSeed(world.getSeed());
+					long xRand = random.nextLong() / 2L * 2L + 1L;
+					long zRand = random.nextLong() / 2L * 2L + 1L;
+					random.setSeed((long) i * xRand + (long) j * zRand ^ world.getSeed());
 
-	                org.bukkit.World world = this.world.getWorld();
-	                if (world != null) {
-	                    for (BlockPopulator populator : world.getPopulators()) {
-	                    	//get associated task
-	                    	String classname = populator.getClass().getSimpleName();
-	                    	String loc = populator.getClass().getName();
-	                    	TaskMeasurement tm = PluginLogger.getServerOperation("Chunk populators", classname, loc);
-	                    	prevtime = System.nanoTime();
-	                        populator.populate(world, random, chunk.bukkitChunk);
-	                        tm.setTime(prevtime);
-	                    }
-	                }
-	                BlockSand.instaFall = false;
-	                this.world.getServer().getPluginManager().callEvent(new ChunkPopulateEvent(chunk.bukkitChunk));
-	                // CraftBukkit end
+					org.bukkit.World world = this.world.getWorld();
+					if (world != null) {
+						for (BlockPopulator populator : world.getPopulators()) {
+							// get associated task
+							String classname = populator.getClass().getSimpleName();
+							String loc = populator.getClass().getName();
+							TaskMeasurement tm = PluginLogger.getServerOperation("Chunk populators", classname, loc);
+							prevtime = System.nanoTime();
+							populator.populate(world, random, chunk.bukkitChunk);
+							tm.setTime(prevtime);
+						}
+					}
+					BlockSand.instaFall = false;
+					this.world.getServer().getPluginManager().callEvent(new ChunkPopulateEvent(chunk.bukkitChunk));
+					// CraftBukkit end
 
-	                chunk.e();
-	            }
-	        }
+					chunk.e();
+				}
+			}
 		} else {
 			super.getChunkAt(ichunkprovider, i, j);
 		}
-    }
+	}
 }

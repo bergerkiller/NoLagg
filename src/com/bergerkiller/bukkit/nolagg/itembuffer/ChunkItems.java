@@ -17,22 +17,25 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class ChunkItems {
-	
+
 	public final Set<EntityItem> spawnedItems = new HashSet<EntityItem>();
 	public final Queue<EntityItem> hiddenItems = new LinkedList<EntityItem>();
 	public final Chunk chunk;
-	
+
 	public ChunkItems(org.bukkit.Chunk chunk) {
 		this(WorldUtil.getNative(chunk));
 	}
-	@SuppressWarnings({"rawtypes", "unchecked"})
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public ChunkItems(final Chunk chunk) {
 		this.chunk = chunk;
 		for (List list : chunk.entitySlices) {
 			for (Entity entity : (List<Entity>) list) {
 				if (entity instanceof EntityItem) {
-					if (entity.dead) continue;
-					if (ItemUtil.isIgnored(entity.getBukkitEntity())) continue;
+					if (entity.dead)
+						continue;
+					if (ItemUtil.isIgnored(entity.getBukkitEntity()))
+						continue;
 					if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
 						this.spawnedItems.add((EntityItem) entity);
 					} else {
@@ -43,6 +46,7 @@ public class ChunkItems {
 			}
 		}
 	}
+
 	public synchronized void deinit() {
 		if (!this.hiddenItems.isEmpty()) {
 			ChunkCoordIntPair coord;
@@ -72,7 +76,8 @@ public class ChunkItems {
 	}
 
 	public synchronized void update() {
-		if (this.hiddenItems.isEmpty()) return;
+		if (this.hiddenItems.isEmpty())
+			return;
 		if (!this.spawnedItems.isEmpty()) {
 			refreshSpawnedItems();
 		}
@@ -115,7 +120,7 @@ public class ChunkItems {
 				} else {
 					pair = ItemMap.getChunkCoords(e);
 					if (pair.x != this.chunk.x || pair.z != this.chunk.z) {
-						//respawn in correct chunk
+						// respawn in correct chunk
 						iter.remove();
 						ItemMap.addItem(pair, e);
 						return true; // Changed
@@ -124,7 +129,8 @@ public class ChunkItems {
 			}
 		} catch (ConcurrentModificationException ex) {
 			return refreshSpawnedItems(); // Retry
-		} catch (StackOverflowError ex) {}
+		} catch (StackOverflowError ex) {
+		}
 		return false;
 	}
 }

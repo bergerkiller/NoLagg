@@ -39,10 +39,10 @@ public class NoLaggCommon extends NoLaggComponent {
 	public void onEnable(ConfigurationNode config) {
 		this.onReload(config);
 	}
-	
+
 	@Override
 	public void onReload(ConfigurationNode config) {
-		//clear shortcuts
+		// clear shortcuts
 		this.clearShortcuts.clear();
 		this.lastargs = new String[1];
 		if (!config.contains("clearShortcuts")) {
@@ -68,7 +68,7 @@ public class NoLaggCommon extends NoLaggComponent {
 				} else {
 					all = true;
 				}
-				//fix and partly read args
+				// fix and partly read args
 				boolean tnt = args.length == 1;
 				boolean items = tnt;
 				boolean animals = false;
@@ -110,7 +110,7 @@ public class NoLaggCommon extends NoLaggComponent {
 				if (all) {
 					worlds = Bukkit.getServer().getWorlds().toArray(new World[0]);
 				} else {
-					worlds = new World[] {((Player) sender).getWorld()};
+					worlds = new World[] { ((Player) sender).getWorld() };
 				}
 				if (tnt && NoLaggComponents.TNT.isEnabled()) {
 					TNTHandler.clear();
@@ -150,7 +150,7 @@ public class NoLaggCommon extends NoLaggComponent {
 										remove = true;
 										break;
 									}
-								}	
+								}
 							}
 						}
 						if (remove) {

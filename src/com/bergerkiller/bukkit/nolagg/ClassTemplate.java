@@ -54,9 +54,9 @@ public class ClassTemplate<T> {
 	}
 
 	/**
-	 * Attempts to find the first field of the type specified
+	 * Attempts to find the field by name
 	 * 
-	 * @param type to find
+	 * @param name of the field
 	 * @return field
 	 */
 	public <K> SafeField<K> getField(String name) {

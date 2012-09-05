@@ -49,7 +49,8 @@ public class ExamReader {
 	}
 
 	public static void loadSegment(Segment segment) {
-		if (segment == null) return;
+		if (segment == null)
+			return;
 		selectedSegment = segment;
 		window.reset(segment.getDuration());
 		for (SegmentData data : segment.getData()) {
@@ -66,7 +67,7 @@ public class ExamReader {
 	}
 
 	public static void main(String[] args) {
-		filec = new NLFileChooser("Load graphs from exam file",  "Exam files", "exam");
+		filec = new NLFileChooser("Load graphs from exam file", "Exam files", "exam");
 		exportfilec = new NLFileChooser("Export current graph", "Text files", "txt");
 
 		window = new MainWindow();
@@ -77,7 +78,7 @@ public class ExamReader {
 		// load
 		loadbutton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				//open a new dialog
+				// open a new dialog
 				if (filec.showOpenDialog(window) == JFileChooser.APPROVE_OPTION) {
 					ExamFile file = ExamFile.read(filec.getSelectedFile());
 					if (file != null) {
@@ -95,7 +96,7 @@ public class ExamReader {
 					msgbox("Please open a graph first!");
 					return;
 				}
-				//open a new dialog
+				// open a new dialog
 				while (exportfilec.showSaveDialog(window) == JFileChooser.APPROVE_OPTION) {
 					final String filepath = exportfilec.getSelectedFile().toString();
 					final File file;
@@ -185,15 +186,14 @@ public class ExamReader {
 	public static List<File> fillFiles(Transferable transferable) {
 		try {
 			filebuff = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
-		} catch (UnsupportedFlavorException  ex) {
+		} catch (UnsupportedFlavorException ex) {
 			filebuff = new ArrayList<File>();
 			try {
 				final DataFlavor nixFileDataFlavor = new DataFlavor("text/uri-list;class=java.lang.String");
-				String data = (String)transferable.getTransferData(nixFileDataFlavor);
-				for(StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens();)
-				{
+				String data = (String) transferable.getTransferData(nixFileDataFlavor);
+				for (StringTokenizer st = new StringTokenizer(data, "\r\n"); st.hasMoreTokens();) {
 					String token = st.nextToken().trim();
-					if(token.startsWith("#") || token.isEmpty()) {
+					if (token.startsWith("#") || token.isEmpty()) {
 						continue;
 					}
 					filebuff.add(new File(new URI(token)));
@@ -205,7 +205,8 @@ public class ExamReader {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		if (filebuff == null) filebuff = new ArrayList<File>(0);
+		if (filebuff == null)
+			filebuff = new ArrayList<File>(0);
 		return filebuff;
 	}
 

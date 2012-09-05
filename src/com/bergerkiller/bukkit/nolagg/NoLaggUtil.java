@@ -31,7 +31,7 @@ public class NoLaggUtil {
 			Bukkit.getLogger().log(level, header + "    at " + element.toString());
 		}
 	}
-	
+
 	public static StackTraceElement findExternal(StackTraceElement[] stackTrace) {
 		return findExternal(Arrays.asList(stackTrace));
 	}
@@ -39,7 +39,8 @@ public class NoLaggUtil {
 	/**
 	 * Gets the first stack trace element that is outside Bukkit/nms scope
 	 * 
-	 * @param stackTrace to look at
+	 * @param stackTrace
+	 *            to look at
 	 * @return first element
 	 */
 	public static StackTraceElement findExternal(List<StackTraceElement> stackTrace) {

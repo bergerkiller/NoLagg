@@ -14,7 +14,7 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 
 public class NLIListener implements Listener {
-	
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
 		if (event.getEntityType() == EntityType.DROPPED_ITEM) {
@@ -29,31 +29,31 @@ public class NLIListener implements Listener {
 			ItemMap.removeItem(EntityUtil.getNative(item));
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onItemDespawn(ItemDespawnEvent event) {
 		if (!event.isCancelled()) {
 			onItemDespawn(event.getEntity());
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onItemPickup(PlayerPickupItemEvent event) {
 		if (!event.isCancelled()) {
 			onItemDespawn(event.getItem());
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onChunkLoad(ChunkLoadEvent event) {
 		ItemMap.loadChunk(event.getChunk());
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (!event.isCancelled()) {
 			ItemMap.unloadChunk(event.getChunk());
 		}
 	}
-		
+
 }

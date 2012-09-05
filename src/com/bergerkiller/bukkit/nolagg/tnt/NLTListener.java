@@ -15,21 +15,24 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 
 public class NLTListener implements Listener {
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onExplosionPrime(ExplosionPrimeEvent event) {
-		if (event.isCancelled()) return;
-		if (event.getEntity() == null) return;
+		if (event.isCancelled())
+			return;
+		if (event.getEntity() == null)
+			return;
 		Entity entity = ((CraftEntity) event.getEntity()).getHandle();
-		if (entity == null) return;
+		if (entity == null)
+			return;
 		if (entity instanceof EntityTNTPrimed) {
 			event.setCancelled(true);
-			//do stuff	
+			// do stuff
 			CustomExplosion explosion = new CustomExplosion(entity.world, entity, entity.locX, entity.locY, entity.locZ, event.getRadius(), event.getFire());
-	        explosion.doAll();
+			explosion.doAll();
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityExplode(EntityExplodeEvent event) {
 		Iterator<Block> iter = event.blockList().iterator();

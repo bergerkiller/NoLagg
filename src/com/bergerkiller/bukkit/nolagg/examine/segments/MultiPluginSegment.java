@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  * Shows a collection of all plugins
  */
 public class MultiPluginSegment extends SegmentNode {
-	
+
 	public static MultiPluginSegment create(int duration, List<DataSegment> segments) {
 		Map<String, List<DataSegment>> pluginsegments = new LinkedHashMap<String, List<DataSegment>>();
 		for (DataSegment seg : segments) {
@@ -21,8 +21,8 @@ public class MultiPluginSegment extends SegmentNode {
 			}
 			plist.add(seg.clone());
 		}
-		
-		//sort
+
+		// sort
 		List<PluginSegment> plugins = new ArrayList<PluginSegment>();
 		for (Entry<String, List<DataSegment>> entry : pluginsegments.entrySet()) {
 			trySort(entry.getValue());

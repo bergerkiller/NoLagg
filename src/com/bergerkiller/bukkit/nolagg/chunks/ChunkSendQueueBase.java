@@ -13,7 +13,7 @@ import net.minecraft.server.ChunkCoordIntPair;
 /**
  * Only contains the empty-faking and double-mapping of contained elements
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
 	private boolean isUpdating = true;
@@ -23,7 +23,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Sets whether this collection is being updated
 	 * 
-	 * @param updating to set to
+	 * @param updating
+	 *            to set to
 	 * @return the old updating state
 	 */
 	public boolean setUpdating(boolean updating) {
@@ -34,10 +35,11 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 
 	/**
 	 * Sorts the contents of this queue to send in direction of the player<br>
-	 * Also cleans up some of the other internal collections (to handle chunk change movement)
+	 * Also cleans up some of the other internal collections (to handle chunk
+	 * change movement)
 	 */
 	public void sort() {
-		for (Iterator<ChunkCoordIntPair> iter = sentChunks.iterator(); iter.hasNext(); ) {
+		for (Iterator<ChunkCoordIntPair> iter = sentChunks.iterator(); iter.hasNext();) {
 			if (!this.isNear(iter.next(), CommonUtil.view)) {
 				iter.remove();
 			}
@@ -47,7 +49,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Performs a pre-unload operation on this queue
 	 * 
-	 * @param chunkCoord of the chunk to unload
+	 * @param chunkCoord
+	 *            of the chunk to unload
 	 * @return True if an unload packet is required, False if not
 	 */
 	public boolean preUnloadChunk(ChunkCoordIntPair chunkCoord) {
@@ -62,7 +65,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	protected boolean add(ChunkCoordIntPair pair) {
-		if (!this.isNear(pair, CommonUtil.view)) return false;
+		if (!this.isNear(pair, CommonUtil.view))
+			return false;
 		synchronized (this) {
 			// Add to sending queue if not contained, or a re-send is requested
 			if (this.contained.add(pair) || !super.contains(pair)) {
@@ -96,8 +100,10 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Removes a chunk coordinate from the contained set
 	 * 
-	 * @param x coordinate of the chunk
-	 * @param z coordinate of the chunk
+	 * @param x
+	 *            coordinate of the chunk
+	 * @param z
+	 *            coordinate of the chunk
 	 */
 	public void removeContained(int x, int z) {
 		this.contained.remove(new ChunkCoordIntPair(x, z));
@@ -165,7 +171,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	public boolean containsAll(Collection coll) {
 		synchronized (this) {
 			for (Object o : coll) {
-				if (!this.contains(o)) return false;
+				if (!this.contains(o))
+					return false;
 			}
 			return true;
 		}
@@ -181,7 +188,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	@Override
 	public boolean addAll(Collection coll) {
 		synchronized (this) {
-			for (Object o : coll) this.add(o);
+			for (Object o : coll)
+				this.add(o);
 			return true;
 		}
 	}
@@ -189,16 +197,20 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	@Override
 	public boolean addAll(int index, Collection coll) {
 		synchronized (this) {
-			for (Object o : coll) this.add(index, o);
+			for (Object o : coll)
+				this.add(index, o);
 			return true;
 		}
 	}
 
 	/**
-	 * Checks if the chunk is near this queue when using the dynamic view distance
+	 * Checks if the chunk is near this queue when using the dynamic view
+	 * distance
 	 * 
-	 * @param chunkx of the chunk
-	 * @param chunkz of the chunk
+	 * @param chunkx
+	 *            of the chunk
+	 * @param chunkz
+	 *            of the chunk
 	 * @return True is it is near, False if not
 	 */
 	public boolean isNearDynamic(final int chunkx, final int chunkz) {
@@ -208,12 +220,14 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			return true;
 		}
 	}
-	
+
 	/**
 	 * Checks if the chunk is near this queue and can be contained
 	 * 
-	 * @param coord of the chunk
-	 * @param view distance
+	 * @param coord
+	 *            of the chunk
+	 * @param view
+	 *            distance
 	 * @return True is it is near, False if not
 	 */
 	public boolean isNear(ChunkCoordIntPair coord, final int view) {
@@ -223,9 +237,12 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Checks if the chunk is near this queue and can be contained
 	 * 
-	 * @param chunkx of the chunk
-	 * @param chunkz of the chunk
-	 * @param view distance
+	 * @param chunkx
+	 *            of the chunk
+	 * @param chunkz
+	 *            of the chunk
+	 * @param view
+	 *            distance
 	 * @return True is it is near, False if not
 	 */
 	public abstract boolean isNear(final int chunkx, final int chunkz, final int view);
@@ -239,7 +256,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	/**
-	 * Is called in PlayerInstance and PlayerManager to queue a new chunk coordinate
+	 * Is called in PlayerInstance and PlayerManager to queue a new chunk
+	 * coordinate
 	 */
 	@Override
 	public synchronized boolean add(Object object) {
@@ -258,7 +276,8 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			super.add(index, object);
 			return;
 		}
-		if (object == null) return;
+		if (object == null)
+			return;
 		if (this.add((ChunkCoordIntPair) object)) {
 			super.add(index, object);
 		}

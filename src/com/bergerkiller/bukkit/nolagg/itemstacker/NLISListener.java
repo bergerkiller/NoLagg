@@ -14,7 +14,7 @@ public class NLISListener implements Listener {
 	public void onWorldLoad(WorldLoadEvent event) {
 		StackFormer.get(WorldUtil.getNative(event.getWorld()));
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onWorldUnload(WorldUnloadEvent event) {
 		if (!event.isCancelled()) {

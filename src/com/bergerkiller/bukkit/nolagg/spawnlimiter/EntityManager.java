@@ -20,7 +20,7 @@ public class EntityManager {
 
 	private static Set<Entity> entities = new HashSet<Entity>();
 	private static Map<World, WorldListener> listeners = new HashMap<World, WorldListener>();
-	
+
 	public static void init() {
 		new Operation() {
 			public void run() {
@@ -42,7 +42,7 @@ public class EntityManager {
 			}
 		};
 	}
-	
+
 	public static void deinit() {
 		entities = new HashSet<Entity>();
 		for (WorldListener listener : listeners.values()) {
@@ -50,7 +50,7 @@ public class EntityManager {
 		}
 		listeners = new HashMap<World, WorldListener>();
 	}
-	
+
 	public static void deinit(World world) {
 		WorldListener listener = listeners.remove(world);
 		if (listener != null) {
@@ -61,14 +61,14 @@ public class EntityManager {
 			public void run() {
 				this.doEntities();
 			}
-			
+
 			@Override
 			public void handle(Entity entity) {
 				removeEntity(entity);
 			}
 		};
 	}
-	
+
 	public static void init(World world) {
 		if (WorldListener.isValid()) {
 			WorldServer ws = WorldUtil.getNative(world);
@@ -81,7 +81,7 @@ public class EntityManager {
 				public void run() {
 					this.doEntities();
 				}
-				
+
 				@Override
 				public void handle(Entity entity) {
 					addEntity(entity);
@@ -89,7 +89,7 @@ public class EntityManager {
 			};
 		}
 	}
-	
+
 	public static boolean addEntity(Entity entity) {
 		if (entities.add(entity)) {
 			org.bukkit.entity.Entity bentity = entity.getBukkitEntity();

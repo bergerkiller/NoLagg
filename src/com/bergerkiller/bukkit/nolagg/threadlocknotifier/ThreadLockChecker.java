@@ -29,7 +29,8 @@ public class ThreadLockChecker extends AsyncTask {
 		pulse = false;
 		try {
 			Thread.sleep(10000);
-		} catch (InterruptedException ex) {}
+		} catch (InterruptedException ex) {
+		}
 		if (pulse) {
 			previous = null;
 			maxidx = Integer.MAX_VALUE;
@@ -60,7 +61,8 @@ public class ThreadLockChecker extends AsyncTask {
 				}
 				try {
 					Thread.sleep(50);
-				} catch (InterruptedException ex) {}
+				} catch (InterruptedException ex) {
+				}
 			}
 			if (!elems.isEmpty()) {
 				StackTraceElement head = elems.get(0);

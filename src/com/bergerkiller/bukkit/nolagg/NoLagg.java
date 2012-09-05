@@ -33,25 +33,25 @@ public class NoLagg extends PluginBase {
 	public void enable() {
 		plugin = this;
 		ThreadCheck.init(this);
-		
+
 		FileConfiguration config = new FileConfiguration(this);
 		config.load();
-		
-		//Top header
+
+		// Top header
 		config.setHeader("This is the configuration of NoLagg, in here you can enable or disable features as you please");
 		config.addHeader("For more information, you can visit the following websites:");
 		config.addHeader("http://dev.bukkit.org/server-mods/nolagg/");
 		config.addHeader("http://forums.bukkit.org/threads/nolagg.36986/");
-		
-		//Load components
+
+		// Load components
 		NoLaggComponents.loadAll(config);
 		for (NoLaggComponent comp : this.components) {
 			comp.enable(config);
 		}
-		
+
 		config.save();
 	}
-	
+
 	protected List<NoLaggComponent> getComponents() {
 		return this.components;
 	}
@@ -73,7 +73,7 @@ public class NoLagg extends PluginBase {
 		}
 		config.save();
 	}
-	
+
 	@Override
 	public boolean command(CommandSender sender, String command, String[] args) {
 		try {
@@ -83,8 +83,8 @@ public class NoLagg extends PluginBase {
 					return true;
 				} else if (args[0].equalsIgnoreCase("reload")) {
 					Permission.RELOAD.handle(sender);
-					
-					//check if all components are still enabled
+
+					// check if all components are still enabled
 					FileConfiguration config = new FileConfiguration(this);
 					config.load();
 					Iterator<NoLaggComponent> iter = this.components.iterator();
@@ -95,8 +95,8 @@ public class NoLagg extends PluginBase {
 							iter.remove();
 						}
 					}
-					
-					//enable new components or reload loaded components
+
+					// enable new components or reload loaded components
 					NoLaggComponents.loadAll(config);
 					for (NoLaggComponent comp : this.components) {
 						if (comp.isEnabled()) {
@@ -111,7 +111,8 @@ public class NoLagg extends PluginBase {
 				}
 			}
 			for (NoLaggComponent plugin : this.components) {
-				if (plugin.onCommand(sender, args)) return true;
+				if (plugin.onCommand(sender, args))
+					return true;
 			}
 			if (sender instanceof Player) {
 				sender.sendMessage(ChatColor.RED + "Unknown sub-command!");

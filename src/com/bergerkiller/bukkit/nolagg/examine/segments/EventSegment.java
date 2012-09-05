@@ -6,7 +6,7 @@ import java.util.List;
  * Contains all the information of a single event
  */
 public class EventSegment extends SegmentNode {
-	
+
 	public EventSegment(String name, int duration, List<DataSegment> events) {
 		super(name, duration, events);
 	}

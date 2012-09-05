@@ -13,16 +13,16 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggLighting extends NoLaggComponent {
-	
+
 	public static boolean auto = true;
 	public static NoLaggLighting plugin;
-	
+
 	@Override
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("auto", "Whether or not lighting is automatically fixed when a new chunk is generated");
 		auto = config.get("auto", auto);
 	}
-	
+
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
@@ -33,10 +33,11 @@ public class NoLaggLighting extends NoLaggComponent {
 	public void onDisable(ConfigurationNode config) {
 		LightingFixThread.finish();
 	}
-	
+
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
-		if (args.length == 0) return false;
+		if (args.length == 0)
+			return false;
 		if (args[0].equalsIgnoreCase("fix")) {
 			if (sender instanceof Player) {
 				Permission.LIGHTING_FIX.handle(sender);
@@ -45,7 +46,8 @@ public class NoLaggLighting extends NoLaggComponent {
 				if (args.length == 2) {
 					try {
 						radius = Integer.parseInt(args[1]);
-					} catch (Exception ex) {}
+					} catch (Exception ex) {
+					}
 				}
 				int cx = p.getLocation().getBlockX() >> 4;
 				int cz = p.getLocation().getBlockZ() >> 4;
@@ -55,7 +57,7 @@ public class NoLaggLighting extends NoLaggComponent {
 						if (chunk != null) {
 							LightingFixThread.fix(chunk);
 						}
-					} 
+					}
 				}
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
 				return true;

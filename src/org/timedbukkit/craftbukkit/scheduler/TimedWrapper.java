@@ -17,6 +17,7 @@ import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 public class TimedWrapper implements Runnable {
 	public final Runnable runnable;
 	private final TaskMeasurement dest;
+
 	public TimedWrapper(final Runnable runnable, final TaskMeasurement dest) {
 		this.runnable = runnable;
 		this.dest = dest;
@@ -31,7 +32,8 @@ public class TimedWrapper implements Runnable {
 				} finally {
 					try {
 						this.dest.setTime(time);
-					} catch (ArrayIndexOutOfBoundsException ex) {}
+					} catch (ArrayIndexOutOfBoundsException ex) {
+					}
 				}
 			} else {
 				this.runnable.run();

@@ -47,6 +47,7 @@ public class DummyPlayerManager extends PlayerManager {
 			public void run() {
 				this.doWorlds();
 			}
+
 			public void handle(WorldServer world) {
 				PlayerManager manager = world.getPlayerManager();
 				if (manager instanceof DummyPlayerManager) {
@@ -84,14 +85,14 @@ public class DummyPlayerManager extends PlayerManager {
 
 	@Override
 	public void b(EntityPlayer entityplayer) {
-        int newCX = (int) entityplayer.locX >> 4;
-        int newCZ = (int) entityplayer.locZ >> 4;
-        int dx, dz;
-        for (dx = -2; dx <= 2; dx++) {
-        	for (dz = -2; dz <= 2; dz++) {
-        		entityplayer.world.chunkProvider.getChunkAt(newCX + dx, newCZ + dz);
-        	}
-        }
+		int newCX = (int) entityplayer.locX >> 4;
+		int newCZ = (int) entityplayer.locZ >> 4;
+		int dx, dz;
+		for (dx = -2; dx <= 2; dx++) {
+			for (dz = -2; dz <= 2; dz++) {
+				entityplayer.world.chunkProvider.getChunkAt(newCX + dx, newCZ + dz);
+			}
+		}
 		super.b(entityplayer);
 	}
 

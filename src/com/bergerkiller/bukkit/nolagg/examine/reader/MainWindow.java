@@ -16,7 +16,7 @@ import javax.swing.*;
 
 public class MainWindow extends JFrame {
 	private static final long serialVersionUID = 1L;
-	
+
 	private GraphBox ticktimes1;
 	private SelectionBox selection;
 	public JButton exportbutton;
@@ -24,16 +24,19 @@ public class MainWindow extends JFrame {
 	public JTextArea description;
 	private JScrollPane locscroll;
 	private JPopupMenu descriptionMenu;
-	
+
 	public MainWindow() {
 		this(870, 572);
 	}
+
 	public MainWindow(int width, int height) {
 		this(width, height, Toolkit.getDefaultToolkit().getScreenSize());
 	}
+
 	private MainWindow(int width, int height, Dimension screensize) {
 		this((int) ((screensize.width - width) / 2), (int) ((screensize.height - height) / 2), width, height);
 	}
+
 	public MainWindow(int x, int y, int width, int height) {
 		super();
 		this.setBounds(x, y, width, height);
@@ -43,37 +46,39 @@ public class MainWindow extends JFrame {
 		this.setTitle("NoLagg examination file reader by Bergerkiller");
 		this.setVisible(true);
 	}
-	
+
 	public <T extends Component> T append(T component) {
 		super.add(component);
 		return component;
 	}
-	
+
 	public GraphArea add(String name, double totalduration) {
 		GraphArea ga = this.ticktimes1.addArea();
 		this.selection.add(name, ga.color, totalduration);
 		return ga;
 	}
-		
+
 	public void onClick(int index) {
 		ExamReader.loadSegment(index);
 	}
-	
+
 	public void reset(int newduration) {
 		this.ticktimes1.reset(newduration);
 		this.selection.clear();
 	}
+
 	public void orderAreas() {
 		this.ticktimes1.orderAreas();
 	}
-	
+
 	public final int selectionWidth = 290;
 	public final int selectionHeight = 300;
 	final int graphwidth = 600;
 	final int yoffset = 40;
+
 	private void init() {
 		final MainWindow main = this;
-		
+
 		this.selection = this.append(new SelectionBox(graphwidth + 10, yoffset, selectionWidth, selectionHeight) {
 			private static final long serialVersionUID = 1L;
 
@@ -87,7 +92,7 @@ public class MainWindow extends JFrame {
 				main.onClick(index);
 			}
 		});
-				
+
 		this.ticktimes1 = this.append(new GraphBox(5, yoffset, graphwidth, 500) {
 			private static final long serialVersionUID = 1L;
 
@@ -104,7 +109,7 @@ public class MainWindow extends JFrame {
 			public void onAreaClick(GraphArea area) {
 				main.onClick(area == null ? -1 : area.index);
 			}
-			
+
 		});
 
 		// Export button
@@ -112,26 +117,29 @@ public class MainWindow extends JFrame {
 		exportbutton.setText("Export");
 		exportbutton.setBounds(main.getWidth() - 121, 5, 100, 30);
 
-		this.getContentPane().addHierarchyBoundsListener(new HierarchyBoundsListener(){
-            public void ancestorMoved(HierarchyEvent e) {}
-            @Override
-            public void ancestorResized(HierarchyEvent e) {
-                //make sure all contents can fit riiight in :)
-            	main.ticktimes1.setSize(main.getWidth() - selectionWidth - 28, main.getHeight() - 80);
-            	main.locscroll.setLocation(main.getWidth() - 310, main.getHeight() - 240);
-            	main.selection.setBounds(main.getWidth() - 310, yoffset, selectionWidth, main.getHeight() - 285);
-            	main.filepath.setSize(main.getWidth() - 235, main.filepath.getHeight());
-            	main.exportbutton.setLocation(main.getWidth() - 121, 5);
-            }
-        });
+		this.getContentPane().addHierarchyBoundsListener(new HierarchyBoundsListener() {
+			public void ancestorMoved(HierarchyEvent e) {
+			}
 
-		//description box
+			@Override
+			public void ancestorResized(HierarchyEvent e) {
+				// make sure all contents can fit riiight in :)
+				main.ticktimes1.setSize(main.getWidth() - selectionWidth - 28, main.getHeight() - 80);
+				main.locscroll.setLocation(main.getWidth() - 310, main.getHeight() - 240);
+				main.selection.setBounds(main.getWidth() - 310, yoffset, selectionWidth, main.getHeight() - 285);
+				main.filepath.setSize(main.getWidth() - 235, main.filepath.getHeight());
+				main.exportbutton.setLocation(main.getWidth() - 121, 5);
+			}
+		});
+
+		// description box
 		this.description = new JTextArea();
 		this.description.setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
 		this.description.setEditable(false);
 		this.description.getCaret().setBlinkRate(0);
 		this.description.addMouseMotionListener(new MouseMotionListener() {
-			public void mouseDragged(MouseEvent e) {}
+			public void mouseDragged(MouseEvent e) {
+			}
 
 			@Override
 			public void mouseMoved(MouseEvent e) {
@@ -139,11 +147,18 @@ public class MainWindow extends JFrame {
 			}
 		});
 		this.description.addMouseListener(new MouseListener() {
-			public void mousePressed(MouseEvent e) {}
-			public void mouseReleased(MouseEvent e) {}
-			public void mouseEntered(MouseEvent e) {}
-			public void mouseExited(MouseEvent e) {}
-			
+			public void mousePressed(MouseEvent e) {
+			}
+
+			public void mouseReleased(MouseEvent e) {
+			}
+
+			public void mouseEntered(MouseEvent e) {
+			}
+
+			public void mouseExited(MouseEvent e) {
+			}
+
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (e.getButton() == MouseEvent.BUTTON3) {
@@ -151,8 +166,8 @@ public class MainWindow extends JFrame {
 				}
 			}
 		});
-		
-		//popup menu with copy button for description box
+
+		// popup menu with copy button for description box
 		this.descriptionMenu = this.append(new JPopupMenu());
 		this.descriptionMenu.add(new JMenuItem("Copy")).addActionListener(new ActionListener() {
 			@Override
@@ -167,8 +182,8 @@ public class MainWindow extends JFrame {
 				main.description.copy();
 			}
 		});
-		
-		//file box
+
+		// file box
 		this.filepath = this.append(new JTextField());
 		this.filepath.setBounds(110, 5, 750, 30);
 		this.filepath.setEditable(false);
@@ -176,7 +191,7 @@ public class MainWindow extends JFrame {
 		this.append(locscroll = new JScrollPane(description)).setSize(this.selectionWidth, 200);
 
 		this.setResizable(true);
-		
+
 	}
 
 }

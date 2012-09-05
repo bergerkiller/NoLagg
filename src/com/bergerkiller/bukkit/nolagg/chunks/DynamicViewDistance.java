@@ -47,6 +47,7 @@ public class DynamicViewDistance {
 			public void run() {
 				this.doWorlds();
 			}
+
 			public void handle(WorldServer world) {
 				DummyPlayerManager.convert(world);
 			}
@@ -66,7 +67,8 @@ public class DynamicViewDistance {
 						continue;
 					}
 				}
-			} catch (Exception ex) {}
+			} catch (Exception ex) {
+			}
 			iter.remove();
 		}
 		if (nodes.isEmpty() || lowest >= CommonUtil.view) {
@@ -78,6 +80,7 @@ public class DynamicViewDistance {
 			public void run() {
 				this.doWorlds();
 			}
+
 			public void handle(WorldServer world) {
 				chunks += world.chunkProviderServer.getLoadedChunks();
 			}
@@ -95,7 +98,7 @@ public class DynamicViewDistance {
 				int minChunks = 0, maxChunks = Integer.MAX_VALUE;
 				int minView = 0, maxView = Integer.MAX_VALUE;
 
-			    // Get min and max chunks and view around current chunks value
+				// Get min and max chunks and view around current chunks value
 				for (Map.Entry<Integer, Integer> entry : nodes.entrySet()) {
 					if (entry.getKey() <= chunks) {
 						if (entry.getKey() >= minChunks) {
@@ -123,7 +126,7 @@ public class DynamicViewDistance {
 					viewDistance = (int) (value * (double) maxView + (1.00 - value) * (double) minView);
 				}
 				viewDistance = MathUtil.limit(viewDistance, 3, CommonUtil.view);
-				
+
 			}
 		}.start(15, 40);
 	}

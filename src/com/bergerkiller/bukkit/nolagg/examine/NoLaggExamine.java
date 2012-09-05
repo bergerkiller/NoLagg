@@ -42,7 +42,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	@Override
 	public void onReload(ConfigurationNode config) {
 	}
-	
+
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length != 0) {
@@ -50,7 +50,8 @@ public class NoLaggExamine extends NoLaggComponent {
 				int duration = 500;
 				try {
 					duration = Integer.parseInt(args[1]);
-				} catch (Exception ex) {}
+				} catch (Exception ex) {
+				}
 				if (sender instanceof Player) {
 					Permission.EXAMINE_RUN.handle(sender);
 					PluginLogger.recipients.add(sender.getName());

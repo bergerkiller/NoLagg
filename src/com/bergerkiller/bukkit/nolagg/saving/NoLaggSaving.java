@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggSaving extends NoLaggComponent {
-	
+
 	public static NoLaggSaving plugin;
 	public static int autoSaveInterval;
 	public static int writeDataInterval;
@@ -38,7 +38,7 @@ public class NoLaggSaving extends NoLaggComponent {
 		config.setHeader("writeDataEnabled", "Whether NoLagg will attempt to write all world data to the region files at a set interval");
 		config.addHeader("writeDataEnabled", "This is done on another thread, so don't worry about the main thread lagging while this happens");
 		writeDataEnabled = config.get("writeDataEnabled", true);
-		
+
 		config.setHeader("writeDataInterval", "The tick interval at which the server actually writes the chunk data to file (20 ticks = 1 second)");
 		writeDataInterval = config.get("writeDataInterval", 12000);
 		if (writeDataInterval < 600) {

@@ -26,14 +26,17 @@ public class LightingFixThread extends AsyncTask {
 
 	private static AsyncTask task;
 	private static LinkedHashSet<Chunk> toFix = new LinkedHashSet<Chunk>();
+
 	public static int getPendingSize() {
 		synchronized (toFix) {
 			return toFix.size();
 		}
 	}
+
 	public static void fix(org.bukkit.Chunk chunk) {
 		fix(WorldUtil.getNative(chunk));
 	}
+
 	public static void fix(Chunk chunk) {
 		synchronized (toFix) {
 			toFix.add(chunk);
@@ -41,7 +44,7 @@ public class LightingFixThread extends AsyncTask {
 				task = new LightingFixThread().start(true);
 			}
 		}
-		//get rid of current sending requests for this chunk
+		// get rid of current sending requests for this chunk
 		ChunkCoordIntPair p = new ChunkCoordIntPair(chunk.x, chunk.z);
 		for (EntityPlayer ep : CommonUtil.getOnlinePlayers()) {
 			if (ep != null && ep.world == chunk.world && ep.chunkCoordIntPairQueue != null) {
@@ -51,19 +54,22 @@ public class LightingFixThread extends AsyncTask {
 			}
 		}
 	}
+
 	public static boolean isFixing(org.bukkit.Chunk chunk) {
 		return isFixing(WorldUtil.getNative(chunk));
 	}
+
 	public static boolean isFixing(Chunk chunk) {
 		synchronized (toFix) {
 			return toFix.contains(chunk);
 		}
 	}
+
 	public static void finish() {
 		executeAll();
 		AsyncTask.stop(task);
 		task = null;
-	}		
+	}
 
 	@Override
 	public void run() {
@@ -74,19 +80,21 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	private static List<FixOperation> next = new ArrayList<FixOperation>();
+
 	private static boolean executeAll() {
 		synchronized (next) {
 			synchronized (toFix) {
-				if (toFix.isEmpty()) return false;
+				if (toFix.isEmpty())
+					return false;
 				for (Chunk c : toFix) {
 					next.add(new FixOperation(c));
 				}
 			}
-			
+
 			for (FixOperation fix : next) {
 				fix.prepare();
 			}
-			
+
 			final int redocount = 4;
 			for (int i = 0; i < redocount; i++) {
 				for (FixOperation fix : next) {
@@ -94,19 +102,18 @@ public class LightingFixThread extends AsyncTask {
 					fix.smooth(EnumSkyBlock.BLOCK);
 				}
 			}
-			
-			
+
 			for (FixOperation fix : next) {
 				fix.finish();
 			}
-			
-			//remove
+
+			// remove
 			synchronized (toFix) {
 				for (FixOperation fix : next) {
 					toFix.remove(fix.chunk);
 				}
 			}
-						
+
 			next.clear();
 			return true;
 		}
@@ -116,26 +123,30 @@ public class LightingFixThread extends AsyncTask {
 		private final Chunk chunk;
 		private final WorldServer world;
 		public final ChunkSection[] sections;
+
 		public FixOperation(final Chunk chunk) {
 			this.chunk = chunk;
 			this.world = (WorldServer) chunk.world;
 			this.sections = this.chunk.i();
 		}
+
 		private Chunk getChunk(final int x, final int z) {
 			return this.world.chunkProviderServer.chunks.get(x, z);
 		}
 
 		private int getLightLevel(EnumSkyBlock mode, int x, final int y, int z) {
-			if (y <= 0 || y >= this.chunk.world.getHeight()) return 0;
+			if (y <= 0 || y >= this.chunk.world.getHeight())
+				return 0;
 			if (x >= 0 && z >= 0 && x < 16 && z < 16) {
 				return this.chunk.getBrightness(mode, x, y, z);
 			}
 			Chunk chunk = this.getChunk(this.chunk.x + (x >> 4), this.chunk.z + (z >> 4));
-			if (chunk == null) return 0;
+			if (chunk == null)
+				return 0;
 			x -= (chunk.x - this.chunk.x) << 4;
 			z -= (chunk.z - this.chunk.z) << 4;
 			return chunk.getBrightness(mode, x, y, z);
-		}	
+		}
 
 		public void smooth(EnumSkyBlock mode) {
 			int x, y, z, typeid, light, factor;
@@ -175,9 +186,9 @@ public class LightingFixThread extends AsyncTask {
 							if (!Block.n[typeid]) {
 								factor = Math.max(1, Block.lightBlock[typeid]);
 								light = this.chunk.getBrightness(mode, x, y, z);
-								//actual editing here
+								// actual editing here
 								int newlight = light + factor;
-								//obtain lighting from all sides
+								// obtain lighting from all sides
 								newlight = Math.max(newlight, getLightLevel(mode, x - 1, y, z));
 								newlight = Math.max(newlight, getLightLevel(mode, x + 1, y, z));
 								newlight = Math.max(newlight, getLightLevel(mode, x, y, z - 1));
@@ -185,7 +196,7 @@ public class LightingFixThread extends AsyncTask {
 								newlight = Math.max(newlight, getLightLevel(mode, x, y - 1, z));
 								newlight = Math.max(newlight, getLightLevel(mode, x, y + 1, z));
 								newlight -= factor;
-								//pick the highest value
+								// pick the highest value
 								if (newlight > light) {
 									ChunkSection chunksection = this.chunk.i()[y >> 4];
 									if (chunksection != null) {
@@ -212,15 +223,16 @@ public class LightingFixThread extends AsyncTask {
 			int slicesLight = this.chunk.h();
 			int maxheight = this.world.getHeight() - 1;
 			ChunkSection sec;
-			//initial calculation of sky light
+			// initial calculation of sky light
 			for (x = 0; x < 16; x++) {
 				for (z = 0; z < 16; z++) {
 					int ll = 15;
 					int kk = slicesLight + 15;
 
-					for (y = maxheight; y >= 0; y--) {						
+					for (y = maxheight; y >= 0; y--) {
 						sec = this.sections[y >> 4];
-						if (sec == null) continue;
+						if (sec == null)
+							continue;
 
 						if (ll <= 0 || --kk <= 0 || (ll -= this.chunk.b(x, y, z)) <= 0) {
 							ll = 0;
@@ -231,9 +243,9 @@ public class LightingFixThread extends AsyncTask {
 				}
 			}
 		}
-		
+
 		public void finish() {
-			//transfer new block data
+			// transfer new block data
 			final ChunkCoordIntPair pair = new ChunkCoordIntPair(chunk.x, chunk.z);
 			new Task(NoLagg.plugin) {
 				public void run() {
@@ -241,10 +253,13 @@ public class LightingFixThread extends AsyncTask {
 						public void run() {
 							this.doPlayers(world);
 						}
+
 						@SuppressWarnings("unchecked")
 						public void handle(EntityPlayer ep) {
-							if (Math.abs(pair.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view) return;
-							if (Math.abs(pair.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view) return;
+							if (Math.abs(pair.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
+								return;
+							if (Math.abs(pair.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
+								return;
 							ep.chunkCoordIntPairQueue.add(0, pair);
 						}
 					};

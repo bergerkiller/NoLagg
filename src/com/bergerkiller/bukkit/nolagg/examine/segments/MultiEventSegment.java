@@ -21,8 +21,8 @@ public class MultiEventSegment extends SegmentNode {
 			}
 			plist.add(seg.clone());
 		}
-		
-		//sort
+
+		// sort
 		List<EventSegment> events = new ArrayList<EventSegment>();
 		for (Entry<String, List<DataSegment>> entry : eventMap.entrySet()) {
 			trySort(entry.getValue());
@@ -32,7 +32,7 @@ public class MultiEventSegment extends SegmentNode {
 
 		return new MultiEventSegment(duration, plugincount, events);
 	}
-	
+
 	private int plugincount;
 
 	@Override

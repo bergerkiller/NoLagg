@@ -25,25 +25,27 @@ public class WorldStackFormer implements Runnable {
 	public final EntityTracker tracker;
 	private boolean disabled = false;
 	public double stackRadiusSquared = 2.0;
-	
+
 	public boolean isDisabled() {
 		return this.disabled;
 	}
+
 	public void disable() {
 		this.disabled = true;
 		this.watcher.disable();
 	}
-	
+
 	public WorldStackFormer(World world) {
 		this.watcher = WorldEntityWatcher.watch(world);
 		this.tracker = WorldUtil.getTracker(world);
 	}
-	
+
 	public void update() {
 		synchronized (isProcessing) {
-			if (isProcessing) return;
+			if (isProcessing)
+				return;
 
-			//re-spawn previously stacked items
+			// re-spawn previously stacked items
 			for (EntityItem item : itemsToRespawn) {
 				item.dead = true;
 				EntityItem newItem = new EntityItem(item.world, item.locX, item.locY, item.locZ, item.itemStack);
@@ -56,13 +58,13 @@ public class WorldStackFormer implements Runnable {
 				newItem.world.addEntity(newItem);
 			}
 
-			//get rid of trackers of killed entities
+			// get rid of trackers of killed entities
 			for (Entity entity : entitiesToKill) {
 				entity.world.removeEntity(entity);
 				WorldUtil.getTracker(entity.world).untrackEntity(entity);
 			}
 
-			//fill the collections with new items and orbs again
+			// fill the collections with new items and orbs again
 			entitiesToKill.clear();
 			items.clear();
 			orbs.clear();
@@ -71,17 +73,18 @@ public class WorldStackFormer implements Runnable {
 			orbs.addAll(this.watcher.orbs);
 		}
 	}
-	
 
 	@SuppressWarnings("unchecked")
 	private void updateOrbs() {
 		for (EntityExperienceOrb orb : orbs) {
-			if (orb.dead) continue;
+			if (orb.dead)
+				continue;
 			if (addSameOrbsNear(orbs, orb)) {
 				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
 					for (EntityExperienceOrb to : (List<EntityExperienceOrb>) near) {
-						if (to.dead) continue;
-						//add the experience
+						if (to.dead)
+							continue;
+						// add the experience
 						orb.value += to.value;
 						kill(to);
 					}
@@ -89,7 +92,7 @@ public class WorldStackFormer implements Runnable {
 				near.clear();
 			}
 		}
-	}	
+	}
 
 	private void kill(Entity entity) {
 		entity.dead = true;
@@ -100,19 +103,23 @@ public class WorldStackFormer implements Runnable {
 	private void updateItems() {
 		int maxsize;
 		for (EntityItem item : items) {
-			if (item.dead) continue;
+			if (item.dead)
+				continue;
 			maxsize = item.itemStack.getMaxStackSize();
-			if (item.itemStack.count >= maxsize) continue;
+			if (item.itemStack.count >= maxsize)
+				continue;
 			if (addSameItemsNear(items, item)) {
 				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
-					//addition the items
+					// addition the items
 					for (EntityItem nearitem : (List<EntityItem>) near) {
-						if (nearitem.dead) continue;
-						if (nearitem.itemStack == null) continue;
+						if (nearitem.dead)
+							continue;
+						if (nearitem.itemStack == null)
+							continue;
 						if (ItemUtil.transfer(nearitem.itemStack, item.itemStack, Integer.MAX_VALUE) > 0) {
 							if (nearitem.itemStack.count == 0) {
 								kill(nearitem);
-								//respawn item
+								// respawn item
 								itemsToRespawn.add(item);
 							}
 						}
@@ -128,10 +135,13 @@ public class WorldStackFormer implements Runnable {
 
 	@SuppressWarnings("unchecked")
 	private boolean addSameItemsNear(List<EntityItem> from, EntityItem around) {
-		if (around.dead) return false;
+		if (around.dead)
+			return false;
 		for (EntityItem item : from) {
-			if (item.dead) continue;
-			if (item == around) continue;
+			if (item.dead)
+				continue;
+			if (item == around)
+				continue;
 			if (item.itemStack.id == around.itemStack.id && item.itemStack.getData() == around.itemStack.getData()) {
 				if (canStack(around, item)) {
 					near.add(item);
@@ -143,23 +153,30 @@ public class WorldStackFormer implements Runnable {
 
 	@SuppressWarnings("unchecked")
 	private boolean addSameOrbsNear(List<EntityExperienceOrb> from, EntityExperienceOrb around) {
-		if (around.dead) return false;
+		if (around.dead)
+			return false;
 		for (EntityExperienceOrb orb : from) {
-			if (orb.dead) continue;
-			if (orb == around) continue;
+			if (orb.dead)
+				continue;
+			if (orb == around)
+				continue;
 			if (canStack(around, orb)) {
 				near.add(orb);
 			}
 		}
 		return !near.isEmpty();
 	}
+
 	private boolean canStack(Entity e1, Entity e2) {
 		double d = distance(e1.locX, e2.locX);
-		if (d > stackRadiusSquared) return false;
+		if (d > stackRadiusSquared)
+			return false;
 		d += distance(e1.locZ, e2.locZ);
-		if (d > stackRadiusSquared) return false;
+		if (d > stackRadiusSquared)
+			return false;
 		d += distance(e1.locY, e2.locY);
-		if (d > stackRadiusSquared) return false;
+		if (d > stackRadiusSquared)
+			return false;
 		return true;
 	}
 
@@ -168,17 +185,16 @@ public class WorldStackFormer implements Runnable {
 		return d1 * d1;
 	}
 
-
 	public void run() {
 		synchronized (this.isProcessing) {
 			this.isProcessing = true;
 		}
-		
+
 		updateItems();
 		if (NoLaggItemStacker.stackOrbs) {
 			updateOrbs();
 		}
-		
+
 		synchronized (this.isProcessing) {
 			this.isProcessing = false;
 		}

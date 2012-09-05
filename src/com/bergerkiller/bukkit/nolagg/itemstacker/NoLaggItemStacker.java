@@ -23,14 +23,14 @@ public class NoLaggItemStacker extends NoLaggComponent {
 	public static Set<Material> ignoredTypes = new HashSet<Material>();
 	public static boolean stackOrbs = true;
 	public static int interval;
-		
+
 	@Override
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("radius", "The block radius to look for other items when stacking");
 		config.setHeader("threshold", "The amount of (physical) items needed to form one stack");
 		config.setHeader("interval", "The interval in ticks at which item stacking is performed (1 tick = 1/20 sec)");
-		
-		//Radius
+
+		// Radius
 		ConfigurationNode radius = config.getNode("radius");
 		radius.setHeader("The block radius to look for other items when stacking");
 		radius.addHeader("You can set it for multiple worlds");
@@ -39,8 +39,8 @@ public class NoLaggItemStacker extends NoLaggComponent {
 
 		stackThreshold = config.get("threshold", 2);
 		interval = config.get("interval", 20);
-		
-		//ignored types
+
+		// ignored types
 		ignoredTypes.clear();
 		if (!config.contains("ignoredItemTypes")) {
 			config.set("ignoredItemTypes", Arrays.asList("DIAMOND_PICKAXE", "WOODEN_HOE"));
@@ -66,8 +66,10 @@ public class NoLaggItemStacker extends NoLaggComponent {
 	public static boolean isIgnoredItem(net.minecraft.server.Entity itementity) {
 		return isIgnoredItem(itementity.getBukkitEntity());
 	}
+
 	public static boolean isIgnoredItem(Entity itementity) {
-		if (ItemUtil.isIgnored(itementity)) return true;
+		if (ItemUtil.isIgnored(itementity))
+			return true;
 		Item item = (Item) itementity;
 		return ignoredTypes.contains(item.getItemStack().getType());
 	}

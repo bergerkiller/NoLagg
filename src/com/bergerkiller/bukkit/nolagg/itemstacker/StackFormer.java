@@ -20,12 +20,13 @@ public class StackFormer extends AsyncTask {
 	private static StackFormer thread;
 	private static Task alterRefreshTask;
 	private static Task updateTask;
-	
+
 	public static WorldProperty<Double> stackRadius = new WorldProperty<Double>(2.0);
-	
+
 	private static Map<WorldServer, WorldStackFormer> globalWorlds = new HashMap<WorldServer, WorldStackFormer>();
-    private static List<WorldStackFormer> toAdd = new ArrayList<WorldStackFormer>();
-    private static boolean updated = false;
+	private static List<WorldStackFormer> toAdd = new ArrayList<WorldStackFormer>();
+	private static boolean updated = false;
+
 	public static WorldStackFormer get(WorldServer world) {
 		WorldStackFormer former = globalWorlds.get(world);
 		if (former == null) {
@@ -38,13 +39,14 @@ public class StackFormer extends AsyncTask {
 		}
 		return former;
 	}
+
 	public static void remove(WorldServer world) {
 		WorldStackFormer f = globalWorlds.remove(world);
 		if (f != null) {
 			f.disable();
 		}
 	}
-	
+
 	public static void init() {
 		if (!WorldListener.isValid()) {
 			NoLaggItemStacker.plugin.log(Level.WARNING, "Failed to hook into world access listeners, will use a slower alternative!");
@@ -56,7 +58,7 @@ public class StackFormer extends AsyncTask {
 				}
 			}.start(1, 40);
 		}
-		
+
 		updateTask = new Task(NoLagg.plugin) {
 			public void run() {
 				for (WorldStackFormer former : globalWorlds.values()) {
@@ -65,19 +67,20 @@ public class StackFormer extends AsyncTask {
 				updated = true;
 			}
 		}.start(20, 20);
-		
+
 		for (WorldServer world : WorldUtil.getWorlds()) {
 			get(world);
 		}
 		thread = new StackFormer();
 		thread.start(true);
 	}
+
 	public static void deinit() {
 		Task.stop(updateTask);
 		updateTask = null;
 		Task.stop(alterRefreshTask);
 		alterRefreshTask = null;
-		
+
 		AsyncTask.stop(thread);
 		thread = null;
 		synchronized (toAdd) {
@@ -88,16 +91,16 @@ public class StackFormer extends AsyncTask {
 		}
 		globalWorlds.clear();
 	}
-	
+
 	private final List<WorldStackFormer> worlds;
-	
+
 	private StackFormer() {
 		synchronized (toAdd) {
 			this.worlds = new ArrayList<WorldStackFormer>(toAdd);
 			toAdd.clear();
 		}
 	}
-	
+
 	public void run() {
 		try {
 			if (updated) {
@@ -105,7 +108,7 @@ public class StackFormer extends AsyncTask {
 				synchronized (toAdd) {
 					if (!toAdd.isEmpty()) {
 						this.worlds.addAll(toAdd);
-						toAdd .clear();
+						toAdd.clear();
 					}
 				}
 				WorldStackFormer f;
@@ -126,5 +129,5 @@ public class StackFormer extends AsyncTask {
 			t.printStackTrace();
 		}
 	}
-		
+
 }

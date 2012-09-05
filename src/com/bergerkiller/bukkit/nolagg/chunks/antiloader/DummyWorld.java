@@ -47,17 +47,42 @@ public class DummyWorld extends WorldServer {
 
 	private static IDataManager getDummyDataManager() {
 		return new IDataManager() {
-        	public UUID getUUID() {return null;}
-			public void checkSession() {}
-			public IChunkLoader createChunkLoader(WorldProvider arg0) {return null;}
-			public File getDataFile(String arg0) {return null;}
-			public PlayerFileData getPlayerFileData() {return null;}
-			public WorldData getWorldData() {return null;}
-			public void saveWorldData(WorldData arg0) {}
-			public void a() {}
-			public String g() {return null;}
-			public void saveWorldData(WorldData arg0, NBTTagCompound arg1) {}
-        };
+			public UUID getUUID() {
+				return null;
+			}
+
+			public void checkSession() {
+			}
+
+			public IChunkLoader createChunkLoader(WorldProvider arg0) {
+				return null;
+			}
+
+			public File getDataFile(String arg0) {
+				return null;
+			}
+
+			public PlayerFileData getPlayerFileData() {
+				return null;
+			}
+
+			public WorldData getWorldData() {
+				return null;
+			}
+
+			public void saveWorldData(WorldData arg0) {
+			}
+
+			public void a() {
+			}
+
+			public String g() {
+				return null;
+			}
+
+			public void saveWorldData(WorldData arg0, NBTTagCompound arg1) {
+			}
+		};
 	}
 
 	private static WorldSettings getDummySettings() {
@@ -67,11 +92,12 @@ public class DummyWorld extends WorldServer {
 	public DummyWorld() throws Throwable {
 		this(getDummyName());
 	}
+
 	public DummyWorld(String worldname) throws Throwable {
 		super(CommonUtil.getMCServer(), getDummyDataManager(), worldname, 0, getDummySettings(), CommonUtil.getMCServer().methodProfiler, Environment.NORMAL, null);
-		//dereference this dummy world again...
+		// dereference this dummy world again...
 		new SafeField<Map>(CraftServer.class, "worlds").get(getServer()).remove(worldname.toLowerCase());
-		//set some variables to null
+		// set some variables to null
 		this.chunkProvider = this.chunkProviderServer = new DummyChunkProvider(this);
 		this.generator = null;
 		this.entityList = null;
@@ -85,13 +111,29 @@ public class DummyWorld extends WorldServer {
 		this.random = null;
 	}
 
-	protected void a(WorldSettings worldsettings) {};
-	protected void b(WorldSettings worldsettings) {};
-	public void c() {};
-	public void g() {};
-	public void v() {};
-	public void a() {};
-	public IChunkProvider b() {return null;}
-	public IChunkProvider h() {return null;}
-}
+	protected void a(WorldSettings worldsettings) {
+	};
 
+	protected void b(WorldSettings worldsettings) {
+	};
+
+	public void c() {
+	};
+
+	public void g() {
+	};
+
+	public void v() {
+	};
+
+	public void a() {
+	};
+
+	public IChunkProvider b() {
+		return null;
+	}
+
+	public IChunkProvider h() {
+		return null;
+	}
+}

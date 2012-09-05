@@ -42,15 +42,15 @@ public class NLSLListener implements Listener {
 	}
 
 	private long prevSpawnWave = System.currentTimeMillis();
-	private static long spawnWaitTime = 3000; //how many msecs to wait spawning
-	private static long spawnTime = 1000; //how many msecs to allow spawning
+	private static long spawnWaitTime = 3000; // how many msecs to wait spawning
+	private static long spawnTime = 1000; // how many msecs to allow spawning
 
-//	@EventHandler(priority = EventPriority.HIGHEST)
-//	public void onVehicleSpawn(VehicleCreateEvent event) {
-//		if (!EntityManager.addEntity(EntityUtil.getNative(event.getVehicle()))) {
-//			event.getVehicle().remove();
-//		}
-//	}
+	// @EventHandler(priority = EventPriority.HIGHEST)
+	// public void onVehicleSpawn(VehicleCreateEvent event) {
+	// if (!EntityManager.addEntity(EntityUtil.getNative(event.getVehicle()))) {
+	// event.getVehicle().remove();
+	// }
+	// }
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
@@ -62,7 +62,7 @@ public class NLSLListener implements Listener {
 			} else if (event.getSpawnReason() == SpawnReason.NATURAL) {
 				long time = System.currentTimeMillis();
 				long diff = time - prevSpawnWave - spawnWaitTime;
-				//to prevent lots of lag because of spammed spawn events
+				// to prevent lots of lag because of spammed spawn events
 				if (diff < 0) {
 					event.setCancelled(true);
 					return;
@@ -78,7 +78,8 @@ public class NLSLListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (event.isCancelled()) return;
+		if (event.isCancelled())
+			return;
 		Material type = event.getBlock().getType();
 		if (type == Material.GRAVEL || type == Material.SAND) {
 			if (event.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR) {

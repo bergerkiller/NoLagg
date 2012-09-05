@@ -9,7 +9,7 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 public class NoLaggSpawnLimiter extends NoLaggComponent {
 
 	public static NoLaggSpawnLimiter plugin;
-	
+
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		if (WorldListener.isValid()) {
@@ -25,7 +25,7 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 	@Override
 	public void onReload(ConfigurationNode config) {
 		SpawnHandler.clear();
-		//default spawn limits
+		// default spawn limits
 		if (!config.contains("spawnlimits")) {
 			ConfigurationNode limits = config.getNode("spawnlimits");
 			ConfigurationNode node = limits.getNode("default");
@@ -45,9 +45,9 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 			limits.set("worlds.world3.cavespider", 0);
 			limits.set("worlds.creativeworld.mob", 0);
 			limits.set("global.mob", 1000);
-			//others
+			// others
 		}
-		
+
 		config.setHeader("spawnlimits", "");
 		config.addHeader("spawnlimits", "The general spawn limits (natural spawning)");
 		config.addHeader("spawnlimits", "For more information, see http://dev.bukkit.org/server-mods/nolagg/pages/spawn-limits-nolagg/");
@@ -62,9 +62,9 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		config.setHeader("mobSpawnerLimits.worlds", "The world-specific spawn limits");
 		config.setHeader("mobSpawnerLimits.global", "The global spawn limits");
 
-		//Spawn restrictions
+		// Spawn restrictions
 		SpawnHandler.GENERALHANDLER.load(config.getNode("spawnlimits"));
-		//Mob spawn restrictions
+		// Mob spawn restrictions
 		SpawnHandler.MOBSPAWNERHANDLER.load(config.getNode("mobSpawnerLimits"));
 	}
 

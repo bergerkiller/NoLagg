@@ -36,29 +36,29 @@ import com.bergerkiller.bukkit.nolagg.lighting.LightingFixThread;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class PerformanceMonitor extends Task {
-	
+
 	public PerformanceMonitor() {
 		super(NoLagg.plugin);
 	}
 
 	public static int monitorInterval = 40;
-	
+
 	public static long prevtime;
 	public static long prevusedmem;
 	public static long minmem;
-	
+
 	private static long prevlaggingmsg = System.currentTimeMillis();
 	public static boolean broadcastLagging;
 	public static String broadcastMessage;
 	public static long broadcastInterval;
 	public static double broadcastThreshold;
-	
+
 	private static final double strength = 0.7;
 	public static final ProcessTime entityListGen = new ProcessTime("Entity lstng", ChatColor.GREEN);
 	public static final ProcessTime entitySpawnLimit = new ProcessTime("Spwn limtr", ChatColor.DARK_GREEN);
 	public static final ProcessTime chunkUpdate = new ProcessTime("Chnk updtr", ChatColor.DARK_RED);
 	public static final ProcessTime chunkSend = new ProcessTime("Chnk sending", ChatColor.RED);
-	private static final ProcessTime[] times = new ProcessTime[] {entityListGen, entitySpawnLimit, chunkUpdate, chunkSend};
+	private static final ProcessTime[] times = new ProcessTime[] { entityListGen, entitySpawnLimit, chunkUpdate, chunkSend };
 
 	public static ArrayList<String> recipients = new ArrayList<String>();
 	public static HashSet<String> removalReq = new HashSet<String>();
@@ -69,16 +69,16 @@ public class PerformanceMonitor extends Task {
 	private static PerformanceMonitor pm;
 	private static BufferedWriter logger;
 	private static boolean wroteHeader = false;
-	
+
 	private static File logfile;
-	
+
 	public static void init() {
 		pm = new PerformanceMonitor();
 		prevtime = System.currentTimeMillis();
 		prevusedmem = runtime.maxMemory() - runtime.freeMemory();
-		minmem = prevusedmem;		
+		minmem = prevusedmem;
 		pm.start(monitorInterval, monitorInterval);
-		//set up logger
+		// set up logger
 		logfile = NoLagg.plugin.getDataFolder();
 		logfile.mkdirs();
 		logfile = new File(logfile + File.separator + "log.txt");
@@ -91,25 +91,28 @@ public class PerformanceMonitor extends Task {
 			ex.printStackTrace();
 		}
 	}
+
 	public static void deinit() {
 		Task.stop(pm);
 		pm = null;
-		
-		//set up logger
+
+		// set up logger
 		if (logger != null) {
 			try {
 				log("NoLagg disabled: " + getStamp());
 				logger.flush();
 				logger.close();
-			} catch (IOException ex) {}
+			} catch (IOException ex) {
+			}
 			logger = null;
 		}
 		recipients.clear();
 		removalReq.clear();
 	}
-	
+
 	private static String getProgress(int length, ChatColor color) {
-		if (length <= 0) return "";
+		if (length <= 0)
+			return "";
 		StringBuilder sb = new StringBuilder(length + 1);
 		sb.append(color);
 		for (int i = 0; i < length; i++) {
@@ -117,6 +120,7 @@ public class PerformanceMonitor extends Task {
 		}
 		return sb.toString();
 	}
+
 	private static String getMemoryProgress(int length, long current, long min, long max) {
 		double factor = (double) length / max;
 		StringBuilder sb = new StringBuilder(length + 3);
@@ -127,102 +131,110 @@ public class PerformanceMonitor extends Task {
 		sb.append(getProgress(unused, ChatColor.RED));
 		return sb.toString();
 	}
-	    
-    private static int mem(double value) {
-    	return mem((long) value);
-    }
-    private static int mem(long value) {
-    	return (int) (value / 1048576);
-    }
-    
-    public static boolean clearLog() {
-    	if (logger != null) {
-    		try {
-    			logger.close();
-    		} catch (Exception ex) {
-    			return false;
-    		}
-    	}
-    	if (logfile.delete()) {
-    		try {
-    			logger = new BufferedWriter(new FileWriter(logfile, true));
-    			wroteHeader = false;
-    			return true;
-    		} catch (Exception ex) {
-    			return false;
-    		}
-    	} else {
-    		return false;
-    	}
-    }
-    
-    private static void log(String message) throws IOException {
+
+	private static int mem(double value) {
+		return mem((long) value);
+	}
+
+	private static int mem(long value) {
+		return (int) (value / 1048576);
+	}
+
+	public static boolean clearLog() {
+		if (logger != null) {
+			try {
+				logger.close();
+			} catch (Exception ex) {
+				return false;
+			}
+		}
+		if (logfile.delete()) {
+			try {
+				logger = new BufferedWriter(new FileWriter(logfile, true));
+				wroteHeader = false;
+				return true;
+			} catch (Exception ex) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+
+	private static void log(String message) throws IOException {
 		logger.write(message);
 		logger.newLine();
-    }
-    public static boolean writeLog(String message) {
-    	try {
-    		log(message);
-    		return true;
-    	} catch (IOException ex) {
-    		return false;
-    	}
-    }
-    
-    private static String getTime() {
-    	final SimpleDateFormat sdf = new SimpleDateFormat("H:mm:ss");
-    	return sdf.format(Calendar.getInstance().getTime());
-    }
-    private static String getStamp() {
-    	final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd H:mm:ss");
-    	return sdf.format(Calendar.getInstance().getTime());
-    }
-    
-    private static String getColumn(String text) {
-    	return " " + text + "		|";
-    }
-    
-    public static class ProcessTime extends StopWatch {
-    	public ProcessTime(String name, ChatColor color) {
-    		this.name = name;
-    		this.color = color;
-    	}
-    	public StopWatch stop() {
-    		return super.stop(strength);
-    	}
-    	public StopWatch next() {
-    		return super.next(strength);
-    	}
-    	public String name;
-    	public ChatColor color;
-    	public int barlength = 0;
-    	public String toString() {
-    		return this.color + "[" + this.name + "]";
-    	}
-    }
+	}
 
-    public static String getMemory(boolean player) {
-    	StringBuilder builder = new StringBuilder();
-    	if (player) {
-    		builder.append(ChatColor.YELLOW).append("Memory: ");
-    		builder.append(getMemoryProgress(50, usedmem,  minmem, maxmem));
-    		builder.append(ChatColor.YELLOW).append(" ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB ");
+	public static boolean writeLog(String message) {
+		try {
+			log(message);
+			return true;
+		} catch (IOException ex) {
+			return false;
+		}
+	}
+
+	private static String getTime() {
+		final SimpleDateFormat sdf = new SimpleDateFormat("H:mm:ss");
+		return sdf.format(Calendar.getInstance().getTime());
+	}
+
+	private static String getStamp() {
+		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd H:mm:ss");
+		return sdf.format(Calendar.getInstance().getTime());
+	}
+
+	private static String getColumn(String text) {
+		return " " + text + "		|";
+	}
+
+	public static class ProcessTime extends StopWatch {
+		public ProcessTime(String name, ChatColor color) {
+			this.name = name;
+			this.color = color;
+		}
+
+		public StopWatch stop() {
+			return super.stop(strength);
+		}
+
+		public StopWatch next() {
+			return super.next(strength);
+		}
+
+		public String name;
+		public ChatColor color;
+		public int barlength = 0;
+
+		public String toString() {
+			return this.color + "[" + this.name + "]";
+		}
+	}
+
+	public static String getMemory(boolean player) {
+		StringBuilder builder = new StringBuilder();
+		if (player) {
+			builder.append(ChatColor.YELLOW).append("Memory: ");
+			builder.append(getMemoryProgress(50, usedmem, minmem, maxmem));
+			builder.append(ChatColor.YELLOW).append(" ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB ");
 			if (diff > 0) {
 				builder.append(ChatColor.RED).append("(+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
 			} else {
 				builder.append(ChatColor.GREEN).append("(GC)");
 			}
-    	} else {
-    		builder.append("Memory: ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB (+");
-    		builder.append(mem(usedmem - minmem)).append(" modified)");
-    		builder.append("(+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
-    	}
-    	return builder.toString();
-    }
-    public static String getTPS(boolean player) {
-    	StringBuilder builder = new StringBuilder();
-    	builder.append(ChatColor.YELLOW).append("Ticks per second: ");
-    	if (player) {
+		} else {
+			builder.append("Memory: ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB (+");
+			builder.append(mem(usedmem - minmem)).append(" modified)");
+			builder.append("(+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
+		}
+		return builder.toString();
+	}
+
+	public static String getTPS(boolean player) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(ChatColor.YELLOW).append("Ticks per second: ");
+		if (player) {
 			if (tps >= 17 && tps <= 23) {
 				builder.append(ChatColor.GREEN);
 			} else if (tps >= 14 && tps <= 26) {
@@ -230,29 +242,28 @@ public class PerformanceMonitor extends Task {
 			} else {
 				builder.append(ChatColor.RED);
 			}
-    	}
+		}
 		builder.append(MathUtil.round(tps, 1)).append(" [");
 		builder.append(MathUtil.round(tps * 5, 0));
 		builder.append("%]");
-    	return builder.toString();
-    }
-    
-    public static long maxmem;
-    public static long usedmem;
-    public static double elapsedtimesec;
-    public static long elapsedtime;
-    public static long diff;
-    public static double tps = 0;
-    
+		return builder.toString();
+	}
+
+	public static long maxmem;
+	public static long usedmem;
+	public static double elapsedtimesec;
+	public static long elapsedtime;
+	public static long diff;
+	public static double tps = 0;
+
 	public static String replaceColors(String line) {
 		int index = 0;
 		while (true) {
 			index = line.indexOf('&', index);
 			if (index >= 0 && index < line.length() - 1) {
 				char next = line.charAt(index + 1);
-				if (next == '0' || next == '1' || next == '2' || next == '3' || next == '4' ||
-						next == '5' || next == '6' || next == '7' || next == '8' || next == '9' ||
-						next == 'a' || next == 'b' || next == 'c' || next == 'd' || next == 'e' || next == 'f') {
+				if (next == '0' || next == '1' || next == '2' || next == '3' || next == '4' || next == '5' || next == '6' || next == '7' || next == '8' || next == '9' || next == 'a' || next == 'b'
+						|| next == 'c' || next == 'd' || next == 'e' || next == 'f') {
 					line = line.substring(0, index) + '§' + line.substring(index + 1);
 				}
 				index++;
@@ -262,9 +273,9 @@ public class PerformanceMonitor extends Task {
 		}
 		return line;
 	}
-    
+
 	@Override
-	public void run() {	
+	public void run() {
 		long time = System.currentTimeMillis();
 		elapsedtime = time - prevtime;
 		elapsedtimesec = (double) elapsedtime / 1000;
@@ -299,7 +310,8 @@ public class PerformanceMonitor extends Task {
 			int playercount = 0;
 			for (World w : Bukkit.getServer().getWorlds()) {
 				for (Entity e : w.getEntities()) {
-					if (e.isDead()) continue;
+					if (e.isDead())
+						continue;
 					if (e instanceof Player) {
 						playercount++;
 					} else if (EntityUtil.isMob(e)) {
@@ -318,7 +330,7 @@ public class PerformanceMonitor extends Task {
 			} else {
 				lighting = 0;
 			}
-		
+
 			int totalchunkcount = 0;
 			int totaluchunkcount = 0;
 
@@ -344,7 +356,7 @@ public class PerformanceMonitor extends Task {
 					}
 				}
 			}
-			//================
+			// ================
 			if (sendLog && logger != null) {
 				try {
 					if (!wroteHeader) {
@@ -352,7 +364,7 @@ public class PerformanceMonitor extends Task {
 						String columns = "";
 						columns += "| Time		| Tick rate		| Total Memory	| Static Memory	| Dynamic Memory	";
 						columns += "| Memory Write Rate	| Total Chunks	| Unloadable Chunks	";
-						columns += "| Chunks Loaded	| Chunks generated	| Chunks Unloaded	| Lighting Fixes	"; 
+						columns += "| Chunks Loaded	| Chunks generated	| Chunks Unloaded	| Lighting Fixes	";
 						columns += "| Chunk Packets	| Entities		| Mobs		| Items		| TNT		| Players		| Update		| Update type	|";
 						log(columns);
 					}
@@ -388,37 +400,38 @@ public class PerformanceMonitor extends Task {
 					ex.printStackTrace();
 					try {
 						logger.close();
-					} catch (IOException e) {}
+					} catch (IOException e) {
+					}
 					logger = null;
 				}
 			}
-			
+
 			if (sendConsole) {
 				CommandSender s = Bukkit.getServer().getConsoleSender();
-				//Line
+				// Line
 				s.sendMessage("-");
 				String mem;
-				//update times
+				// update times
 				mem = "Update: " + MathUtil.round(totaltime, 1) + " ms (" + maxelement + " took longest)";
 				s.sendMessage(mem);
-				//memory
+				// memory
 				s.sendMessage(getMemory(false));
-				//chunks
+				// chunks
 				mem = "Chunks: ";
 				mem += totalchunkcount + " [" + totaluchunkcount + " Unloadable]";
 				mem += " [+" + (NLMListener.loadedChunks + NLMListener.generatedChunks) + "]";
 				mem += " [-" + NLMListener.unloadedChunks + "]";
 				s.sendMessage(mem);
-				//Entities
+				// Entities
 				mem = "Entities: " + entitycount + " [" + mobcount + " mobs]";
 				mem += " [" + itemcount + " items] [" + tntcount + " mobile TNT]";
 				s.sendMessage(mem);
-				//Compression thread busy
+				// Compression thread busy
 				mem = "Chunk packet sending thread: " + chunksendbusy + "% busy";
 				s.sendMessage(mem);
-				//Tick times
+				// Tick times
 				s.sendMessage(getTPS(false));
-				
+
 				if (removalCon) {
 					removalCon = false;
 					sendConsole = false;
@@ -426,18 +439,19 @@ public class PerformanceMonitor extends Task {
 			}
 			if (recipients.size() > 0) {
 				ArrayList<String> messages = new ArrayList<String>(6);
-				//Line
+				// Line
 				messages.add("");
-				
+
 				String mem;
-				//Global update times
+				// Global update times
 				if (totaltime > 0) {
 					mem = "";
-					for (ProcessTime ptim : times) mem += ptim.toString();
+					for (ProcessTime ptim : times)
+						mem += ptim.toString();
 					messages.add(mem);
 
 					final int length = 50;
-					//get bar lengths
+					// get bar lengths
 					int totallength = 0;
 					for (ProcessTime ptime : times) {
 						totallength += (ptime.barlength = (int) (length * ptime.get(monitorInterval) / totaltime));
@@ -447,16 +461,18 @@ public class PerformanceMonitor extends Task {
 						times[i].barlength--;
 						totallength--;
 						i++;
-						if (i > times.length - 1) i = 0;
+						if (i > times.length - 1)
+							i = 0;
 					}
 					while (totallength < length) {
 						times[i].barlength++;
 						totallength++;
 						i++;
-						if (i > times.length - 1) i = 0;
+						if (i > times.length - 1)
+							i = 0;
 					}
-					//get message
-					
+					// get message
+
 					mem = ChatColor.YELLOW + "Update: ";
 					for (ProcessTime ptime : times) {
 						mem += getProgress(ptime.barlength, ptime.color);
@@ -464,12 +480,12 @@ public class PerformanceMonitor extends Task {
 					mem += ChatColor.YELLOW + " (" + MathUtil.round(totaltime, 1) + " MS/tick)";
 					messages.add(mem);
 				}
-				
-				//Memory
+
+				// Memory
 				messages.add(getMemory(true));
-				//Tick times
+				// Tick times
 				messages.add(getTPS(true));
-				//Chunks
+				// Chunks
 				mem = ChatColor.YELLOW + "Chunks: " + ChatColor.GOLD;
 				mem += totalchunkcount + " [" + totaluchunkcount + " U]";
 				mem += ChatColor.GREEN + " [+" + NLMListener.loadedChunks + "]";
@@ -477,13 +493,13 @@ public class PerformanceMonitor extends Task {
 				mem += ChatColor.RED + " [-" + NLMListener.unloadedChunks + "]";
 				mem += ChatColor.GOLD + " [" + lighting + " lighting]";
 				messages.add(mem);
-				//Buffering
-				//entities
+				// Buffering
+				// entities
 				mem = ChatColor.YELLOW + "Entities: " + ChatColor.GOLD;
 				mem += entitycount + " " + ChatColor.DARK_GREEN + "[" + mobcount + " mobs]" + ChatColor.YELLOW + " [" + itemcount + " items] ";
 				mem += ChatColor.GREEN + "[" + tntcount + " TNT] " + ChatColor.AQUA + "[" + playercount + " players]";
 				messages.add(mem);
-				//Compression thread busy
+				// Compression thread busy
 				mem = ChatColor.YELLOW + "Packet compression busy: ";
 				if (chunksendbusy > 60) {
 					mem += ChatColor.RED;
@@ -495,12 +511,12 @@ public class PerformanceMonitor extends Task {
 				mem += chunksendbusy + "% busy";
 				messages.add(mem);
 
-				//average send rate
+				// average send rate
 				double avgrate = 0;
 				if (NoLaggComponents.CHUNKS.isEnabled()) {
 					avgrate = ChunkSendQueue.getAverageRate();
 				}
-				
+
 				int i = 0;
 				while (i < recipients.size()) {
 					String name = recipients.get(i);
@@ -509,7 +525,7 @@ public class PerformanceMonitor extends Task {
 						for (String msg : messages) {
 							p.sendMessage(msg);
 						}
-						//send individual sending rate
+						// send individual sending rate
 						if (NoLaggComponents.CHUNKS.isEnabled()) {
 							ChunkSendQueue queue = ChunkSendQueue.bind(p);
 							int tosend = CommonUtil.chunkArea - queue.getPendingSize();
@@ -534,12 +550,12 @@ public class PerformanceMonitor extends Task {
 				}
 			}
 		}
-		
-		//reset processing times calculations
+
+		// reset processing times calculations
 		for (ProcessTime ptime : times) {
 			ptime.clear();
 		}
-			
+
 		NLMListener.reset();
 		prevtime = time;
 		prevusedmem = usedmem;

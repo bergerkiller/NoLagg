@@ -45,9 +45,11 @@ public class PluginLogger {
 	public static TimedWrapper getWrapper(Runnable task, Plugin plugin) {
 		return getTask(task, plugin).getWrapper(task);
 	}
+
 	public static TaskMeasurement getTask(Runnable task, Plugin plugin) {
 		return getTask(task.getClass().getName(), plugin);
 	}
+
 	public static TaskMeasurement getTask(String name, Plugin plugin) {
 		TaskMeasurement tm = tasks.get(name);
 		if (tm == null) {
@@ -56,6 +58,7 @@ public class PluginLogger {
 		}
 		return tm;
 	}
+
 	public static TaskMeasurement getServerOperation(String sectionname, String operationname, String desc) {
 		sectionname = '#' + sectionname;
 		TaskMeasurement tm = tasks.get(operationname);
@@ -78,12 +81,15 @@ public class PluginLogger {
 	public static double getDurPer() {
 		return MathUtil.round((double) position / (double) duration * 100.0, 2);
 	}
+
 	public static int duration = 500;
 	public static int position;
 	private static SafeField<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
+
 	public static boolean isRunning() {
 		return measuretask != null && PluginLogger.position < PluginLogger.duration;
 	}
+
 	public static void start() {
 		List<TimedRegisteredListener> rval = new ArrayList<TimedRegisteredListener>();
 		RegisteredListener[] a;
@@ -93,9 +99,10 @@ public class PluginLogger {
 				if (a[i] instanceof TimedRegisteredListener) {
 					rval.add((TimedRegisteredListener) a[i]);
 				} else {
-					//convert
+					// convert
 					EventExecutor exec = exefield.get(a[i]);
-					if (exec == null) continue;
+					if (exec == null)
+						continue;
 					Listener list = a[i].getListener();
 					Plugin plug = a[i].getPlugin();
 					EventPriority prio = a[i].getPriority();
@@ -113,12 +120,12 @@ public class PluginLogger {
 			Arrays.fill(eventtimes[i], 0L);
 		}
 		position = 0;
-		
+
 		for (TaskMeasurement tm : tasks.values()) {
 			tm.reset();
 		}
 
-		//start measurement task
+		// start measurement task
 		Task.stop(measuretask);
 		measuretask = new Task(NoLagg.plugin) {
 			public void run() {
@@ -133,9 +140,11 @@ public class PluginLogger {
 			}
 		}.start(1, 1);
 	}
+
 	public static String now(String dateformat) {
 		return new SimpleDateFormat(dateformat).format(Calendar.getInstance().getTime()).trim();
 	}
+
 	public static void onFinish() {
 		measuretask = null;
 		StringBuilder filename = new StringBuilder();

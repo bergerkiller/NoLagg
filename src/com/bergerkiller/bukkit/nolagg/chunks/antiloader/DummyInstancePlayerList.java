@@ -10,7 +10,7 @@ import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
 
 @SuppressWarnings("rawtypes")
-public class DummyInstancePlayerList extends ArrayList {	
+public class DummyInstancePlayerList extends ArrayList {
 	private static SafeField<ChunkCoordIntPair> instanceLocation = null;
 	private static SafeField<List> instancePlayers = null;
 	private static boolean VALID;
@@ -51,7 +51,8 @@ public class DummyInstancePlayerList extends ArrayList {
 			}
 
 			// Player still has to receive this chunk
-			// Perform custom removal logic, preventing the unload chunk being sent
+			// Perform custom removal logic, preventing the unload chunk being
+			// sent
 			// This is to overcome the [0,0] chunk hole problem
 			super.remove(o);
 			if (super.isEmpty()) {

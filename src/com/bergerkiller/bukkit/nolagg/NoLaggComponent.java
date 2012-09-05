@@ -14,13 +14,14 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 public abstract class NoLaggComponent {
 
 	protected NoLaggComponents comp;
-	
+
 	public void log(Level level, String text) {
 		Bukkit.getLogger().log(level, "[NoLagg " + this.getName() + "] " + text);
 	}
 
-	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {}
-	
+	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
+	}
+
 	public final void enable() {
 		FileConfiguration config = new FileConfiguration(NoLagg.plugin);
 		config.load();
@@ -52,7 +53,7 @@ public abstract class NoLaggComponent {
 			}
 		}
 	}
-	
+
 	protected final void enable(FileConfiguration config) {
 		if (!this.isEnabled()) {
 			try {
@@ -64,7 +65,7 @@ public abstract class NoLaggComponent {
 			}
 		}
 	}
-	
+
 	protected final void disable(FileConfiguration config) {
 		if (this.isEnabled()) {
 			this.comp.setEnabled(false);

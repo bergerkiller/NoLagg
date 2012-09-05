@@ -24,9 +24,12 @@ public abstract class SelectionBox extends JPanel {
 	private Vector<Element> data = new Vector<Element>();
 
 	public void setSelection(int index) {
-		if (index > data.size() - 1) index = -1;
-		if (index < -1) index = -1;
-		if (index == this.previndex) return;
+		if (index > data.size() - 1)
+			index = -1;
+		if (index < -1)
+			index = -1;
+		if (index == this.previndex)
+			return;
 		this.previndex = index;
 		if (this.previndex == -1) {
 			this.list.clearSelection();
@@ -34,84 +37,95 @@ public abstract class SelectionBox extends JPanel {
 			this.list.setSelectedIndex(index);
 		}
 	}
-	
+
 	public SelectionBox(int x, int y, int width, int height) {
 		final SelectionBox me = this;
-		
-		//adjust size and set layout
+
+		// adjust size and set layout
 		this.setLayout(null);
-		
-		//construct components
+
+		// construct components
 		this.list = new SelectionList(this.data);
 		this.scroller = new JScrollPane(list);
 
-		//add components
+		// add components
 		this.add(list);
 		this.add(scroller);
 
 		this.scroller.getViewport().add(this.list);
 		this.setBounds(x, y, width, height);
 		this.list.setBounds(0, 0, width, height);
-		
+
 		this.list.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent sel) {
 				me.onSelectionChange(me.previndex);
 			}
 		});
-				
+
 		this.list.addMouseMotionListener(new MouseMotionListener() {
 			@Override
 			public void mouseMoved(MouseEvent event) {
 				me.setSelection(event.getY() / 26);
 			}
 
-			public void mouseDragged(MouseEvent e) {}
+			public void mouseDragged(MouseEvent e) {
+			}
 		});
-		
+
 		this.list.addMouseListener(new MouseListener() {
 
-			public void mouseEntered(MouseEvent arg0) {}
-			public void mouseExited(MouseEvent arg0) {}
-			public void mousePressed(MouseEvent arg0) {}
-			public void mouseReleased(MouseEvent arg0) {}
-			
+			public void mouseEntered(MouseEvent arg0) {
+			}
+
+			public void mouseExited(MouseEvent arg0) {
+			}
+
+			public void mousePressed(MouseEvent arg0) {
+			}
+
+			public void mouseReleased(MouseEvent arg0) {
+			}
+
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				me.setSelection(e.getY() / 26);
 				me.onItemClick(me.previndex);
 			}
-			
+
 		});
 	}
-	
+
 	public void setBounds(int x, int y, int width, int height) {
 		super.setBounds(x, y, width, height);
 		this.scroller.setBounds(0, 0, width, height);
 	}
-		
+
 	public void clear() {
 		this.data.clear();
 		this.previndex = -1;
 	}
+
 	public void add(String text, Color color, double totalduration) {
 		this.data.add(new Element(text, color, totalduration));
 		this.list.setListData(this.data);
 	}
-	
+
 	public String getText(int index) {
 		return this.data.get(index).text;
 	}
-	
+
 	public abstract void onItemClick(int index);
+
 	public abstract void onSelectionChange(int selectedindex);
-	
-	private static class Element extends JPanel {		
+
+	private static class Element extends JPanel {
 		private static final long serialVersionUID = 1L;
-		
+
 		public final Color selectcolor;
 		public boolean selected = false;
 		public final String text;
+
 		public Element(final String text, Color color, double totalduration) {
 			this.setBackground(color);
 			this.text = text;
@@ -131,10 +145,10 @@ public abstract class SelectionBox extends JPanel {
 				comp.setForeground(this.selectcolor);
 			}
 		}
-		
+
 		public void paint(Graphics graph) {
 			super.paint(graph);
-			if (this.selected ) {
+			if (this.selected) {
 				graph.setColor(Color.RED);
 				graph.fillOval(6, 7, 10, 10);
 				graph.setColor(Color.BLACK);
@@ -150,21 +164,20 @@ public abstract class SelectionBox extends JPanel {
 				this.setBorder(null);
 			}
 		}
-		
+
 	}
-	
+
 	private static class SelectionList extends JList {
 		private static final long serialVersionUID = 1L;
 
 		public SelectionList(Vector<Element> items) {
 			super(items);
-			this.setCellRenderer(new CustomCellRenderer()); 
+			this.setCellRenderer(new CustomCellRenderer());
 		}
-			
+
 		class CustomCellRenderer implements ListCellRenderer {
-			public Component getListCellRendererComponent(JList list, 
-					Object value, int index, boolean isSelected, boolean cellHasFocus) {
-				
+			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+
 				Element component = (Element) value;
 				component.setSelected(isSelected);
 				return component;

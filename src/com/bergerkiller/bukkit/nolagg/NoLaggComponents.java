@@ -6,16 +6,16 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 
 public enum NoLaggComponents {
-	CHUNKS("Chunks", "Manages chunk loading and sending to clients using various new settings"),
-	EXAMINE("Examine", "Can examine server tick rate performance"),
-	MONITOR("Monitor", "Can monitor and log server and player performance statistics"),
-	ITEMBUFFER("ItemBuffer", "Buffers items in chunks to prevent lag-outs because of lots of items"),
-	ITEMSTACKER("ItemStacker", "Stacks nearby items to counter item-drop spammers and reduce item count on the server"),
-	LIGHTING("Lighting", "Attempts to fix block and sky lighting bugs in worlds"),
-	SPAWNLIMITER("SpawnLimiter", "Keeps entity counts below multiple configured thresholds"),
-	TNT("TNT", "Replaces explosion creation with a faster version and buffers TNT ignites to prevent TNT server crashes"),
-	SAVING("Saving", "Alters the way worlds are saved to reduce disk usage and to force proper saves"),
-	COMMON("Common", "Common features such as the clear and garbage collect commands"),
+	CHUNKS("Chunks", "Manages chunk loading and sending to clients using various new settings"), 
+	EXAMINE("Examine", "Can examine server tick rate performance"), 
+	MONITOR("Monitor", "Can monitor and log server and player performance statistics"), 
+	ITEMBUFFER("ItemBuffer", "Buffers items in chunks to prevent lag-outs because of lots of items"), 
+	ITEMSTACKER("ItemStacker", "Stacks nearby items to counter item-drop spammers and reduce item count on the server"), 
+	LIGHTING("Lighting", "Attempts to fix block and sky lighting bugs in worlds"), 
+	SPAWNLIMITER("SpawnLimiter", "Keeps entity counts below multiple configured thresholds"), 
+	TNT("TNT", "Replaces explosion creation with a faster version and buffers TNT ignites to prevent TNT server crashes"), 
+	SAVING("Saving", "Alters the way worlds are saved to reduce disk usage and to force proper saves"), 
+	COMMON("Common", "Common features such as the clear and garbage collect commands"), 
 	THREADLOCKNOTIFIER("ThreadLockNotifier", "Notifies the current stack trace of the main thread when the server freezes");
 
 	private boolean enabled;
@@ -41,7 +41,7 @@ public enum NoLaggComponents {
 	protected void load(FileConfiguration config) {
 		for (NoLaggComponent comp : NoLagg.plugin.getComponents()) {
 			if (comp.getName().equals(this.name)) {
-				return; //already loaded
+				return; // already loaded
 			}
 		}
 		ConfigurationNode node = config.getNode(this.name.toLowerCase());

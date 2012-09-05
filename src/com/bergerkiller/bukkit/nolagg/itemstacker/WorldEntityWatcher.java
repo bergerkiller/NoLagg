@@ -17,13 +17,14 @@ public class WorldEntityWatcher extends WorldListener {
 	private WorldEntityWatcher(World world) {
 		super(world);
 		this.refresh();
-	}	
+	}
+
 	public static WorldEntityWatcher watch(World world) {
 		WorldEntityWatcher rval = new WorldEntityWatcher(world);
 		rval.enable();
 		return rval;
 	}
-	
+
 	public void refresh() {
 		this.items.clear();
 		this.orbs.clear();
@@ -49,7 +50,8 @@ public class WorldEntityWatcher extends WorldListener {
 	@Override
 	public void onEntityRemove(Entity e) {
 		if (e instanceof EntityItem) {
-			//don't bother doing an 'ignored item' check as it checks in a map or set anyway
+			// don't bother doing an 'ignored item' check as it checks in a map
+			// or set anyway
 			this.items.remove(e);
 		} else if (e instanceof EntityExperienceOrb && NoLaggItemStacker.stackOrbs) {
 			this.orbs.remove(e);

@@ -10,7 +10,7 @@ import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.SafeField;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({ "rawtypes", "unchecked" })
 public class SchedulerWatcher extends PriorityQueue {
 	private static final long serialVersionUID = -3457587669129548810L;
 	private static SafeField<PriorityQueue> pending;
@@ -67,7 +67,8 @@ public class SchedulerWatcher extends PriorityQueue {
 			CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
 			try {
 				pending.set(scheduler, new PriorityQueue(pending.get(scheduler)));
-			} catch (Throwable t) {}
+			} catch (Throwable t) {
+			}
 		}
 	}
 }

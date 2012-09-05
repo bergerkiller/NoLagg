@@ -62,7 +62,7 @@ public class CustomExplosion {
 	}
 
 	private static ExplosionSlot root;
-	private static List<ExplosionLayer> explosionLayers = new ArrayList<ExplosionLayer>();    
+	private static List<ExplosionLayer> explosionLayers = new ArrayList<ExplosionLayer>();
 	private static List<ExplosionBlock> explosionBlocks = new ArrayList<ExplosionBlock>();
 	private static Map<ChunkPosition, ExplosionBlock> explosionBlockMap = new HashMap<ChunkPosition, ExplosionBlock>();
 	static {
@@ -74,6 +74,7 @@ public class CustomExplosion {
 		public ExplosionBlock(final ChunkPosition pos) {
 			this.pos = pos;
 		}
+
 		public final ChunkPosition pos;
 		public boolean isSet = false;
 		public boolean destroy = false;
@@ -86,11 +87,13 @@ public class CustomExplosion {
 	private static class ExplosionLayer {
 		public ExplosionLayer() {
 			this.index = 0;
-			this.slotArray = new ExplosionSlot[] {this.createSlot(0.0, 0.0, 0.0)};
+			this.slotArray = new ExplosionSlot[] { this.createSlot(0.0, 0.0, 0.0) };
 		}
+
 		public ExplosionLayer(final int index) {
 			this(index, 16);
 		}
+
 		public ExplosionLayer(final int index, final int scale) {
 			this.index = index;
 			final int scaleminone = scale - 1;
@@ -109,7 +112,7 @@ public class CustomExplosion {
 							dx *= d;
 							dy *= d;
 							dz *= d;
-							//=============================================
+							// =============================================
 							prev.createSlot(dx, dy, dz).nextSet.add(this.createSlot(dx, dy, dz));
 						}
 					}
@@ -117,9 +120,11 @@ public class CustomExplosion {
 			}
 			this.slotArray = slots.values().toArray(new ExplosionSlot[0]);
 		}
+
 		private final int index;
 		private final ExplosionSlot[] slotArray;
 		private Map<ChunkPosition, ExplosionSlot> slots = new HashMap<ChunkPosition, ExplosionSlot>();
+
 		public ExplosionSlot createSlot(final double dx, final double dy, final double dz) {
 			int x = MathHelper.floor(dx * (double) this.index + 0.5);
 			int y = MathHelper.floor(dy * (double) this.index + 0.5);
@@ -143,23 +148,24 @@ public class CustomExplosion {
 				explosionBlockMap.put(pos, this.block);
 			}
 		}
+
 		public ExplosionBlock block;
 		public Set<ExplosionSlot> nextSet = new HashSet<ExplosionSlot>();
 		public ExplosionSlot[] next;
-		public float sourcedamage = 0;		
+		public float sourcedamage = 0;
 	}
 
 	public static boolean useQuickDamageMode = false;
 
 	@SuppressWarnings("unchecked")
-	public void prepare() {    
+	public void prepare() {
 		int xoff = MathHelper.floor(this.posX);
 		int yoff = MathHelper.floor(this.posY);
 		int zoff = MathHelper.floor(this.posZ);
 
 		root.sourcedamage = (float) factor * this.size * (0.7F + this.world.random.nextFloat() * 0.6F);
 
-		//recursively operate on all blocks
+		// recursively operate on all blocks
 		int i = 0;
 		float damageFactor;
 		int x, y, z;
@@ -168,7 +174,7 @@ public class CustomExplosion {
 			hasDamage = false;
 			for (ExplosionSlot slot : explosionLayers.get(i).slotArray) {
 				if (!slot.block.isSet) {
-					//generate the info for this block
+					// generate the info for this block
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
@@ -177,16 +183,18 @@ public class CustomExplosion {
 						slot.block.damagefactor = (Block.byId[slot.block.type].a(source) + 0.3F) * 0.3F;
 						slot.block.damagefactor *= (2.0F + this.world.random.nextFloat()) / 3.0F;
 					} else {
-						slot.block.destroy = true; //prevent air getting destroyed
+						slot.block.destroy = true; // prevent air getting
+													// destroyed
 						slot.block.damagefactor = 0;
 					}
 					slot.block.isSet = true;
 				}
 
-				//subtract damage factor
+				// subtract damage factor
 				damageFactor = slot.sourcedamage - slot.block.damagefactor;
 				slot.sourcedamage = 0;
-				if (damageFactor <= 0) continue;	
+				if (damageFactor <= 0)
+					continue;
 				if (!slot.block.destroy) {
 					slot.block.destroy = true;
 					x = slot.block.pos.x + xoff;
@@ -195,14 +203,15 @@ public class CustomExplosion {
 					blocks.add(new ChunkPosition(x, y, z));
 				}
 
-				//one block layer further...
-				if ((damageFactor -= 0.225) <= 0.0F) continue;
+				// one block layer further...
+				if ((damageFactor -= 0.225) <= 0.0F)
+					continue;
 
-				//force a new layer if needed
+				// force a new layer if needed
 				if (slot.next == null) {
-					//create a new layer
+					// create a new layer
 					ExplosionLayer nextLayer = new ExplosionLayer(explosionLayers.size());
-					//convert to array
+					// convert to array
 					for (ExplosionSlot slot2 : explosionLayers.get(explosionLayers.size() - 1).slots.values()) {
 						slot2.next = slot2.nextSet.toArray(new ExplosionSlot[0]);
 						slot2.nextSet = null;
@@ -210,24 +219,23 @@ public class CustomExplosion {
 					explosionLayers.add(nextLayer);
 				}
 
-				//set source damage of next slots
+				// set source damage of next slots
 				for (ExplosionSlot slot2 : slot.next) {
 					if (damageFactor > slot2.sourcedamage) {
 						slot2.sourcedamage = damageFactor;
 					}
 				}
-				
+
 				hasDamage = true;
 			}
 			i++;
-		}       
-
+		}
 
 		double tmpX;
 		double tmpY;
 		double tmpZ;
 
-		//=====================generate entities===================
+		// =====================generate entities===================
 		double tmpsize = (double) this.size * 2.0;
 		double xmin = this.posX - tmpsize - 1.0;
 		double ymin = this.posY - tmpsize - 1.0;
@@ -237,23 +245,25 @@ public class CustomExplosion {
 		double ymax = this.posY + tmpsize + 1.0;
 		double zmax = this.posZ + tmpsize + 1.0;
 
-		List<Entity> list = this.world.getEntities(this.source, AxisAlignedBB.a(xmin, ymin, zmin, xmax, ymax, zmax));    
-		//==========================================================
+		List<Entity> list = this.world.getEntities(this.source, AxisAlignedBB.a(xmin, ymin, zmin, xmax, ymax, zmax));
+		// ==========================================================
 
 		Vec3D vec3d = Vec3D.a(this.posX, this.posY, this.posZ);
 
 		for (i = 0; i < list.size(); i++) {
 			Entity entity = list.get(i);
-			if (entity == null || entity.dead) continue;
+			if (entity == null || entity.dead)
+				continue;
 			tmpX = entity.locX - this.posX;
 			tmpY = entity.locY - this.posY;
 			tmpZ = entity.locZ - this.posZ;
 
 			double length = MathUtil.lengthSquared(tmpX, tmpY, tmpZ);
-			if (length >= (tmpsize * tmpsize)) continue; 
+			if (length >= (tmpsize * tmpsize))
+				continue;
 			length = Math.sqrt(length);
 
-			//normalize
+			// normalize
 			tmpX /= length;
 			tmpY /= length;
 			tmpZ /= length;
@@ -261,7 +271,7 @@ public class CustomExplosion {
 			double distanceFactor = length / tmpsize;
 
 			if (useQuickDamageMode) {
-				//damage factor
+				// damage factor
 				if (entity instanceof EntityItem) {
 					damageFactor = 1.0F;
 				} else if (entity instanceof EntityTNTPrimed) {
@@ -276,11 +286,12 @@ public class CustomExplosion {
 
 			// CraftBukkit start - explosion damage hook
 			org.bukkit.entity.Entity damagee = entity.getBukkitEntity();
-			int damageDone = (int) (force * (force  + 1.0) * 4.0D * tmpsize + 1.0D);
+			int damageDone = (int) (force * (force + 1.0) * 4.0D * tmpsize + 1.0D);
 
 			if (this.source == null) { // Block explosion
 				// TODO: get the x/y/z of the tnt block?
-				// does this even get called ever? @see EntityTNTPrimed - not BlockTNT or whatever
+				// does this even get called ever? @see EntityTNTPrimed - not
+				// BlockTNT or whatever
 				EntityDamageByBlockEvent event = new EntityDamageByBlockEvent(null, damagee, EntityDamageEvent.DamageCause.BLOCK_EXPLOSION, damageDone);
 				Bukkit.getPluginManager().callEvent(event);
 
@@ -312,8 +323,7 @@ public class CustomExplosion {
 			// CraftBukkit end
 		}
 
-
-		//Restore blocks to old state
+		// Restore blocks to old state
 		for (ExplosionBlock block : explosionBlocks) {
 			block.destroy = false;
 			block.isSet = false;
@@ -327,11 +337,11 @@ public class CustomExplosion {
 		org.bukkit.entity.Entity explode = this.source == null ? null : this.source.getBukkitEntity();
 		Location location = new Location(bworld, this.posX, this.posY, this.posZ);
 
-		//generate org.bukkit Block array
+		// generate org.bukkit Block array
 		List<org.bukkit.block.Block> blockList = new ArrayList<org.bukkit.block.Block>(blocks.size());
 		for (int i = blocks.size() - 1; i >= 0; i--) {
 			ChunkPosition cpos = blocks.get(i);
-			blockList.add( bworld.getBlockAt(cpos.x, cpos.y, cpos.z));
+			blockList.add(bworld.getBlockAt(cpos.x, cpos.y, cpos.z));
 		}
 
 		EntityExplodeEvent event = new EntityExplodeEvent(explode, location, blockList, 0.3F);
@@ -343,7 +353,7 @@ public class CustomExplosion {
 			this.wasCanceled = true;
 			return;
 		} else if (TNTHandler.createExplosion(event)) {
-			//handled by ourself
+			// handled by ourself
 			return;
 		}
 

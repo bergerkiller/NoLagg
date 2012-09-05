@@ -48,8 +48,10 @@ public class NoLaggChunks extends NoLaggComponent {
 				}
 			} else if (pluginName.equals("RawcriticsOreObfuscationPluginSpout")) {
 				if (isRawCritOrbEnabled = enabled && useBufferedLoading) {
-					//log(Level.INFO, "Raw Critics Ore Obfuscation has been detected and will be used when sending chunks");
-					//log(Level.INFO, "Note that this may require you to set more threads used for sending!");
+					// log(Level.INFO,
+					// "Raw Critics Ore Obfuscation has been detected and will be used when sending chunks");
+					// log(Level.INFO,
+					// "Note that this may require you to set more threads used for sending!");
 				}
 			}
 		}
@@ -104,14 +106,15 @@ public class NoLaggChunks extends NoLaggComponent {
 
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
-		if (args.length == 0) return false;
+		if (args.length == 0)
+			return false;
 		if (args[0].equalsIgnoreCase("sending")) {
 			double avgrate = MathUtil.round(ChunkSendQueue.getAverageRate(), 2);
 			double compbus = MathUtil.round(ChunkSendQueue.compressBusyPercentage, 2);
 			if (sender instanceof Player) {
 				Permission.CHUNKS_SENDING.handle(sender);
 
-				//show sending information of the player
+				// show sending information of the player
 				ChunkSendQueue queue = ChunkSendQueue.bind((Player) sender);
 				if (queue != null) {
 					MessageBuilder msg = new MessageBuilder();
@@ -139,7 +142,7 @@ public class NoLaggChunks extends NoLaggComponent {
 					sender.sendMessage("An unknown error occured!");
 				}
 			} else {
-				//show average sending info
+				// show average sending info
 				sender.sendMessage("Average chunk sending rate: " + avgrate + " chunks each tick");
 				sender.sendMessage("Chunk compression is " + compbus + "% of the time busy");
 			}

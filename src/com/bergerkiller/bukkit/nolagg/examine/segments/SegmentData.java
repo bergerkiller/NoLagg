@@ -16,17 +16,17 @@ public class SegmentData implements Comparable<SegmentData> {
 
 	private final double[] times;
 	private final String name;
-	
+
 	public String getName() {
 		return this.name;
 	}
-	
+
 	public void readLongValues(DataInputStream stream) throws IOException {
 		for (int i = 0; i < this.times.length; i++) {
 			this.times[i] = (double) stream.readLong() / 10E6;
 		}
 	}
-	
+
 	public double getTotal() {
 		double rval = 0.0;
 		for (double v : this.times) {
@@ -34,14 +34,15 @@ public class SegmentData implements Comparable<SegmentData> {
 		}
 		return rval;
 	}
-	
+
 	public double[] getTimes() {
 		return this.times;
 	}
-	
+
 	public void clear() {
 		Arrays.fill(this.times, 0.0);
 	}
+
 	public SegmentData load(SegmentData[] children) {
 		this.clear();
 		for (SegmentData seg : children) {
@@ -69,7 +70,7 @@ public class SegmentData implements Comparable<SegmentData> {
 	public int compareTo(SegmentData o) {
 		return (int) (o.getTotal() - this.getTotal());
 	}
-	
+
 	public SegmentData clone() {
 		SegmentData rval = new SegmentData(this.getName(), this.times.length);
 		for (int i = 0; i < rval.times.length; i++) {

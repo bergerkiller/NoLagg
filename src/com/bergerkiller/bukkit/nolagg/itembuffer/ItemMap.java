@@ -56,6 +56,7 @@ public class ItemMap {
 			public void run() {
 				this.doChunks();
 			}
+
 			public void handle(Chunk chunk) {
 				loadChunk(chunk);
 			}
@@ -79,7 +80,7 @@ public class ItemMap {
 		}
 		Task.stop(updateTask);
 	}
-	
+
 	public static ChunkCoordIntPair currentUnload = null;
 
 	public static void unloadChunk(org.bukkit.Chunk chunk) {
@@ -106,12 +107,14 @@ public class ItemMap {
 	}
 
 	public static boolean addItem(EntityItem item) {
-		if (item == null) return true;
+		if (item == null)
+			return true;
 		return addItem(getChunkCoords(item), item);
 	}
 
 	public static boolean addItem(ChunkCoordIntPair coords, EntityItem item) {
-		if (item == null) return true;
+		if (item == null)
+			return true;
 		ChunkItems citems = getItems(item.world, coords);
 		if (citems == null) {
 			return true;
@@ -121,7 +124,8 @@ public class ItemMap {
 	}
 
 	public static void removeItem(EntityItem item) {
-		if (item == null) return;
+		if (item == null)
+			return;
 		ChunkItems citems = getItems(item.world, getChunkCoords(item));
 		if (citems != null) {
 			citems.spawnedItems.remove(item);

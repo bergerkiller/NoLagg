@@ -14,12 +14,12 @@ public class NLLListener implements Listener {
 			LightingFixThread.fix(event.getChunk());
 		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void onChunkUnload(ChunkUnloadEvent event) {
 		if (LightingFixThread.isFixing(event.getChunk())) {
 			event.setCancelled(true);
 		}
 	}
-		
+
 }

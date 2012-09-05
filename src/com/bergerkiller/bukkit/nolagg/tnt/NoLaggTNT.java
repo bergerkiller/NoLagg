@@ -10,9 +10,9 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggTNT extends NoLaggComponent {
-	
+
 	public static NoLaggTNT plugin;
-	
+
 	@Override
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("detonationInterval", "The interval (in ticks) at which TNT is detonated by explosions");
@@ -47,7 +47,8 @@ public class NoLaggTNT extends NoLaggComponent {
 
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
-		if (args.length == 0) return false;
+		if (args.length == 0)
+			return false;
 		if (args[0].equalsIgnoreCase("tnt")) {
 			if (args.length == 2 && args[1].equalsIgnoreCase("clear")) {
 				Permission.TNT_CLEAR.handle(sender);

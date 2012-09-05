@@ -13,17 +13,17 @@ import java.util.zip.ZipException;
 import com.bergerkiller.bukkit.nolagg.examine.reader.ExamReader;
 
 /**
- * Contains the raw information found in a exam file
- * Data will be converted into the required root segment
+ * Contains the raw information found in a exam file Data will be converted into
+ * the required root segment
  */
 public class ExamFile extends Segment {
-	
+
 	public static List<SegmentData> getEmptySegments(int duration, List<DataSegment> data) {
 		ArrayList<SegmentData> rval = new ArrayList<SegmentData>();
 		rval.add(new SegmentData("Plugin view", duration));
 		rval.add(new SegmentData("Event view", duration));
 		SegmentData first = rval.get(0);
-		//prepare a monotone graph
+		// prepare a monotone graph
 		SegmentData[] merged = new SegmentData[data.size()];
 		for (int i = 0; i < merged.length; i++) {
 			merged[i] = data.get(i).getMergedData();
@@ -31,11 +31,11 @@ public class ExamFile extends Segment {
 		first.load(merged);
 		return rval;
 	}
-	
+
 	public ExamFile(String name, int duration, List<DataSegment> data) {
 		super(name, duration, getEmptySegments(duration, data));
 		this.events = data;
-		//generate multi-plugin and multi-event based segments
+		// generate multi-plugin and multi-event based segments
 		this.multiPlugin = MultiPluginSegment.create(duration, data);
 		this.multiEvent = MultiEventSegment.create(duration, this.multiPlugin.getPluginCount(), data);
 		this.multiPlugin.setParent(this);
@@ -51,7 +51,7 @@ public class ExamFile extends Segment {
 			return null;
 		}
 	}
-	
+
 	@Override
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());
@@ -61,19 +61,25 @@ public class ExamFile extends Segment {
 		builder.append("\n\nEvent view: Compare events and tasks, then \nlook at the plugins");
 		return builder.toString();
 	}
-	
+
 	public final List<DataSegment> events;
 	public final MultiPluginSegment multiPlugin;
 	public final MultiEventSegment multiEvent;
-	
+
 	public static String getPriority(int slot) {
 		switch (slot) {
-		case 0 : return "LOWEST";
-		case 1 : return "LOW";
-		case 3 : return "HIGH";
-		case 4 : return "HIGHEST";
-		case 5 : return "MONITOR";
-		default : return "NORMAL";
+			case 0:
+				return "LOWEST";
+			case 1:
+				return "LOW";
+			case 3:
+				return "HIGH";
+			case 4:
+				return "HIGHEST";
+			case 5:
+				return "MONITOR";
+			default:
+				return "NORMAL";
 		}
 	}
 
@@ -106,7 +112,7 @@ public class ExamFile extends Segment {
 		}
 		return efile;
 	}
-	
+
 	public static ExamFile read(DataInputStream stream) throws IOException {
 		int listenercount = stream.readInt();
 		int duration = stream.readInt();
@@ -116,7 +122,7 @@ public class ExamFile extends Segment {
 				String plugin = stream.readUTF();
 				String name = stream.readUTF() + "[" + getPriority(stream.readInt()) + "]";
 				String loc = stream.readUTF();
-				
+
 				SegmentData data = new SegmentData(name, duration);
 				data.readLongValues(stream);
 				segments.add(new DataSegment(name, duration, data, plugin, loc, false));
@@ -146,5 +152,5 @@ public class ExamFile extends Segment {
 		}
 		return new ExamFile("Results", duration, segments);
 	}
-	
+
 }

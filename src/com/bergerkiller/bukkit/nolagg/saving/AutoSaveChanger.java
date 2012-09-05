@@ -10,18 +10,20 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class AutoSaveChanger {
 	private static Task autoSaveTask;
-	
+
 	public static void init() {
 		autoSaveTask = new Task(NoLagg.plugin) {
 			public void run() {
 				ServerConfigurationManager scm = CommonUtil.getServerConfig();
-				if (scm != null) scm.savePlayers();
+				if (scm != null)
+					scm.savePlayers();
 				for (WorldServer world : WorldUtil.getWorlds()) {
 					world.saveLevel();
 				}
 			}
 		}.start(NoLaggSaving.autoSaveInterval, NoLaggSaving.autoSaveInterval);
 	}
+
 	public static void deinit() {
 		Task.stop(autoSaveTask);
 	}

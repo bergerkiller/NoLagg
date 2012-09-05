@@ -12,18 +12,18 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 public class NoLaggMonitor extends NoLaggComponent {
 
 	public static NoLaggMonitor plugin;
-	
+
 	@Override
 	public void onReload(ConfigurationNode config) {
 		PerformanceMonitor.deinit();
-		
-		//interval and logging init
+
+		// interval and logging init
 		config.setHeader("monitorInterval", "The interval at which new performance snapshots are generated");
 		config.setHeader("startLoggingOnStartup", "Whether or not to start logging server performance on startup");
 		PerformanceMonitor.monitorInterval = config.get("monitorInterval", 40);
 		PerformanceMonitor.sendLog = config.get("startLoggingOnStartup", false);
-		
-		//broadcast if lagging
+
+		// broadcast if lagging
 		ConfigurationNode blag = config.getNode("lagNotifier");
 		blag.setHeader("\nThe server notifies players (with a permission) when the tick rate drops below the threshold");
 		blag.setHeader("enabled", "Enable or disable this feature");
@@ -34,7 +34,7 @@ public class NoLaggMonitor extends NoLaggComponent {
 		PerformanceMonitor.broadcastInterval = blag.get("interval", 10000);
 		PerformanceMonitor.broadcastThreshold = blag.get("threshold", 15.0);
 		PerformanceMonitor.broadcastMessage = blag.get("message", "&cThe server can't keep up!");
-		
+
 		PerformanceMonitor.init();
 	}
 

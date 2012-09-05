@@ -10,7 +10,7 @@ public class EntityWorldWatcher extends WorldListener {
 	public EntityWorldWatcher(World world) {
 		super(world);
 	}
-	
+
 	@Override
 	public void onEntityAdd(Entity entity) {
 		if (!EntityManager.addEntity(entity)) {

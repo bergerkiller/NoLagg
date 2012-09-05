@@ -4,11 +4,11 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemBuffer extends NoLaggComponent {
-	
+
 	public static NoLaggItemBuffer plugin;
-	
+
 	public static int maxItemsPerChunk = 80;
-	
+
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
@@ -16,7 +16,7 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 		this.onReload(config);
 		ItemMap.init();
 	}
-	
+
 	@Override
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("maxItemsPerChunk", "The maximum amount of items allowed per chunk");

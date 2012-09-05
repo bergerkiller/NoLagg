@@ -39,14 +39,16 @@ public class TNTHandler {
 	public static int getBufferCount() {
 		return todo.size();
 	}
-	
+
 	public static void init() {
-		//start the task
+		// start the task
 		if (interval > 0) {
 			task = new Task(NoLagg.plugin) {
 				public void run() {
-					if (added == null) return;
-					if (todo == null) return;
+					if (added == null)
+						return;
+					if (todo == null)
+						return;
 					if (denyExplosionsCounter > 0) {
 						--denyExplosionsCounter;
 					}
@@ -54,10 +56,12 @@ public class TNTHandler {
 					if (intervalCounter == interval) {
 						intervalCounter = 1;
 						CustomExplosion.useQuickDamageMode = todo.size() > 500;
-						if (todo.isEmpty()) return;
+						if (todo.isEmpty())
+							return;
 						for (int i = 0; i < rate; i++) {
 							Block next = todo.poll();
-							if (next == null) break;
+							if (next == null)
+								break;
 							added.remove(next);
 							int x = next.getX();
 							int y = next.getY();
@@ -81,7 +85,7 @@ public class TNTHandler {
 			}.start(1, 1);
 		}
 	}
-		
+
 	public static void deinit() {
 		Task.stop(task);
 		added = null;
@@ -93,26 +97,30 @@ public class TNTHandler {
 		return world.random.nextInt(n);
 	}
 
-	private static int denyExplosionsCounter = 0; //tick countdown to deny explosions
+	private static int denyExplosionsCounter = 0; // tick countdown to deny
+													// explosions
+
 	public static void clear() {
 		todo.clear();
 		added.clear();
 		denyExplosionsCounter = 5;
 	}
-	
+
 	public static boolean isScheduledForDetonation(Block block) {
 		return added.contains(block);
 	}
 
 	/*
-	 * Detonates TNT and creates explosions
-	 * Returns false if it was not possible to do in any way
-	 * (Including if the feature is disabled)
+	 * Detonates TNT and creates explosions Returns false if it was not possible
+	 * to do in any way (Including if the feature is disabled)
 	 */
 	public static boolean detonate(Block tntBlock) {
-		if (added == null) return false;
-		if (todo == null) return false;
-		if (interval <= 0) return false;
+		if (added == null)
+			return false;
+		if (todo == null)
+			return false;
+		if (interval <= 0)
+			return false;
 		if (tntBlock != null) { // && tntBlock.getType() == Material.TNT) {
 			if (added.add(tntBlock)) {
 				todo.offer(tntBlock);
@@ -127,7 +135,7 @@ public class TNTHandler {
 	public static boolean createExplosion(EntityExplodeEvent event) {
 		return createExplosion(event.getLocation(), event.blockList(), event.getYield());
 	}
-	
+
 	public static boolean createExplosion(Location at, List<Block> affectedBlocks, float yield) {
 		if (interval > 0) {
 			if (denyExplosionsCounter == 0) {
