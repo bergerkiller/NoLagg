@@ -33,6 +33,7 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
 import com.bergerkiller.bukkit.nolagg.lighting.LightingFixThread;
+import com.bergerkiller.bukkit.nolagg.saving.AutoSaveChanger;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class PerformanceMonitor extends Task {
@@ -478,6 +479,11 @@ public class PerformanceMonitor extends Task {
 						mem += getProgress(ptime.barlength, ptime.color);
 					}
 					mem += ChatColor.YELLOW + " (" + MathUtil.round(totaltime, 1) + " MS/tick)";
+					if (NoLaggComponents.SAVING.isEnabled()) {
+						if (AutoSaveChanger.isSaving()) {
+							mem += ChatColor.RED + " (SAVING " + AutoSaveChanger.SAVE_PERCENTAGE + "%)";
+						}
+					}
 					messages.add(mem);
 				}
 

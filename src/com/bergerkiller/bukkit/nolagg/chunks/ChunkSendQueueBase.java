@@ -49,13 +49,12 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Performs a pre-unload operation on this queue
 	 * 
-	 * @param chunkCoord
-	 *            of the chunk to unload
+	 * @param chunkCoord of the chunk to unload
 	 * @return True if an unload packet is required, False if not
 	 */
 	public boolean preUnloadChunk(ChunkCoordIntPair chunkCoord) {
 		this.remove(chunkCoord);
-		return this.sentChunks.contains(chunkCoord);
+		return this.sentChunks.remove(chunkCoord);
 	}
 
 	protected boolean remove(ChunkCoordIntPair pair) {

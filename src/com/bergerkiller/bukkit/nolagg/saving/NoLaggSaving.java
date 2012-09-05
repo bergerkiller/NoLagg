@@ -9,6 +9,7 @@ public class NoLaggSaving extends NoLaggComponent {
 
 	public static NoLaggSaving plugin;
 	public static int autoSaveInterval;
+	public static int autoSaveBatch;
 	public static int writeDataInterval;
 	public static boolean writeDataEnabled;
 
@@ -34,6 +35,10 @@ public class NoLaggSaving extends NoLaggComponent {
 			config.set("autoSaveInterval", 400);
 			NoLaggSaving.plugin.log(Level.WARNING, "Save interval is set too low and has been limited to a 400 tick (20 second) interval");
 		}
+
+		config.setHeader("autoSaveBatchSize", "The amount of chunks saved every tick when autosaving");
+		config.addHeader("autoSaveBatchSize", "If saving causes severe tick lag, lower it, if it takes too long, increase it");
+		autoSaveBatch = config.get("autoSaveBatchSize", 20);
 
 		config.setHeader("writeDataEnabled", "Whether NoLagg will attempt to write all world data to the region files at a set interval");
 		config.addHeader("writeDataEnabled", "This is done on another thread, so don't worry about the main thread lagging while this happens");
