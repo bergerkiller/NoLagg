@@ -116,7 +116,7 @@ public class WorldStackFormer implements Runnable {
 							continue;
 						if (nearitem.itemStack == null)
 							continue;
-						if (ItemUtil.transfer(nearitem.itemStack, item.itemStack, Integer.MAX_VALUE) > 0) {
+						if (ItemUtil.transfer(nearitem.itemStack.cloneItemStack(), item.itemStack, Integer.MAX_VALUE) > 0) {
 							if (nearitem.itemStack.count == 0) {
 								kill(nearitem);
 								// respawn item
