@@ -7,6 +7,7 @@ import net.minecraft.server.LongHashMap;
 public class DummyInstanceMap extends LongHashMap {
 	public static boolean ENABLED = false;
 	private static final SafeField<Object> entries = new SafeField<Object>(LongHashMap.class, "entries");
+	private static final SafeField<Object> entryValue = new SafeField<Object>("net.minecraft.server.LongHashMapEntry.b");
 	private final DummyPlayerManager manager;
 
 	public DummyInstanceMap(LongHashMap oldMap, DummyPlayerManager playerManager) {
@@ -14,7 +15,10 @@ public class DummyInstanceMap extends LongHashMap {
 		Object[] entryArray = (Object[]) entries.get(oldMap);
 		for (Object o : entryArray) {
 			if (o != null) {
-				DummyInstancePlayerList.replace(this.manager, o);
+				o = entryValue.get(o);
+				if (o != null) {
+					DummyInstancePlayerList.replace(this.manager, o);
+				}
 			}
 		}
 		entries.set(this, entryArray);
