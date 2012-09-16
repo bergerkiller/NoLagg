@@ -1,27 +1,19 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.LongHashMapRef;
 
 import net.minecraft.server.LongHashMap;
 
 public class DummyInstanceMap extends LongHashMap {
 	public static boolean ENABLED = false;
-	private static final SafeField<Object> entries = new SafeField<Object>(LongHashMap.class, "entries");
-	private static final SafeField<Object> entryValue = new SafeField<Object>("net.minecraft.server.LongHashMapEntry.b");
 	private final DummyPlayerManager manager;
 
 	public DummyInstanceMap(LongHashMap oldMap, DummyPlayerManager playerManager) {
 		this.manager = playerManager;
-		Object[] entryArray = (Object[]) entries.get(oldMap);
-		for (Object o : entryArray) {
-			if (o != null) {
-				o = entryValue.get(o);
-				if (o != null) {
-					DummyInstancePlayerList.replace(this.manager, o);
-				}
-			}
+		for (Object value : LongHashMapRef.getValues(oldMap)) {
+			DummyInstancePlayerList.replace(this.manager, value);
 		}
-		entries.set(this, entryArray);
+		LongHashMapRef.setEntries(this, LongHashMapRef.getEntries(oldMap));
 	}
 
 	@Override

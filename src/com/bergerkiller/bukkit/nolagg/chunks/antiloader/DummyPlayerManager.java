@@ -5,9 +5,9 @@ import java.util.Queue;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Operation;
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.PlayerManagerRef;
+import com.bergerkiller.bukkit.common.reflection.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.ClassTemplate;
 
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
@@ -16,25 +16,9 @@ import net.minecraft.server.PlayerManager;
 import net.minecraft.server.WorldServer;
 
 public class DummyPlayerManager extends PlayerManager {
-	private static final ClassTemplate<PlayerManager> template;
-	public static final SafeField<LongHashMap> playerInstances;
-	public static final SafeField<Queue<?>> dirtyBlockChunks;
-	public static SafeField<PlayerManager> worldManager = new SafeField<PlayerManager>(WorldServer.class, "manager");
-
-	static {
-		template = ClassTemplate.create(PlayerManager.class);
-		if (template == null) {
-			playerInstances = null;
-			dirtyBlockChunks = null;
-		} else {
-			playerInstances = template.getField("c");
-			dirtyBlockChunks = template.getField("d");
-		}
-	}
-
 	public static void convert(WorldServer world) {
-		if (template != null && DummyWorld.INSTANCE != null) {
-			worldManager.set(world, new DummyPlayerManager(world));
+		if (DummyWorld.INSTANCE != null) {
+			WorldServerRef.playerManager.set(world, new DummyPlayerManager(world));
 		}
 	}
 
@@ -51,7 +35,7 @@ public class DummyPlayerManager extends PlayerManager {
 			public void handle(WorldServer world) {
 				PlayerManager manager = world.getPlayerManager();
 				if (manager instanceof DummyPlayerManager) {
-					worldManager.set(world, ((DummyPlayerManager) manager).base);
+					WorldServerRef.playerManager.set(world, ((DummyPlayerManager) manager).base);
 				}
 			}
 		};
@@ -68,12 +52,12 @@ public class DummyPlayerManager extends PlayerManager {
 
 	public DummyPlayerManager(final PlayerManager base, WorldServer world) {
 		super(world, 10);
-		this.instances = new DummyInstanceMap(playerInstances.get(base), this);
-		playerInstances.set(base, this.instances);
-		template.transfer(base, this);
+		this.instances = new DummyInstanceMap(PlayerManagerRef.playerInstances.get(base), this);
+		PlayerManagerRef.playerInstances.set(base, this.instances);
+		PlayerManagerRef.TEMPLATE.transfer(base, this);
 		this.base = base;
 		this.world = world;
-		this.dirtyChunkQueue = dirtyBlockChunks.get(base);
+		this.dirtyChunkQueue = PlayerManagerRef.dirtyBlockChunks.get(base);
 	}
 
 	@Override

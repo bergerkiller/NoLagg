@@ -1,9 +1,8 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.ArrayList;
-import java.util.List;
 
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.PlayerInstanceRef;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 
 import net.minecraft.server.ChunkCoordIntPair;
@@ -11,31 +10,13 @@ import net.minecraft.server.EntityPlayer;
 
 @SuppressWarnings("rawtypes")
 public class DummyInstancePlayerList extends ArrayList {
-	private static SafeField<ChunkCoordIntPair> instanceLocation = null;
-	private static SafeField<List> instancePlayers = null;
-	private static boolean VALID;
-
-	static {
-		try {
-			Class<?> playerInstanceClass = Class.forName("net.minecraft.server.PlayerInstance");
-			instanceLocation = new SafeField<ChunkCoordIntPair>(playerInstanceClass, "location");
-			instancePlayers = new SafeField<List>(playerInstanceClass, "b");
-			VALID = instanceLocation.isValid() && instancePlayers.isValid();
-		} catch (Throwable t) {
-			t.printStackTrace();
-			VALID = false;
-		}
-	}
-
 	@SuppressWarnings("unchecked")
 	public static void replace(DummyPlayerManager playerManager, Object playerInstance) {
-		if (VALID) {
-			DummyInstancePlayerList list = new DummyInstancePlayerList();
-			list.playerManager = playerManager;
-			list.location = instanceLocation.get(playerInstance);
-			list.addAll(instancePlayers.get(playerInstance));
-			instancePlayers.set(playerInstance, list);
-		}
+		DummyInstancePlayerList list = new DummyInstancePlayerList();
+		list.playerManager = playerManager;
+		list.location = PlayerInstanceRef.location.get(playerInstance);
+		list.addAll(PlayerInstanceRef.players.get(playerInstance));
+		PlayerInstanceRef.players.set(playerInstance, list);
 	}
 
 	private static final long serialVersionUID = -1878411514739243453L;

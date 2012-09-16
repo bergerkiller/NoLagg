@@ -10,6 +10,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.CraftServer;
 
 import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
@@ -103,7 +104,7 @@ public class DummyWorld extends WorldServer {
 		this.entityList = null;
 		this.tileEntityList = null;
 		this.generator = null;
-		DummyPlayerManager.worldManager.set(this, null);
+		WorldServerRef.playerManager.set(this, null);
 		this.players = null;
 		this.tracker = null;
 		this.worldMaps = null;

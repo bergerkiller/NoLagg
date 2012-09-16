@@ -24,7 +24,6 @@ public class NoLaggSaving extends NoLaggComponent {
 		plugin = this;
 		this.loadConfig(config);
 		AutoSaveChanger.init();
-		RegionFileFlusher.init();
 	}
 
 	public void loadConfig(ConfigurationNode config) {

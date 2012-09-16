@@ -15,13 +15,17 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.nolagg.threadcheck.ThreadCheck;
 
 public class NoLagg extends PluginBase {
-
 	public static NoLagg plugin;
 
 	private List<NoLaggComponent> components = new ArrayList<NoLaggComponent>();
 
 	public void register(NoLaggComponent component) {
 		this.components.add(component);
+	}
+
+	@Override
+	public int getMinimumLibVersion() {
+		return 1;
 	}
 
 	@Override

@@ -6,8 +6,8 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
+import com.bergerkiller.bukkit.common.reflection.ChunkProviderServerRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.ClassTemplate;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
@@ -23,12 +23,9 @@ import net.minecraft.server.WorldServer;
  * To keep things fair, all rights for this Class go to the Mojang team
  */
 public class TimedChunkProviderServer extends ChunkProviderServer {
-	private static final ClassTemplate<ChunkProviderServer> template = ClassTemplate.create(ChunkProviderServer.class);
-	public static final boolean VALID = template != null;
-
 	public static void transfer(ChunkProviderServer to, WorldServer world) {
 		try {
-			template.transfer(world.chunkProviderServer, to);
+			ChunkProviderServerRef.TEMPLATE.transfer(world.chunkProviderServer, to);
 			if (world.chunkProviderServer instanceof TimedChunkProviderServer) {
 				((TimedChunkProviderServer) world.chunkProviderServer).enabled = false;
 			}
@@ -43,9 +40,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	public static void convert(WorldServer world) {
-		if (VALID) {
-			transfer(new TimedChunkProviderServer(world), world);
-		}
+		transfer(new TimedChunkProviderServer(world), world);
 	}
 
 	public static void restore(org.bukkit.World world) {
@@ -53,9 +48,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	public static void restore(WorldServer world) {
-		if (VALID) {
-			transfer(new ChunkProviderServer(world, null, null), world);
-		}
+		transfer(new ChunkProviderServer(world, null, null), world);
 	}
 
 	private boolean enabled = true;

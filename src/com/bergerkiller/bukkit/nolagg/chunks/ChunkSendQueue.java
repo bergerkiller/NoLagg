@@ -15,6 +15,8 @@ import com.bergerkiller.bukkit.common.IntRemainder;
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.SafeField;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.reflection.EntityPlayerRef;
+import com.bergerkiller.bukkit.common.reflection.NetworkManagerRef;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -35,12 +37,10 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	public static double minRate = 0.25;
 	public static double compressBusyPercentage = 0.0;
 	private static long prevtime;
-	private static SafeField<List<?>> chunkQueueField = new SafeField<List<?>>(EntityPlayer.class, "chunkCoordIntPairQueue");
-	private static SafeField<Integer> queuesizefield = new SafeField<Integer>(NetworkManager.class, "y");
 	private static Task task;
 
 	public static void init() {
-		if (!queuesizefield.isValid()) {
+		if (!NetworkManagerRef.queueSize.isValid()) {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Failed to hook into the player packet queue size field");
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
 		}
@@ -87,7 +87,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			public void handle(EntityPlayer ep) {
 				ChunkSendQueue queue = bind(ep);
 				if (queue != null) {
-					chunkQueueField.set(ep, queue.toLinkedList());
+					EntityPlayerRef.chunkQueue.set(ep, queue.toLinkedList());
 				}
 			}
 		};
@@ -101,7 +101,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
 			ChunkSendQueue queue = new ChunkSendQueue(with);
 			with.chunkCoordIntPairQueue.clear();
-			chunkQueueField.set(with, queue);
+			EntityPlayerRef.chunkQueue.set(with, queue);
 		}
 		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
 	}
@@ -140,7 +140,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private void enforceBufferFullSize() {
 		INetworkManager nm = this.ep.netServerHandler.networkManager;
 		Object lockObject = new SafeField<Object>(NetworkManager.class, "h").get(nm);
-		if (lockObject != null && queuesizefield != null) {
+		if (lockObject != null) {
 			List<Packet> low = new SafeField<List<Packet>>(NetworkManager.class, "lowPriorityQueue").get(nm);
 			List<Packet> high = new SafeField<List<Packet>>(NetworkManager.class, "highPriorityQueue").get(nm);
 			if (low != null && high != null) {
@@ -150,7 +150,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 						queuedsize += p.a() + 1;
 					for (Packet p : high)
 						queuedsize += p.a() + 1;
-					queuesizefield.set(nm, queuedsize - 9437184);
+					NetworkManagerRef.queueSize.set(nm, queuedsize - 9437184);
 				}
 			}
 		}
@@ -221,8 +221,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 */
 	private void update() {
 		// Update queue size
-		if (queuesizefield.isValid()) {
-			this.packetBufferQueueSize = (Integer) queuesizefield.get(this.ep.netServerHandler.networkManager);
+		if (NetworkManagerRef.queueSize.isValid()) {
+			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(this.ep.netServerHandler.networkManager);
 			this.packetBufferQueueSize += 9437184;
 		}
 		// Update current buffer size

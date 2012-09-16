@@ -21,10 +21,8 @@ public class NoLaggExamine extends NoLaggComponent {
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		if (TimedChunkProviderServer.VALID) {
-			for (WorldServer world : WorldUtil.getWorlds()) {
-				TimedChunkProviderServer.convert(world);
-			}
+		for (WorldServer world : WorldUtil.getWorlds()) {
+			TimedChunkProviderServer.convert(world);
 		}
 		this.register(NLEListener.class);
 		SchedulerWatcher.init();

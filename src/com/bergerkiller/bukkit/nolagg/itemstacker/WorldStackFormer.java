@@ -47,15 +47,7 @@ public class WorldStackFormer implements Runnable {
 
 			// re-spawn previously stacked items
 			for (EntityItem item : itemsToRespawn) {
-				item.dead = true;
-				EntityItem newItem = new EntityItem(item.world, item.locX, item.locY, item.locZ, item.itemStack);
-				newItem.fallDistance = item.fallDistance;
-				newItem.fireTicks = item.fireTicks;
-				newItem.pickupDelay = item.pickupDelay;
-				newItem.motX = item.motX;
-				newItem.motY = item.motY;
-				newItem.motZ = item.motZ;
-				newItem.world.addEntity(newItem);
+				ItemUtil.respawnItem(item);
 			}
 
 			// get rid of trackers of killed entities
