@@ -22,25 +22,11 @@ public class EntityManager {
 	private static Map<World, WorldListener> listeners = new HashMap<World, WorldListener>();
 
 	public static void init() {
-		new Operation() {
-			public void run() {
-				this.doWorlds();
-			}
-
-			@Override
-			public void handle(WorldServer world) {
-				EntityWorldWatcher listener = new EntityWorldWatcher(world);
-				if (listener.enable()) {
-					listeners.put(world.getWorld(), listener);
-				}
-				this.doEntities(world);
-			}
-
-			@Override
-			public void handle(Entity entity) {
-				addEntity(entity);
-			}
-		};
+		for (WorldServer world : WorldUtil.getWorlds()) {
+			EntityWorldWatcher listener = new EntityWorldWatcher(world);
+			listener.enable();
+			listeners.put(world.getWorld(), listener);
+		}
 	}
 
 	public static void deinit() {
@@ -73,20 +59,8 @@ public class EntityManager {
 		if (WorldListener.isValid()) {
 			WorldServer ws = WorldUtil.getNative(world);
 			EntityWorldWatcher listener = new EntityWorldWatcher(ws);
-			if (listener.enable()) {
-				listeners.put(world, listener);
-			}
-			new Operation(world) {
-				@Override
-				public void run() {
-					this.doEntities();
-				}
-
-				@Override
-				public void handle(Entity entity) {
-					addEntity(entity);
-				}
-			};
+			listener.enable();
+			listeners.put(world, listener);
 		}
 	}
 

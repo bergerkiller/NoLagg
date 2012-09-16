@@ -38,5 +38,4 @@ public class WorldLimiter extends GroupLimiter {
 		}
 		return lim;
 	}
-
 }

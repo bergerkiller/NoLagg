@@ -5,13 +5,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.WorldListener;
 import com.bergerkiller.bukkit.common.WorldProperty;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -48,17 +46,6 @@ public class StackFormer extends AsyncTask {
 	}
 
 	public static void init() {
-		if (!WorldListener.isValid()) {
-			NoLaggItemStacker.plugin.log(Level.WARNING, "Failed to hook into world access listeners, will use a slower alternative!");
-			alterRefreshTask = new Task(NoLagg.plugin) {
-				public void run() {
-					for (WorldStackFormer former : globalWorlds.values()) {
-						former.watcher.refresh();
-					}
-				}
-			}.start(1, 40);
-		}
-
 		updateTask = new Task(NoLagg.plugin) {
 			public void run() {
 				for (WorldStackFormer former : globalWorlds.values()) {

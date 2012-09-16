@@ -16,21 +16,12 @@ public class WorldEntityWatcher extends WorldListener {
 	 */
 	private WorldEntityWatcher(World world) {
 		super(world);
-		this.refresh();
 	}
 
 	public static WorldEntityWatcher watch(World world) {
 		WorldEntityWatcher rval = new WorldEntityWatcher(world);
 		rval.enable();
 		return rval;
-	}
-
-	public void refresh() {
-		this.items.clear();
-		this.orbs.clear();
-		for (Object entity : world.entityList) {
-			this.a((Entity) entity);
-		}
 	}
 
 	public final LinkedHashSet<EntityItem> items = new LinkedHashSet<EntityItem>();
