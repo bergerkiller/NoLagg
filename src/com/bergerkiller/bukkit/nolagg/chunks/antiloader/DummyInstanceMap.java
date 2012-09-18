@@ -1,6 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
-import com.bergerkiller.bukkit.common.reflection.LongHashMapRef;
+import com.bergerkiller.bukkit.common.reflection.classes.LongHashMapRef;
 
 import net.minecraft.server.LongHashMap;
 

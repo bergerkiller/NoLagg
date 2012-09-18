@@ -9,8 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.CraftServer;
 
-import com.bergerkiller.bukkit.common.SafeField;
-import com.bergerkiller.bukkit.common.reflection.WorldServerRef;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 

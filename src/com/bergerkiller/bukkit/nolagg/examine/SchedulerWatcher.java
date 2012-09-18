@@ -6,8 +6,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.scheduler.CraftScheduler;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
-import com.bergerkiller.bukkit.common.reflection.CraftSchedulerRef;
-import com.bergerkiller.bukkit.common.reflection.CraftTaskRef;
+import com.bergerkiller.bukkit.common.reflection.classes.CraftSchedulerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.CraftTaskRef;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class SchedulerWatcher extends PriorityQueue {

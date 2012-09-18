@@ -13,10 +13,10 @@ import org.bukkit.craftbukkit.entity.CraftPlayer;
 
 import com.bergerkiller.bukkit.common.IntRemainder;
 import com.bergerkiller.bukkit.common.Operation;
-import com.bergerkiller.bukkit.common.SafeField;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.reflection.EntityPlayerRef;
-import com.bergerkiller.bukkit.common.reflection.NetworkManagerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.NetworkManagerRef;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -160,17 +160,18 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		return new Operation() {
 			public void run() {
 				this.doPlayers();
-				super.set(0, this.totalrate / (double) pcount);
+				this.average = this.totalrate / (double) pcount;
 			}
 
 			private double totalrate = 0;
 			private int pcount = 0;
+			public double average;
 
 			public void handle(EntityPlayer ep) {
 				this.totalrate += bind(ep).rate.get();
 				this.pcount++;
 			}
-		}.arg(0, Double.class);
+		}.average;
 	}
 
 	public double getRate() {

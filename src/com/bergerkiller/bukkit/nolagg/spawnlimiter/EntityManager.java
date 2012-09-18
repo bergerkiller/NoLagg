@@ -37,15 +37,15 @@ public class EntityManager {
 		listeners = new HashMap<World, WorldListener>();
 	}
 
-	public static void deinit(World world) {
+	public static void deinit(final World world) {
 		WorldListener listener = listeners.remove(world);
 		if (listener != null) {
 			listener.disable();
 		}
-		new Operation(world) {
+		new Operation() {
 			@Override
 			public void run() {
-				this.doEntities();
+				this.doEntities(world);
 			}
 
 			@Override

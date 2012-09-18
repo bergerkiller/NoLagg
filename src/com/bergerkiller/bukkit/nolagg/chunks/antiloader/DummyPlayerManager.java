@@ -5,8 +5,8 @@ import java.util.Queue;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Operation;
-import com.bergerkiller.bukkit.common.reflection.PlayerManagerRef;
-import com.bergerkiller.bukkit.common.reflection.WorldServerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.ChunkCoordIntPair;

@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.ArrayList;
 
-import com.bergerkiller.bukkit.common.reflection.PlayerInstanceRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerInstanceRef;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 
 import net.minecraft.server.ChunkCoordIntPair;

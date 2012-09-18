@@ -15,8 +15,8 @@ import net.minecraft.server.RegionFile;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.reflection.RegionFileCacheRef;
-import com.bergerkiller.bukkit.common.reflection.RegionFileRef;
+import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
+import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class RegionFileFlusher {

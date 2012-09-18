@@ -6,7 +6,7 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
-import com.bergerkiller.bukkit.common.reflection.ChunkProviderServerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkProviderServerRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;

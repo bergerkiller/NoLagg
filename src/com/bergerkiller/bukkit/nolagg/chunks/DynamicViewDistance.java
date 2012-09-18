@@ -125,7 +125,7 @@ public class DynamicViewDistance {
 					double value = (double) (chunks - minChunks) / (double) (maxChunks - minChunks);
 					viewDistance = (int) (value * (double) maxView + (1.00 - value) * (double) minView);
 				}
-				viewDistance = MathUtil.limit(viewDistance, 3, CommonUtil.view);
+				viewDistance = MathUtil.clamp(viewDistance, 3, CommonUtil.view);
 
 			}
 		}.start(15, 40);
