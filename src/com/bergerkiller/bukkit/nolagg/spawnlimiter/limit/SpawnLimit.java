@@ -1,20 +1,18 @@
-package com.bergerkiller.bukkit.nolagg.spawnlimiter;
+package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
-public class SpawnLimiter {
-
-	public SpawnLimiter() {
-		this(-1);
-	}
-
-	public SpawnLimiter(int limit) {
-		this.limit = limit;
-	}
-
+/**
+ * Keeps track of the count and limit for a single Spawn limit
+ */
+public class SpawnLimit {
 	public int count = 0;
 	public int limit;
 
-	public void reset() {
-		this.count = 0;
+	public SpawnLimit() {
+		this(-1);
+	}
+
+	public SpawnLimit(int limit) {
+		this.limit = limit;
 	}
 
 	public void clear() {
