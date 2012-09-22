@@ -15,7 +15,6 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 			plugin = this;
 			this.register(NLSLListener.class);
 			this.onReload(config);
-			EntityWorldListener.init();
 		} else {
 			log(Level.SEVERE, "Failed to initialize spawn limiter: could not bind to world entity listener");
 		}
@@ -23,6 +22,8 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 
 	@Override
 	public void onReload(ConfigurationNode config) {
+		// Deinit entities
+		EntityWorldListener.deinit();
 		// default spawn limits
 		if (!config.contains("spawnlimits")) {
 			ConfigurationNode limits = config.getNode("spawnlimits");
@@ -64,6 +65,8 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		EntitySpawnHandler.GENERALHANDLER.clear().load(config.getNode("spawnlimits"));
 		// Mob spawn restrictions
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear().load(config.getNode("mobSpawnerLimits"));
+		// Init entities
+		EntityWorldListener.init();
 	}
 
 	@Override
