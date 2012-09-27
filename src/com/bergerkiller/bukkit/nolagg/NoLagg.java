@@ -25,7 +25,7 @@ public class NoLagg extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 1;
+		return 2;
 	}
 
 	@Override

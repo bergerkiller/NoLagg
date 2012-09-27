@@ -2,10 +2,13 @@ package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
 import java.util.HashSet;
 
+import net.minecraft.server.WorldServer;
+
 import org.bukkit.entity.Entity;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntitySpawnLimiter;
 
@@ -81,6 +84,17 @@ public class EntitySpawnHandler {
 			return MOBSPAWNERHANDLER.getEntityLimits(entity.getWorld(), name);
 		} else {
 			return GENERALHANDLER.getEntityLimits(entity.getWorld(), name);
+		}
+	}
+
+	/**
+	 * Fills all handlers with the entities on the server
+	 */
+	public static void initEntities() {
+		for (WorldServer world : WorldUtil.getWorlds()) {
+			for (net.minecraft.server.Entity e : WorldUtil.getEntities(world)) {
+				forceSpawn(e.getBukkitEntity());
+			}
 		}
 	}
 

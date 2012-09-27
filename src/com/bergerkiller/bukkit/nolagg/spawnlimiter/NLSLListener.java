@@ -12,27 +12,14 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.event.world.WorldUnloadEvent;
 
+import com.bergerkiller.bukkit.common.events.EntityAddEvent;
+import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 
 public class NLSLListener implements Listener {
-
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onWorldLoad(WorldLoadEvent event) {
-		EntityWorldListener.addListener(WorldUtil.getNative(event.getWorld()));
-	}
-
-	@EventHandler(priority = EventPriority.MONITOR)
-	public void onWorldUnload(WorldUnloadEvent event) {
-		if (!event.isCancelled()) {
-			EntityWorldListener.removeListener(WorldUtil.getNative(event.getWorld()));
-		}
-	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
@@ -50,6 +37,22 @@ public class NLSLListener implements Listener {
 				event.setCancelled(true);
 			}
 		}
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void onEntityAdd(EntityAddEvent event) {
+		Entity e = event.getEntity();
+		if (e.isDead()) {
+			return;
+		}
+		if (!EntitySpawnHandler.addEntity(e)) {
+			e.remove();
+		}
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void onEntityRemove(EntityRemoveEvent event) {
+		EntitySpawnHandler.removeEntity(event.getEntity());
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)

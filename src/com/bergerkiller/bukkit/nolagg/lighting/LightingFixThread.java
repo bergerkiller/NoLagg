@@ -131,7 +131,7 @@ public class LightingFixThread extends AsyncTask {
 		}
 
 		private Chunk getChunk(final int x, final int z) {
-			return this.world.chunkProviderServer.chunks.get(x, z);
+			return WorldUtil.getChunk(this.world, x, z);
 		}
 
 		private int getLightLevel(EnumSkyBlock mode, int x, final int y, int z) {

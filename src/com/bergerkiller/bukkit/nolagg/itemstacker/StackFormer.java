@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import net.minecraft.server.World;
 import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
@@ -21,11 +22,15 @@ public class StackFormer extends AsyncTask {
 
 	public static WorldProperty<Double> stackRadius = new WorldProperty<Double>(2.0);
 
-	private static Map<WorldServer, WorldStackFormer> globalWorlds = new HashMap<WorldServer, WorldStackFormer>();
+	private static Map<World, WorldStackFormer> globalWorlds = new HashMap<World, WorldStackFormer>();
 	private static List<WorldStackFormer> toAdd = new ArrayList<WorldStackFormer>();
 	private static boolean updated = false;
 
-	public static WorldStackFormer get(WorldServer world) {
+	public static WorldStackFormer get(org.bukkit.World world) {
+		return get(WorldUtil.getNative(world));
+	}
+
+	public static WorldStackFormer get(World world) {
 		WorldStackFormer former = globalWorlds.get(world);
 		if (former == null) {
 			former = new WorldStackFormer(world);

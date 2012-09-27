@@ -2,6 +2,7 @@ package net.timedminecraft.server;
 
 import java.util.Random;
 
+import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
@@ -78,7 +79,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 		if (enabled && PluginLogger.isRunning()) {
 			// CraftBukkit start
 			this.unloadQueue.remove(i, j);
-			Chunk chunk = (Chunk) this.chunks.get(i, j);
+			Chunk chunk = (Chunk) this.chunks.get(LongHash.toLong(i, j));
 			boolean newChunk = false;
 			// CraftBukkit end
 
@@ -95,7 +96,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 					newChunk = true; // CraftBukkit
 				}
 
-				this.chunks.put(i, j, chunk); // CraftBukkit
+				this.chunks.put(LongHash.toLong(i, j), chunk); // CraftBukkit
 				if (chunk != null) {
 					chunk.addEntities();
 				}

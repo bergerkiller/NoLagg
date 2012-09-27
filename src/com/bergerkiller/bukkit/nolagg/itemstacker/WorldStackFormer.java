@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg.itemstacker;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -15,13 +16,13 @@ import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class WorldStackFormer implements Runnable {
-
 	private Boolean isProcessing = true;
+	public final LinkedHashSet<EntityItem> syncItems = new LinkedHashSet<EntityItem>();
+	public final LinkedHashSet<EntityExperienceOrb> syncOrbs = new LinkedHashSet<EntityExperienceOrb>();
 	private final List<EntityItem> items = new ArrayList<EntityItem>();
 	private final List<EntityExperienceOrb> orbs = new ArrayList<EntityExperienceOrb>();
 	private final Set<EntityItem> itemsToRespawn = new HashSet<EntityItem>();
 	private final List<Entity> entitiesToKill = new ArrayList<Entity>();
-	public final WorldEntityWatcher watcher;
 	public final EntityTracker tracker;
 	private boolean disabled = false;
 	public double stackRadiusSquared = 2.0;
@@ -32,12 +33,44 @@ public class WorldStackFormer implements Runnable {
 
 	public void disable() {
 		this.disabled = true;
-		this.watcher.disable();
 	}
 
 	public WorldStackFormer(World world) {
-		this.watcher = WorldEntityWatcher.watch(world);
 		this.tracker = WorldUtil.getTracker(world);
+		for (Entity e : WorldUtil.getEntities(world)) {
+			addEntity(e);
+		}
+	}
+
+	/**
+	 * Adds an Entity to the sync lists of this world stacker
+	 * 
+	 * @param e the entity to add
+	 */
+	public void addEntity(Entity e) {
+		if (e instanceof EntityItem) {
+			if (!NoLaggItemStacker.isIgnoredItem(e)) {
+				syncItems.add((EntityItem) e);
+			}
+		} else if (e instanceof EntityExperienceOrb && NoLaggItemStacker.stackOrbs) {
+			syncOrbs.add((EntityExperienceOrb) e);
+		}
+	}
+
+	/**
+	 * Removes an Entity from the sync lists of this world stacker
+	 * 
+	 * @param e the entity to remove
+	 */
+	public void removeEntity(Entity e) {
+		if (e instanceof EntityItem) {
+			if (!NoLaggItemStacker.isIgnoredItem(e)) {
+				// don't bother doing an 'ignored item' check as it checks in a map or set anyway
+				syncItems.remove((EntityItem) e);
+			}
+		} else if (e instanceof EntityExperienceOrb && NoLaggItemStacker.stackOrbs) {
+			syncOrbs.remove((EntityExperienceOrb) e);
+		}
 	}
 
 	public void update() {
@@ -62,8 +95,8 @@ public class WorldStackFormer implements Runnable {
 			items.clear();
 			orbs.clear();
 			itemsToRespawn.clear();
-			items.addAll(this.watcher.items);
-			orbs.addAll(this.watcher.orbs);
+			items.addAll(this.syncItems);
+			orbs.addAll(this.syncOrbs);
 		}
 	}
 

@@ -1,8 +1,5 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
-import java.util.logging.Level;
-
-import com.bergerkiller.bukkit.common.WorldListener;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
@@ -11,19 +8,13 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
-		if (WorldListener.isValid()) {
-			plugin = this;
-			this.register(NLSLListener.class);
-			this.onReload(config);
-		} else {
-			log(Level.SEVERE, "Failed to initialize spawn limiter: could not bind to world entity listener");
-		}
+		plugin = this;
+		this.register(NLSLListener.class);
+		this.onReload(config);
 	}
 
 	@Override
 	public void onReload(ConfigurationNode config) {
-		// Deinit entities
-		EntityWorldListener.deinit();
 		// default spawn limits
 		if (!config.contains("spawnlimits")) {
 			ConfigurationNode limits = config.getNode("spawnlimits");
@@ -66,12 +57,11 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		// Mob spawn restrictions
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear().load(config.getNode("mobSpawnerLimits"));
 		// Init entities
-		EntityWorldListener.init();
+		EntitySpawnHandler.initEntities();
 	}
 
 	@Override
 	public void onDisable(ConfigurationNode config) {
-		EntityWorldListener.deinit();
 		EntitySpawnHandler.GENERALHANDLER.clear();
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear();
 	}
