@@ -130,21 +130,15 @@ public class NoLaggCommon extends NoLaggComponent {
 						boolean remove = false;
 						if (e instanceof Player) {
 							continue;
-						} else if (remall) {
+						} else if ((remall) || (e instanceof TNTPrimed && tnt) || (e instanceof Item && items)) {
 							remove = true;
 						} else if (args.length == 0) {
 							remove = e instanceof Item || e instanceof TNTPrimed || e instanceof ExperienceOrb;
-						} else if (e instanceof TNTPrimed && tnt) {
-							remove = true;
-						} else if (e instanceof Item && items) {
-							remove = true;
 						} else {
 							String type = EntityUtil.getName(e);
-							if (animals && EntityUtil.isAnimal(type)) {
+							if ((animals && EntityUtil.isAnimal(type)) || (monsters && EntityUtil.isMonster(type)) {
 								remove = true;
-							} else if (monsters && EntityUtil.isMonster(type)) {
-								remove = true;
-							} else {
+							} lse {
 								for (String arg : args) {
 									if (type.contains(arg) || arg.contains(type)) {
 										remove = true;
