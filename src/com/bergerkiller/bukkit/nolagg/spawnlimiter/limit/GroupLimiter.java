@@ -25,6 +25,7 @@ public class GroupLimiter {
 	 * @param limit to set
 	 */
 	public void setLimit(String entityname, int limit) {
+		entityname = entityname.toLowerCase();
 		if (entityname.contains("tnt"))
 			entityname = "tnt";
 		if (entityname.equals("mob") || entityname.equals("mobs")) {
@@ -63,6 +64,7 @@ public class GroupLimiter {
 	 * @return spawn limits for this Entity
 	 */
 	protected SpawnLimit[] getLimits(String name) {
+		name = name.toLowerCase();
 		if (EntitySpawnHandler.isItem(name)) {
 			return new SpawnLimit[] { entityLimiters.get(name), itemLimiter };
 		} else if (EntityUtil.isAnimal(name)) {

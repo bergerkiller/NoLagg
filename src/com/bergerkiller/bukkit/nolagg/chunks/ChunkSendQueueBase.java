@@ -16,7 +16,7 @@ import net.minecraft.server.ChunkCoordIntPair;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
-	private boolean isUpdating = true;
+	private boolean isUpdating = false;
 	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
 	protected final Set<ChunkCoordIntPair> sentChunks = new HashSet<ChunkCoordIntPair>();
 

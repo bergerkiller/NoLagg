@@ -1,10 +1,17 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
+import java.util.Arrays;
+
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggSpawnLimiter extends NoLaggComponent {
 	public static NoLaggSpawnLimiter plugin;
+	private Task spawnWaveTask;
+	private static final int SPAWN_WAVE_INTERVAL = 20; // Allow a creature spawn wave to occur every second
+	private static int spawnWaveCounter = 0;
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
@@ -15,6 +22,22 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 
 	@Override
 	public void onReload(ConfigurationNode config) {
+		// existing removable
+		config.setHeader("forceRemoved", "");
+		config.addHeader("forceRemoved", "Entity type or group names that can be removed from loaded chunks");
+		config.addHeader("forceRemoved", "If you don't want certain already spawned entities removed while the server runs, ");
+		config.addHeader("forceRemoved", "Remove them from this list");
+
+		// default list
+		if (!config.contains("forceRemoved")) {
+			config.set("forceRemoved", Arrays.asList("monsters", "itemcobblestone", "itemdirt", "itemsand", "itemgravel"));
+		}
+
+		ExistingRemovalMap.clear();
+		for (String type : config.getList("forceRemoved", String.class)) {
+			ExistingRemovalMap.addRemovable(type);
+		}
+
 		// default spawn limits
 		if (!config.contains("spawnlimits")) {
 			ConfigurationNode limits = config.getNode("spawnlimits");
@@ -58,11 +81,31 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear().load(config.getNode("mobSpawnerLimits"));
 		// Init entities
 		EntitySpawnHandler.initEntities();
+
+		// Spawn wave tick task
+		spawnWaveTask = new Task(NoLagg.plugin) {
+			public void run() {
+				if (spawnWaveCounter++ >= SPAWN_WAVE_INTERVAL) {
+					spawnWaveCounter = 0;
+				}
+			}
+		}.start(1, 1);
 	}
 
 	@Override
 	public void onDisable(ConfigurationNode config) {
 		EntitySpawnHandler.GENERALHANDLER.clear();
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear();
+		Task.stop(spawnWaveTask);
+		spawnWaveTask = null;
+	}
+
+	/**
+	 * Checks if spawning creatures is currently allowed
+	 * 
+	 * @return True if spawning is possible, False if not
+	 */
+	public static boolean isCreatureSpawnAllowed() {
+		return spawnWaveCounter == 0;
 	}
 }

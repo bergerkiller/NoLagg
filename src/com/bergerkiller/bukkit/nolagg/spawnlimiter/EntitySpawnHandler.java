@@ -5,6 +5,7 @@ import java.util.HashSet;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
@@ -45,7 +46,7 @@ public class EntitySpawnHandler {
 	 * @return True if ignored, False if not
 	 */
 	public static boolean isIgnored(Entity entity) {
-		return ItemUtil.isIgnored(entity) || ignoredEntities.contains(entity.getEntityId());
+		return (entity instanceof Item && ItemUtil.isIgnored(entity)) || ignoredEntities.contains(entity.getEntityId());
 	}
 
 	/**
@@ -55,10 +56,10 @@ public class EntitySpawnHandler {
 	 * 
 	 * @param entity to check for
 	 * @param isMobSpawner state, True if spawned by a mob spawner, False if not
-	 * @return True if the entity cam Spawn, False if not
+	 * @return True if the entity can Spawn, False if not
 	 */
 	public static boolean handlePreSpawn(Entity entity, boolean isMobSpawner) {
-		if (ItemUtil.isIgnored(entity)) {
+		if (isIgnored(entity)) {
 			return true;
 		}
 		if (getLimits(entity, isMobSpawner).canSpawn()) {
@@ -93,7 +94,13 @@ public class EntitySpawnHandler {
 	public static void initEntities() {
 		for (WorldServer world : WorldUtil.getWorlds()) {
 			for (net.minecraft.server.Entity e : WorldUtil.getEntities(world)) {
-				forceSpawn(e.getBukkitEntity());
+				if (ExistingRemovalMap.isRemovable(EntityUtil.getName(e))) {
+					// Can remove it - remove if needed
+					addEntity(e.getBukkitEntity());
+				} else {
+					// Can not remove it - just increment the count
+					forceSpawn(e.getBukkitEntity());
+				}
 			}
 		}
 	}

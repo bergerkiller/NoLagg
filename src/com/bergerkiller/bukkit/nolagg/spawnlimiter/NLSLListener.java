@@ -60,16 +60,12 @@ public class NLSLListener implements Listener {
 		// These entities were mistakingly added
 		// If any of them are dead, revoke the dead status and force-add on the limit
 		for (Entity e : event.getChunk().getEntities()) {
-			if (e.isDead()) {
+			if (e.isDead() && !ExistingRemovalMap.isRemovable(EntityUtil.getName(e))) {
 				EntityUtil.getNative(e).dead = false;
 				EntitySpawnHandler.forceSpawn(e);
 			}
 		}
 	}
-
-	private long prevSpawnWave = System.currentTimeMillis();
-	private static long spawnWaitTime = 3000; // how many msecs to wait spawning
-	private static long spawnTime = 1000; // how many msecs to allow spawning
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
@@ -78,14 +74,9 @@ public class NLSLListener implements Listener {
 				EntitySpawnHandler.setIgnored(event.getEntity());
 				return;
 			} else if (event.getSpawnReason() == SpawnReason.NATURAL) {
-				long time = System.currentTimeMillis();
-				long diff = time - prevSpawnWave - spawnWaitTime;
-				// to prevent lots of lag because of spammed spawn events
-				if (diff < 0) {
+				if (!NoLaggSpawnLimiter.isCreatureSpawnAllowed()) {
 					event.setCancelled(true);
 					return;
-				} else if (diff > spawnTime) {
-					prevSpawnWave = time;
 				}
 			}
 			if (!EntitySpawnHandler.handlePreSpawn(event.getEntity(), event.getSpawnReason() == SpawnReason.SPAWNER)) {
