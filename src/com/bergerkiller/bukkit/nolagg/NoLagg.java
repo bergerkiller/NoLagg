@@ -12,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.nolagg.threadcheck.ThreadCheck;
 
 public class NoLagg extends PluginBase {
 	public static NoLagg plugin;
@@ -36,7 +35,6 @@ public class NoLagg extends PluginBase {
 	@Override
 	public void enable() {
 		plugin = this;
-		ThreadCheck.init(this);
 
 		FileConfiguration config = new FileConfiguration(this);
 		config.load();
@@ -69,7 +67,6 @@ public class NoLagg extends PluginBase {
 
 	@Override
 	public void disable() {
-		ThreadCheck.deinit();
 		FileConfiguration config = new FileConfiguration(this);
 		config.load();
 		for (NoLaggComponent comp : this.components) {

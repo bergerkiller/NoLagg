@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.google.common.collect.Lists;
@@ -22,9 +23,9 @@ public class ThreadCheck {
 	@SuppressWarnings("unused")
 	private static ThreadCheck checker;
 
-	public static void init(JavaPlugin plugin) {
+	public static void init() {
 		try {
-			checker = new ThreadCheck(plugin);
+			checker = new ThreadCheck(NoLagg.plugin);
 		} catch (Throwable t) {
 			System.out.println("Failed to initialize thread checker:");
 			t.printStackTrace();
