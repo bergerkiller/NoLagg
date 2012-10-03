@@ -65,17 +65,32 @@ public class NoLaggUtil {
 	public static Plugin[] findPlugins(List<StackTraceElement> stackTrace) {
 		Plugin[] plugins = Bukkit.getServer().getPluginManager().getPlugins();
 		String[] packages = new String[plugins.length];
+		// Generate package paths
 		int i;
 		for (i = 0; i < plugins.length; i++) {
 			packages[i] = plugins[i].getDescription().getMain().toLowerCase();
-			packages[i] = packages[i].substring(0, packages[i].lastIndexOf('.'));
+			int packidx = packages[i].lastIndexOf('.');
+			if (packidx == -1) {
+				packages[i] = "";
+			} else {
+				packages[i] = packages[i].substring(0, packidx);
+			}
 		}
+		// Get all the plugins that match this stack trace
 		LinkedHashSet<Plugin> found = new LinkedHashSet<Plugin>(3);
 		for (StackTraceElement elem : stackTrace) {
 			String className = elem.getClassName().toLowerCase();
 			for (i = 0; i < plugins.length; i++) {
-				if (className.startsWith(packages[i])) {
-					found.add(plugins[i]);
+				if (packages[i].isEmpty()) {
+					// No package name - verify
+					if (!className.contains(".")) {
+						found.add(plugins[i]);
+					}
+				} else {
+					// Package name is there - verify
+					if (className.startsWith(packages[i])) {
+						found.add(plugins[i]);
+					}
 				}
 			}
 		}
