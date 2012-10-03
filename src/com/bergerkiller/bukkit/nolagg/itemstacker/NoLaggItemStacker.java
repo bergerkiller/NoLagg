@@ -11,8 +11,8 @@ import org.bukkit.entity.Item;
 
 import com.bergerkiller.bukkit.common.WorldProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.EnumUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemStacker extends NoLaggComponent {
@@ -68,7 +68,7 @@ public class NoLaggItemStacker extends NoLaggComponent {
 	}
 
 	public static boolean isIgnoredItem(Entity itementity) {
-		if (ItemUtil.isIgnored(itementity))
+		if (EntityUtil.isIgnored(itementity))
 			return true;
 		Item item = (Item) itementity;
 		return ignoredTypes.contains(item.getItemStack().getType());

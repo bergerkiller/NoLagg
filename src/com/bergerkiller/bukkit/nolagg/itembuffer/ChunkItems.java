@@ -13,7 +13,7 @@ import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
 
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class ChunkItems {
@@ -34,7 +34,7 @@ public class ChunkItems {
 				if (entity instanceof EntityItem) {
 					if (entity.dead)
 						continue;
-					if (ItemUtil.isIgnored(entity.getBukkitEntity()))
+					if (EntityUtil.isIgnored(entity.getBukkitEntity()))
 						continue;
 					if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
 						this.spawnedItems.add((EntityItem) entity);

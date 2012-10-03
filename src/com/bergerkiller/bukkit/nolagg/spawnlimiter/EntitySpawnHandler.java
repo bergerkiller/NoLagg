@@ -5,10 +5,8 @@ import java.util.HashSet;
 import net.minecraft.server.WorldServer;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntitySpawnLimiter;
@@ -46,7 +44,7 @@ public class EntitySpawnHandler {
 	 * @return True if ignored, False if not
 	 */
 	public static boolean isIgnored(Entity entity) {
-		return (entity instanceof Item && ItemUtil.isIgnored(entity)) || ignoredEntities.contains(entity.getEntityId());
+		return EntityUtil.isIgnored(entity) || ignoredEntities.contains(entity.getEntityId());
 	}
 
 	/**

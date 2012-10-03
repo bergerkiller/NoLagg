@@ -1,17 +1,18 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.World.Environment;
-import org.bukkit.craftbukkit.CraftServer;
 
-import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 import net.minecraft.server.EnumGamemode;
@@ -26,8 +27,8 @@ import net.minecraft.server.WorldServer;
 import net.minecraft.server.WorldSettings;
 import net.minecraft.server.WorldType;
 
-@SuppressWarnings("rawtypes")
 public class DummyWorld extends WorldServer {
+	private static boolean enabled = false;
 	public static DummyWorld INSTANCE;
 	static {
 		try {
@@ -48,40 +49,56 @@ public class DummyWorld extends WorldServer {
 
 	private static IDataManager getDummyDataManager() {
 		return new IDataManager() {
+			public void checkAccess() {
+				if (enabled) {
+					throw new IllegalStateException("NoLagg chunks dummy world has been accessed!");
+				}
+			}
+
 			public UUID getUUID() {
-				return null;
+				checkAccess();
+				return UUID.randomUUID();
 			}
 
 			public void checkSession() {
+				checkAccess();
 			}
 
 			public IChunkLoader createChunkLoader(WorldProvider arg0) {
+				checkAccess();
 				return null;
 			}
 
 			public File getDataFile(String arg0) {
+				checkAccess();
 				return null;
 			}
 
 			public PlayerFileData getPlayerFileData() {
+				checkAccess();
 				return null;
 			}
 
 			public WorldData getWorldData() {
+				checkAccess();
 				return null;
 			}
 
 			public void saveWorldData(WorldData arg0) {
+				checkAccess();
 			}
 
 			public void a() {
+				checkAccess();
 			}
 
 			public String g() {
+				checkAccess();
 				return null;
 			}
 
 			public void saveWorldData(WorldData arg0, NBTTagCompound arg1) {
+				checkAccess();
 			}
 		};
 	}
@@ -96,8 +113,17 @@ public class DummyWorld extends WorldServer {
 
 	public DummyWorld(String worldname) throws Throwable {
 		super(CommonUtil.getMCServer(), getDummyDataManager(), worldname, 0, getDummySettings(), CommonUtil.getMCServer().methodProfiler, Environment.NORMAL, null);
+		enabled = true;
 		// dereference this dummy world again...
-		new SafeField<Map>(CraftServer.class, "worlds").get(getServer()).remove(worldname.toLowerCase());
+		Map<String, World> worlds = WorldUtil.getWorldsMap();
+		Iterator<World> iter = worlds.values().iterator();
+		while (iter.hasNext()) {
+			if (iter.next() == this.getWorld()) {
+				iter.remove();
+			}
+		}
+		worlds.remove(worldname.toLowerCase());
+		WorldUtil.getWorlds().remove(this);
 		// set some variables to null
 		this.chunkProvider = this.chunkProviderServer = new DummyChunkProvider(this);
 		this.generator = null;
