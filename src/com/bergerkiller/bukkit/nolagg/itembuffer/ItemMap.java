@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.nolagg.itembuffer;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import org.bukkit.Bukkit;
@@ -30,6 +33,33 @@ public class ItemMap {
 		}
 		synchronized (items) {
 			return items.get(world.getChunkAt(chunkCoordinates.x, chunkCoordinates.z));
+		}
+	}
+
+	/**
+	 * Clears the item types in the worlds specified
+	 * 
+	 * @param worlds to clear items in
+	 * @param types of items to clear
+	 */
+	public static void clear(Collection<World> worlds, Set<String> types) {
+		synchronized (items) {
+			Set<World> worldsClone = new HashSet<World>(worlds);
+			if (types.contains("all") || types.contains("items")) {
+				// Remove all from worlds
+				for (ChunkItems ci : items.values()) {
+					if (worldsClone.contains(ci.chunk.world.getWorld())) {
+						ci.clear();
+					}
+				}
+			} else {
+				// Remove item per type
+				for (ChunkItems ci : items.values()) {
+					if (worldsClone.contains(ci.chunk.world.getWorld())) {
+						ci.clear(types);
+					}
+				}
+			}
 		}
 	}
 

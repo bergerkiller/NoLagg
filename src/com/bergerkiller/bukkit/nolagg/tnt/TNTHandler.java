@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.tnt;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -18,6 +19,7 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
+import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -97,8 +99,23 @@ public class TNTHandler {
 		return world.random.nextInt(n);
 	}
 
-	private static int denyExplosionsCounter = 0; // tick countdown to deny
-													// explosions
+	private static int denyExplosionsCounter = 0; // tick countdown to deny explosions
+
+	public static void clear(World world) {
+		Iterator<BlockLocation> iter = added.iterator();
+		while (iter.hasNext()) {
+			if (iter.next().world.equals(world.getName())) {
+				iter.remove();
+			}
+		}
+		Iterator<Block> iter2 = todo.iterator();
+		while (iter2.hasNext()) {
+			if (iter2.next().getWorld() == world) {
+				iter.remove();
+			}
+		}
+		denyExplosionsCounter = 5;
+	}
 
 	public static void clear() {
 		todo.clear();

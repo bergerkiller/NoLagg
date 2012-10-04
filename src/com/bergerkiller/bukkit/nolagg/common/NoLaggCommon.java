@@ -1,19 +1,21 @@
 package com.bergerkiller.bukkit.nolagg.common;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ExperienceOrb;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TNTPrimed;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
@@ -26,13 +28,12 @@ import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
 
-	private String[] lastargs = new String[1];
+	private final Set<String> lastargs = new HashSet<String>();
 	private Map<String, List<String>> clearShortcuts = new HashMap<String, List<String>>();
 
 	@Override
 	public void onDisable(ConfigurationNode config) {
 		this.clearShortcuts.clear();
-		this.lastargs = new String[1];
 	}
 
 	@Override
@@ -44,7 +45,6 @@ public class NoLaggCommon extends NoLaggComponent {
 	public void onReload(ConfigurationNode config) {
 		// clear shortcuts
 		this.clearShortcuts.clear();
-		this.lastargs = new String[1];
 		if (!config.contains("clearShortcuts")) {
 			ConfigurationNode node = config.getNode("clearShortcuts");
 			node.set("enemies", Arrays.asList("monster"));
@@ -68,97 +68,112 @@ public class NoLaggCommon extends NoLaggComponent {
 				} else {
 					all = true;
 				}
-				// fix and partly read args
-				boolean tnt = args.length == 1;
-				boolean items = tnt;
-				boolean animals = false;
-				boolean monsters = false;
-				boolean remall = false;
-				if (args.length == 2) {
-					if (args[1].equalsIgnoreCase("last")) {
-						args = lastargs;
-						sender.sendMessage(ChatColor.GREEN + "The last-used clear command has been invoked:");
-					} else {
-						List<String> a = this.clearShortcuts.get(args[1].toLowerCase());
-						if (a != null) {
-							args = a.toArray(new String[0]);
-							sender.sendMessage(ChatColor.GREEN + "Using clear shortcut: " + args[1]);
-						}
-					}
-				}
-				String[] toremove = new String[args.length - 1];
-				for (int i = 1; i < args.length; i++) {
-					String name = args[i].toLowerCase();
-					if (name.contains("tnt")) {
-						tnt = true;
-					} else if (name.contains("item")) {
-						items = true;
-					} else if (name.contains("animal")) {
-						animals = true;
-					} else if (name.contains("monster")) {
-						monsters = true;
-					} else if (name.contains("mob")) {
-						animals = true;
-						monsters = true;
-					} else if (name.contains("all")) {
-						remall = true;
-					}
-					toremove[i - 1] = name;
-				}
-				args = toremove;
-				World[] worlds;
+				// Get the worlds to work in
+				Collection<World> worlds;
 				if (all) {
-					worlds = Bukkit.getServer().getWorlds().toArray(new World[0]);
+					worlds = Bukkit.getServer().getWorlds();
 				} else {
-					worlds = new World[] { ((Player) sender).getWorld() };
+					worlds = Arrays.asList(((Player) sender).getWorld());
 				}
-				if (tnt && NoLaggComponents.TNT.isEnabled()) {
-					TNTHandler.clear();
+				// Read all the requested entity types
+				Set<String> types = new HashSet<String>();
+				if (args.length == 1) {
+					// Default types
+					types.add("items");
+					types.add("tnt");
+					types.add("experienceorb");
+				} else {
+					// Read the types
+					for (int i = 1; i < args.length; i++) {
+						String name = args[i].toLowerCase();
+						if (name.contains("xp") || name.contains("orb")) {
+							types.add("experienceorb");
+							continue;
+						}
+						if (name.contains("tnt")) {
+							types.add("tnt");
+							continue;
+						}
+						if (name.contains("mob")) {
+							types.add("animals");
+							types.add("monsters");
+							continue;
+						}
+						if (name.equals("item")) {
+							name = "items";
+						} else if (name.equals("monster")) {
+							name = "monsters";
+						} else if (name.equals("animal")) {
+							name = "animals";
+						} else if (name.equals("fallingblock")) {
+							name = "fallingblocks";
+						}
+						types.add(name);
+					}
+					if (types.remove("last")) {
+						sender.sendMessage(ChatColor.GREEN + "The last-used clear arguments are also used");
+						types.addAll(lastargs);
+					}
 				}
-				if (items && NoLaggComponents.ITEMBUFFER.isEnabled()) {
+				lastargs.clear();
+				lastargs.addAll(types);
+
+				// Remove from TNT component if enabled
+				if (NoLaggComponents.TNT.isEnabled() && (types.contains("all") || types.contains("tnt"))) {
 					if (all) {
-						ItemMap.clear();
+						TNTHandler.clear();
 					} else {
 						for (World world : worlds) {
-							ItemMap.clear(world);
+							TNTHandler.clear(world);
 						}
 					}
 				}
-				int remcount = 0;
+
+				// Remove items from the item buffer
+				if (NoLaggComponents.ITEMBUFFER.isEnabled()) {
+					ItemMap.clear(worlds, types);
+				}
+
+				// Entity removal logic
+				int remcount = 0; // The amount of removed entities
 				for (World world : worlds) {
-					for (Entity e : world.getEntities()) {
-						boolean remove = false;
-						if (e instanceof Player) {
-							continue;
-						} else if (remall) {
-							remove = true;
-						} else if (args.length == 0) {
-							remove = e instanceof Item || e instanceof TNTPrimed || e instanceof ExperienceOrb;
-						} else if (e instanceof TNTPrimed && tnt) {
-							remove = true;
-						} else if (e instanceof Item && items) {
-							remove = true;
-						} else {
-							String type = EntityUtil.getName(e);
-							if (animals && EntityUtil.isAnimal(type)) {
-								remove = true;
-							} else if (monsters && EntityUtil.isMonster(type)) {
-								remove = true;
-							} else {
-								for (String arg : args) {
-									if (type.contains(arg) || arg.contains(type)) {
-										remove = true;
-										break;
-									}
-								}
+					if (types.contains("all")) {
+						// Clear all types of entities
+						for (Entity e : world.getEntities()) {
+							if (!(e instanceof Player)) {
+								e.remove();
+								remcount++;
 							}
 						}
-						if (remove) {
-							e.remove();
-							remcount++;
+					} else {
+						// Use the types set and clear them
+						boolean monsters = types.contains("monsters");
+						boolean animals = types.contains("animals");
+						boolean items = types.contains("items");
+						boolean fallingblocks = types.contains("fallingblocks");
+						boolean remove;
+						for (Entity e : world.getEntities()) {
+							remove = false;
+							if (monsters && EntityUtil.isMonster(e)) {
+								remove = true;
+							} else if (animals && EntityUtil.isAnimal(e)) {
+								remove = true;
+							} else if (items && e instanceof Item) {
+								remove = true;
+							} else if (fallingblocks && e instanceof FallingBlock) {
+								remove = true;
+							} else if (types.contains(EntityUtil.getName(e))) {
+								remove = true;
+							}
+							if (remove) {
+								e.remove();
+								remcount++;
+							}
 						}
 					}
 				}
+
+				// Final confirmation message
 				if (all) {
 					sender.sendMessage(ChatColor.YELLOW + "All worlds have been cleared: " + remcount + " entities removed!");
 				} else {

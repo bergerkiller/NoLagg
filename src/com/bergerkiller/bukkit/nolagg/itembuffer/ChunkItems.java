@@ -61,6 +61,15 @@ public class ChunkItems {
 		this.spawnedItems.clear();
 	}
 
+	public synchronized void clear(Set<String> types) {
+		Iterator<EntityItem> iter = this.hiddenItems.iterator();
+		while (iter.hasNext()) {
+			if (types.contains(EntityUtil.getName(iter.next()))) {
+				iter.remove();
+			}
+		}
+	}
+
 	public synchronized void clear() {
 		this.hiddenItems.clear();
 	}
