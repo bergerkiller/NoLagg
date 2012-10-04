@@ -10,7 +10,6 @@ import net.minecraft.server.WorldServer;
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class AutoSaveChanger {
@@ -63,9 +62,6 @@ public class AutoSaveChanger {
 							}
 						}
 					}.start(1, 1);
-				}
-				for (WorldServer world : WorldUtil.getWorlds()) {
-					world.saveLevel();
 				}
 			}
 		}.start(NoLaggSaving.autoSaveInterval, NoLaggSaving.autoSaveInterval);
