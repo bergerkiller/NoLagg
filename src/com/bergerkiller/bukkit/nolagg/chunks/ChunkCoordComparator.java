@@ -5,6 +5,7 @@ import java.util.Comparator;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
@@ -19,42 +20,16 @@ public class ChunkCoordComparator implements Comparator<Object> {
 	private static ChunkCoordComparator[] comparators = new ChunkCoordComparator[8];
 	static {
 		try {
-			comparators[0] = new ChunkCoordComparator(BlockFace.NORTH);
-			comparators[1] = new ChunkCoordComparator(BlockFace.NORTH_EAST);
-			comparators[2] = new ChunkCoordComparator(BlockFace.EAST);
-			comparators[3] = new ChunkCoordComparator(BlockFace.SOUTH_EAST);
-			comparators[4] = new ChunkCoordComparator(BlockFace.SOUTH);
-			comparators[5] = new ChunkCoordComparator(BlockFace.SOUTH_WEST);
-			comparators[6] = new ChunkCoordComparator(BlockFace.WEST);
-			comparators[7] = new ChunkCoordComparator(BlockFace.NORTH_WEST);
+			for (int i = 0; i < 8; i++) {
+				comparators[i] = new ChunkCoordComparator(FaceUtil.notchToFace(i));
+			}
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
 	}
 
-	private static ChunkCoordComparator get(final BlockFace direction) {
-		switch (direction) {
-			case NORTH:
-				return comparators[0];
-			case NORTH_EAST:
-				return comparators[1];
-			case EAST:
-				return comparators[2];
-			case SOUTH_EAST:
-				return comparators[3];
-			case SOUTH:
-				return comparators[4];
-			case SOUTH_WEST:
-				return comparators[5];
-			case WEST:
-				return comparators[6];
-			default:
-				return comparators[7];
-		}
-	}
-
 	public static ChunkCoordComparator get(final BlockFace direction, final ChunkCoordIntPair middle) {
-		return new ChunkCoordComparator(get(direction), middle);
+		return new ChunkCoordComparator(comparators[FaceUtil.faceToNotch(direction)], middle);
 	}
 
 	private int index = 0;
@@ -125,9 +100,10 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		// main chunk
 		this.generate(0, 0);
 
-		final int threshold1 = 1; // to this layer full layers are sent, after
-									// half
-		final int threshold2 = 5; // at this layer less than half are sent
+		// to this layer full layers are sent, after  half
+		final int threshold1 = 1;
+		// at this layer less than half are sent
+		final int threshold2 = 5;
 
 		for (int layer = 1; layer <= CommonUtil.view; layer++) {
 			if (layer <= threshold1) {
@@ -156,27 +132,7 @@ public class ChunkCoordComparator implements Comparator<Object> {
 
 		public void next(int dx, int dz, int limit) {
 			if (Math.abs(dx) >= limit && Math.abs(dz) >= limit) {
-				if (this.right) {
-					if (direction == BlockFace.NORTH) {
-						direction = BlockFace.EAST;
-					} else if (direction == BlockFace.EAST) {
-						direction = BlockFace.SOUTH;
-					} else if (direction == BlockFace.SOUTH) {
-						direction = BlockFace.WEST;
-					} else if (direction == BlockFace.WEST) {
-						direction = BlockFace.NORTH;
-					}
-				} else {
-					if (direction == BlockFace.NORTH) {
-						direction = BlockFace.WEST;
-					} else if (direction == BlockFace.WEST) {
-						direction = BlockFace.SOUTH;
-					} else if (direction == BlockFace.SOUTH) {
-						direction = BlockFace.EAST;
-					} else if (direction == BlockFace.EAST) {
-						direction = BlockFace.NORTH;
-					}
-				}
+				this.direction = FaceUtil.rotate(this.direction, right ? 2 : -2);
 			}
 		}
 
@@ -240,5 +196,4 @@ public class ChunkCoordComparator implements Comparator<Object> {
 			return 0;
 		return getIndex(coord1) - getIndex(coord2);
 	}
-
 }
