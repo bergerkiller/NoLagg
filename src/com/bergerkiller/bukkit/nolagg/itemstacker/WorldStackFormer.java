@@ -22,7 +22,7 @@ public class WorldStackFormer implements Runnable {
 	private final List<EntityItem> items = new ArrayList<EntityItem>();
 	private final List<EntityExperienceOrb> orbs = new ArrayList<EntityExperienceOrb>();
 	private final Set<EntityItem> itemsToRespawn = new HashSet<EntityItem>();
-	private final List<Entity> entitiesToKill = new ArrayList<Entity>();
+	private final Set<Entity> entitiesToKill = new HashSet<Entity>();
 	public final EntityTracker tracker;
 	private boolean disabled = false;
 	public double stackRadiusSquared = 2.0;
@@ -103,12 +103,12 @@ public class WorldStackFormer implements Runnable {
 	@SuppressWarnings("unchecked")
 	private void updateOrbs() {
 		for (EntityExperienceOrb orb : orbs) {
-			if (orb.dead)
+			if (isDead(orb))
 				continue;
 			if (addSameOrbsNear(orbs, orb)) {
 				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
 					for (EntityExperienceOrb to : (List<EntityExperienceOrb>) near) {
-						if (to.dead)
+						if (isDead(to))
 							continue;
 						// add the experience
 						orb.value += to.value;
@@ -121,15 +121,18 @@ public class WorldStackFormer implements Runnable {
 	}
 
 	private void kill(Entity entity) {
-		entity.dead = true;
 		entitiesToKill.add(entity);
+	}
+
+	private boolean isDead(Entity entity) {
+		return entity.dead || entitiesToKill.contains(entity);
 	}
 
 	@SuppressWarnings("unchecked")
 	private void updateItems() {
 		int maxsize;
 		for (EntityItem item : items) {
-			if (item.dead)
+			if (isDead(item))
 				continue;
 			maxsize = item.itemStack.getMaxStackSize();
 			if (item.itemStack.count >= maxsize)
@@ -138,7 +141,7 @@ public class WorldStackFormer implements Runnable {
 				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
 					// addition the items
 					for (EntityItem nearitem : (List<EntityItem>) near) {
-						if (nearitem.dead)
+						if (isDead(nearitem))
 							continue;
 						if (nearitem.itemStack == null)
 							continue;
