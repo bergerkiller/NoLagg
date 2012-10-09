@@ -296,7 +296,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			int newz = (int) (ep.locZ + ep.motZ * 16) >> 4;
 			if (ep.world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
 				if (this.world != ep.world) { 
-					sentChunks.clear();
+					setOldUnloaded();
 				}
 				this.sendDirection = newDirection;
 				this.x = newx;

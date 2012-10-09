@@ -47,6 +47,13 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	/**
+	 * Notifies the queue that all chunks previously sent have been unloaded by the client
+	 */
+	public void setOldUnloaded() {
+		this.sentChunks.clear();
+	}
+
+	/**
 	 * Performs a pre-unload operation on this queue
 	 * 
 	 * @param chunkCoord of the chunk to unload
