@@ -44,20 +44,19 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 			ConfigurationNode node = limits.getNode("default");
 			node.set("mob", 800);
 			node.set("cow", 60);
-			node.set("item", 1500);
 			node.set("creepers", 30);
 			node.set("monsters", 400);
 			node = limits.getNode("worlds");
 			node.set("world1.monsters", 300);
 			node.set("world2.chickens", 30);
 			node = limits.getNode("global");
-			node.set("mobs", 3000);
+			node.set("mobs", 6000);
 			limits = config.getNode("mobSpawnerLimits");
-			limits.set("default.mob", 300);
+			limits.set("default.mob", 700);
 			limits.set("default.zombie", 30);
 			limits.set("worlds.world3.cavespider", 0);
 			limits.set("worlds.creativeworld.mob", 0);
-			limits.set("global.mob", 1000);
+			limits.set("global.mob", 2000);
 			// others
 		}
 
