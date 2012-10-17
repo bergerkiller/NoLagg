@@ -6,6 +6,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
@@ -29,6 +30,13 @@ public class NLCListener implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerRespawn(PlayerRespawnEvent event) {
 		ChunkSendQueue.bind(event.getPlayer()).setOldUnloaded();
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onPlayerTeleport(PlayerTeleportEvent event) {
+		if (!event.isCancelled()) {
+			ChunkSendQueue.bind(event.getPlayer()).updatePosition(event.getTo());
+		}
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
@@ -20,6 +21,7 @@ import com.bergerkiller.bukkit.common.reflection.classes.NetworkManagerRef;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 import net.minecraft.server.ChunkCoordIntPair;
@@ -290,24 +292,44 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (rate == 0)
 			return;
 		if (this.intervalcounter >= interval) {
-			// sorting
-			BlockFace newDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
-			int newx = (int) (ep.locX + ep.motX * 16) >> 4;
-			int newz = (int) (ep.locZ + ep.motZ * 16) >> 4;
-			if (ep.world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
-				if (this.world != ep.world) { 
-					setOldUnloaded();
-				}
-				this.sendDirection = newDirection;
-				this.x = newx;
-				this.z = newz;
-				this.world = ep.world;
-				this.sort();
-			}
+			updatePosition(ep.world, ep.locX + ep.motX * 16, ep.locZ + ep.motZ * 16, ep.yaw);
 			this.sendBatch(rate);
 			this.intervalcounter = 1;
 		} else {
 			this.intervalcounter++;
+		}
+	}
+
+	/**
+	 * Updates the position of this queue for the player
+	 * 
+	 * @param position to set to
+	 */
+	public void updatePosition(Location position) {
+		updatePosition(WorldUtil.getNative(position.getWorld()), position.getX(), position.getZ(), position.getYaw());
+	}
+
+	/**
+	 * Updates the position of this queue for the player
+	 * 
+	 * @param world to set to
+	 * @param locX to set to
+	 * @param locZ to set to
+	 * @param yaw to set to
+	 */
+	public void updatePosition(World world, double locX, double locZ, float yaw) {
+		BlockFace newDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
+		int newx = MathUtil.locToChunk(locX);
+		int newz = MathUtil.locToChunk(locZ);
+		if (world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
+			if (this.world != world) { 
+				setOldUnloaded();
+			}
+			this.sendDirection = newDirection;
+			this.x = newx;
+			this.z = newz;
+			this.world = world;
+			this.sort();
 		}
 	}
 
