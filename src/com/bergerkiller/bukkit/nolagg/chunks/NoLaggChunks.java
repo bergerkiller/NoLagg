@@ -12,6 +12,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
@@ -75,6 +76,9 @@ public class NoLaggChunks extends NoLaggComponent {
 		config.addHeader("dynamicView", "To disable, remove all chunk: view nodes. The view is smoothed out between nodes");
 		config.addHeader("dynamicView", "The dynamic view distance will never be higher than the server view distance!");
 
+		config.setHeader("sendOrder", "Sets in what order chunks are sent to the client");
+		config.addHeader("sendOrder", "Available modes: " + StringUtil.combineNames(Arrays.asList(ChunkSendMode.values())));
+
 		ChunkSendQueue.minRate = config.get("minRate", 0.25);
 		ChunkSendQueue.maxRate = config.get("maxRate", 1.50);
 		useBufferedLoading = config.get("bufferedLoader.enabled", true);
@@ -86,6 +90,7 @@ public class NoLaggChunks extends NoLaggComponent {
 			config.set("dynamicView", Arrays.asList("0 = 13", "5000 = 13", "10000 = 13", "60000 = 13"));
 		}
 
+		ChunkCoordComparator.init(config.get("sendOrder", ChunkSendMode.SLOPE));
 		DynamicViewDistance.init(config.getList("dynamicView", String.class));
 	}
 

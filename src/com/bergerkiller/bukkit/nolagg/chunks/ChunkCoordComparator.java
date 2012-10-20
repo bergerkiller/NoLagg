@@ -18,10 +18,19 @@ import net.minecraft.server.ChunkCoordIntPair;
  */
 public class ChunkCoordComparator implements Comparator<Object> {
 	private static ChunkCoordComparator[] comparators = new ChunkCoordComparator[8];
-	static {
+
+	public static void init(ChunkSendMode mode) {
 		try {
 			for (int i = 0; i < 8; i++) {
 				comparators[i] = new ChunkCoordComparator(FaceUtil.notchToFace(i));
+				switch (mode) {
+					case SLOPE : 
+						comparators[i].generateSlope();
+						break;
+					default :
+						comparators[i].generateSpiral();
+						break;
+				}
 			}
 		} catch (Throwable t) {
 			t.printStackTrace();
@@ -47,7 +56,6 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		this.direction = direction;
 		this.indices = new int[CommonUtil.viewWidth][CommonUtil.viewWidth];
 		this.middle = null;
-		this.generate();
 	}
 
 	private void generate(int dx, int dz) {
@@ -96,12 +104,21 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		}
 	}
 
-	private void generate() {
+	private void generateSpiral() {
+		// main chunk
+		this.generate(0, 0);
+		// Only full layers
+		for (int layer = 1; layer <= CommonUtil.view; layer++) {
+			this.generateLayer(layer, 4);
+		}
+	}
+
+	private void generateSlope() {
 		// main chunk
 		this.generate(0, 0);
 
 		// to this layer full layers are sent, after  half
-		final int threshold1 = 1;
+		final int threshold1 = 2;
 		// at this layer less than half are sent
 		final int threshold2 = 5;
 
