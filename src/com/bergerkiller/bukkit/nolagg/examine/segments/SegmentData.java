@@ -10,11 +10,11 @@ import java.util.Arrays;
 public class SegmentData implements Comparable<SegmentData> {
 
 	public SegmentData(final String name, final int duration) {
-		this.times = new double[duration];
+		this.times = new float[duration];
 		this.name = name;
 	}
 
-	private final double[] times;
+	private final float[] times;
 	private final String name;
 
 	public String getName() {
@@ -23,7 +23,7 @@ public class SegmentData implements Comparable<SegmentData> {
 
 	public void readLongValues(DataInputStream stream) throws IOException {
 		for (int i = 0; i < this.times.length; i++) {
-			this.times[i] = (double) stream.readLong() / 10E6;
+			this.times[i] = (float) ((double) stream.readLong() / 1E6);
 		}
 	}
 
@@ -35,12 +35,12 @@ public class SegmentData implements Comparable<SegmentData> {
 		return rval;
 	}
 
-	public double[] getTimes() {
+	public float[] getTimes() {
 		return this.times;
 	}
 
 	public void clear() {
-		Arrays.fill(this.times, 0.0);
+		Arrays.fill(this.times, 0.0f);
 	}
 
 	public SegmentData load(SegmentData[] children) {

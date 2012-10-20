@@ -4,12 +4,9 @@ import java.awt.Color;
 import java.awt.Graphics;
 
 public class GraphArea {
-
-	private final int width;
-
+	public final int width;
 	private final int[] ymin;
 	private final int[] ymax;
-
 	public final Color color;
 	public final Color selectcolor;
 	public final double[] values;
@@ -41,9 +38,12 @@ public class GraphArea {
 		return offset;
 	}
 
-	public void draw(Graphics graphics) {
+	public void draw(Graphics graphics, final int minViewX, final int maxViewX) {
 		graphics.setColor(this.selected ? Color.WHITE : this.color);
-		for (int x = 0; x < this.width; x++) {
+		for (int x = 0; x < this.width && x < maxViewX; x++) {
+			if (x < minViewX) {
+				continue;
+			}
 			graphics.drawLine(x, this.ymin[x], x, this.ymax[x]);
 		}
 	}

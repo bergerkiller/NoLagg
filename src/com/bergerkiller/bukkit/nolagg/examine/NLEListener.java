@@ -13,5 +13,4 @@ public class NLEListener implements Listener {
 	public void onWorldInit(WorldInitEvent event) {
 		TimedChunkProviderServer.convert(event.getWorld());
 	}
-
 }

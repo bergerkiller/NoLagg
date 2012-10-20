@@ -17,13 +17,22 @@ import java.util.List;
 import javax.swing.JPanel;
 
 public abstract class Graph extends JPanel {
-
 	private static final long serialVersionUID = 1L;
+	private static final int VIEW_BOUND_RANGE = 10; // Range around viewport that is still rendered
 
 	private GraphArea selectedArea = null;
+	private final GraphBox container;
+	private int viewMinX, viewMaxX;
 
-	public Graph() {
-		super();
+	public void updateView() {
+		this.viewMinX = this.container.getMinViewX() - graphXOffset;
+		this.viewMaxX = viewMinX + this.container.getWidth();
+		this.viewMinX -= VIEW_BOUND_RANGE;
+		this.viewMaxX += VIEW_BOUND_RANGE;
+	}
+	
+	public Graph(GraphBox container) {
+		this.container = container;
 		this.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 		final Graph graph = this;
 		final MouseMotionListener mouselistener = new MouseMotionListener() {
@@ -34,7 +43,7 @@ public abstract class Graph extends JPanel {
 			@Override
 			public void mouseMoved(MouseEvent e) {
 				int y = graph.getHeight() - e.getY() - graphYOffset;
-				int x = e.getX() - graphXOffset - 1;
+				int x = e.getX() - graphXOffset - 2;
 
 				if (graph.selectedArea != null) {
 					graph.selectedArea.setSelected(false);
@@ -174,7 +183,7 @@ public abstract class Graph extends JPanel {
 		this.areas.clear();
 		this.duration = newduration;
 		this.selectedArea = null;
-		this.setPreferredSize(new Dimension(this.duration + graphXOffset, 100));
+		this.setPreferredSize(new Dimension(this.duration + graphXOffset - 1, 100));
 		if (this.offset.length != newduration) {
 			this.offset = new double[this.duration];
 		}
@@ -215,6 +224,9 @@ public abstract class Graph extends JPanel {
 	public void orderAreas() {
 		this.generateOffsets();
 		this.setYScale(1.0);
+		if (!this.areas.isEmpty()) {
+			this.setSize(new Dimension(this.duration + graphXOffset, this.getHeight()));
+		}
 	}
 
 	public void drawText(double value, Graphics g, int x, int y, int mode) {
@@ -236,10 +248,11 @@ public abstract class Graph extends JPanel {
 	}
 
 	public void repaint(GraphArea area) {
+		this.updateView();
 		Graphics2D g2d = (Graphics2D) this.getGraphics();
-		g2d.translate(this.graphXOffset + 1, this.getHeight() - this.graphYOffset);
+		g2d.translate(this.graphXOffset, this.getHeight() - this.graphYOffset);
 		g2d.scale(1.0, -1.0); // invert
-		area.draw(g2d);
+		area.draw(g2d, viewMinX, viewMaxX);
 	}
 
 	public void setYScale(double yscale) {
@@ -252,7 +265,7 @@ public abstract class Graph extends JPanel {
 	}
 
 	protected void paintComponent(Graphics g) {
-
+		this.updateView();
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, this.getWidth(), this.getHeight());
 
@@ -267,15 +280,13 @@ public abstract class Graph extends JPanel {
 			drawText("Clicking on the background will make you go back one step", g, 300, 140, 1);
 		}
 
-		g2d.translate(this.graphXOffset + 1, this.getHeight() - this.graphYOffset);
-		g2d.scale(1.0, -1.0); // invert
-
+		g2d.translate(this.graphXOffset, this.getHeight() - this.graphYOffset);
+		g2d.scale(1.0, -1.0); // invert Y
 		for (GraphArea area : this.areas) {
-			area.draw(g);
+			area.draw(g, viewMinX, viewMaxX);
 		}
 		g.translate(-1, 0);
-
-		g2d.scale(1.0, -1.0); // invert
+		g2d.scale(1.0, -1.0); // invert Y
 
 		int bleft = this.getHeight() - this.graphYOffset;
 
@@ -285,27 +296,37 @@ public abstract class Graph extends JPanel {
 		g.drawLine(0, 0, 0, -bleft);
 
 		// horizontal + ticks
-		int xinterval = 30;
+		int xinterval = 60;
+		int lineX;
 		for (int x = 0; x <= this.duration / xinterval; x++) {
-			g.drawLine(x * xinterval, 0, x * xinterval, 10);
-			drawText(x * xinterval, g, x * xinterval, 22, 1);
+			lineX = x * xinterval;
+			if (lineX > viewMaxX) {
+				break;
+			} else if (lineX < viewMinX) {
+				continue;
+			}
+			g.drawLine(lineX, 0, lineX, 10);
+			drawText(lineX, g, lineX, 22, 1);
 		}
 		drawText("Time (ticks)", g, this.duration / 2, 40, 1);
 
-		// vertical value using scale
-		int yinterval = 30;
-		int ymax = (this.getHeight() - this.graphYOffset) / yinterval;
-		for (int y = 0; y <= ymax; y++) {
-			g.drawLine(0, -y * yinterval, -10, -y * yinterval);
+		if (0 >= viewMinX) {
+			// vertical value using scale
+			int yinterval = 30;
+			int lineY;
+			int ymax = (this.getHeight() - this.graphYOffset) / yinterval;
+			double v;
+			for (int y = 0; y <= ymax; y++) {
+				lineY = y * yinterval;
+				g.drawLine(0, -lineY, -10, -y * yinterval);
+				v = Math.round(lineY / this.scale * 100.0) / 100.0;
+				drawText(v, g, -19, -lineY + 5, 2);
+			}
 
-			double v = (y * yinterval) / this.scale;
-			v = Math.round(v * 100.0) / 100.0;
-			drawText(v, g, -19, -y * yinterval + 5, 2);
+			// rotated text
+			g2d.rotate(-Math.PI * 0.5);
+			drawText("Time spent (milliseconds)", g2d, ymax * yinterval / 2, -60, 1);
 		}
-
-		// rotated text
-		g2d.rotate(-Math.PI * 0.5);
-		drawText("Time spent (milliseconds)", g2d, ymax * yinterval / 2, -60, 1);
 	}
 
 }

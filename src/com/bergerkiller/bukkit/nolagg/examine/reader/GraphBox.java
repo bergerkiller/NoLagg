@@ -36,9 +36,19 @@ public abstract class GraphBox extends JPanel {
 		return this.graph.getArea(index);
 	}
 
+	@Override
 	public void setBounds(int x, int y, int width, int height) {
 		super.setBounds(x, y, width, height);
 		this.scroller.setBounds(0, 0, width, height);
+	}
+
+	/**
+	 * Gets the minimum x coordinate this graph box shows of the contents
+	 * 
+	 * @return minimum x coordinate
+	 */
+	public int getMinViewX() {
+		return this.scroller.getHorizontalScrollBar().getValue();
 	}
 
 	public GraphBox(int x, int y, int width, int height) {
@@ -48,7 +58,7 @@ public abstract class GraphBox extends JPanel {
 		this.setLayout(null);
 
 		// construct components
-		this.graph = new Graph() {
+		this.graph = new Graph(this) {
 			private static final long serialVersionUID = 1L;
 
 			@Override

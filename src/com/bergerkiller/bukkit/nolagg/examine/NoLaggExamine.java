@@ -44,7 +44,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	public void onReload(ConfigurationNode config) {
 		config.setHeader("maxExamineTime", "\nThe maximum time in ticks a generated examine report can be");
 		config.addHeader("maxExamineTime", "It can be increased, but the generated file might be too large for the viewer to handle");
-		maxExamineTime = config.get("maxExamineTime", 36000);
+		maxExamineTime = config.get("maxExamineTime", 72000);
 	}
 
 	@Override

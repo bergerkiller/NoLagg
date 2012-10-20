@@ -38,7 +38,7 @@ public class PluginLogger {
 	public static Set<String> recipients = new HashSet<String>();
 	private static Task measuretask;
 	private static TimedRegisteredListener[] listeners;
-	private static long[][] eventtimes;
+	private static float[][] eventtimes;
 
 	public static Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
 
@@ -114,10 +114,10 @@ public class PluginLogger {
 			}
 		}
 		listeners = rval.toArray(new TimedRegisteredListener[0]);
-		eventtimes = new long[listeners.length][duration];
+		eventtimes = new float[listeners.length][duration];
 		for (int i = 0; i < eventtimes.length; i++) {
 			listeners[i].reset();
-			Arrays.fill(eventtimes[i], 0L);
+			Arrays.fill(eventtimes[i], 0f);
 		}
 		position = 0;
 
@@ -130,7 +130,7 @@ public class PluginLogger {
 		measuretask = new Task(NoLagg.plugin) {
 			public void run() {
 				for (int i = 0; i < eventtimes.length; i++) {
-					eventtimes[i][position] = listeners[i].getTotalTime();
+					eventtimes[i][position] = (float) (listeners[i].getTotalTime() / 1E6);
 					listeners[i].reset();
 				}
 				if (position++ >= duration - 1) {
@@ -169,7 +169,7 @@ public class PluginLogger {
 						stream.writeInt(listeners[i].getPriority().getSlot());
 						stream.writeUTF(listeners[i].getListener().getClass().toString());
 						for (int d = 0; d < duration; d++) {
-							stream.writeLong(eventtimes[i][d]);
+							stream.writeLong((long) (eventtimes[i][d] * 1E6));
 						}
 					}
 				}
