@@ -1,0 +1,146 @@
+package com.bergerkiller.bukkit.nolagg.itemstacker;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
+import net.minecraft.server.Entity;
+import net.minecraft.server.EntityItem;
+
+public class StackingTask <T extends Entity> {
+	private T entity;
+	private List<T> nearby = new ArrayList<T>(0);
+
+	/**
+	 * Resets this Stacking Task
+	 * 
+	 * @param entity to set
+	 */
+	public void reset(T entity) {
+		this.entity = entity;
+		this.nearby.clear();
+	}
+
+	/**
+	 * Clears this Stacking Task to ensure minimal memory usage
+	 */
+	public void clear() {
+		this.entity = null;
+		this.nearby = new ArrayList<T>(0);
+	}
+
+	/**
+	 * Gets the nearby entities
+	 * 
+	 * @return nearby entities
+	 */
+	public List<T> getNearby() {
+		return this.nearby;
+	}
+	
+	/**
+	 * Gets the center Entity
+	 * 
+	 * @return center entity
+	 */
+	public T getEntity() {
+		return this.entity;
+	}
+
+	/**
+	 * Checks if this Stacking Task contains a valid Entity
+	 * 
+	 * @return True if this task is Valid, False if not
+	 */
+	public boolean isValid() {
+		return this.entity != null;
+	}
+
+	/**
+	 * Checks if this Stacking Task can be processed upon
+	 * 
+	 * @return True if processing is possible, False if not
+	 */
+	public boolean canProcess() {
+		return !this.entity.dead && this.nearby.size() >= NoLaggItemStacker.stackThreshold - 1;
+	}
+
+	/**
+	 * Fills the nearby entities of this task
+	 * 
+	 * @param Entitytasks to use as source for entities
+	 * @param radiusSquared for stacking
+	 */
+	public void fillNearby(List<StackingTask<T>> Entitytasks, final double radiusSquared) {
+		if (this.entity.dead) {
+			return;
+		}
+		T entity;
+		double d;
+		for (StackingTask<T> task : Entitytasks) {
+			if (!task.isValid()) {
+				break; // Reached end of data
+			}
+			entity = task.entity;
+			if (!entity.dead && entity != this.entity) {
+				// Distance check
+				d = distance(this.entity.locX, entity.locX);
+				if (d > radiusSquared) {
+					continue;
+				}
+				d += distance(this.entity.locZ, entity.locZ);
+				if (d > radiusSquared) {
+					continue;
+				}
+				d += distance(this.entity.locY, entity.locY);
+				if (d > radiusSquared) {
+					continue;
+				}
+				// Add to nearby entities (performs possible more checks)
+				addNearby(entity);
+			}
+		}
+	}
+
+	private void addNearby(T entity) {
+		if (this.entity instanceof EntityItem) {
+			// Do a compatibility check
+			EntityItem from = (EntityItem) this.entity;
+			EntityItem to = (EntityItem) entity;
+			if (from.itemStack.id != to.itemStack.id || from.itemStack.getData() != to.itemStack.getData()) {
+				return;
+			}
+		}
+		this.nearby.add(entity);
+	}
+
+	private static double distance(final double d1, final double d2) {
+		return Math.abs((d1 - d2) * (d1 - d2));
+	}
+
+	/**
+	 * Transfers all entities into Stacking Tasks
+	 * 
+	 * @param entities to transfer
+	 * @param tasks to transfer the entities to
+	 */
+	public static <T extends Entity> void transfer(Collection<T> entities, Collection<StackingTask<T>> tasks) {
+		// Ensure required tasks capacity
+		if (entities.size() > tasks.size()) {
+			for (int i = tasks.size(); i < entities.size(); i++) {
+				tasks.add(new StackingTask<T>());
+			}
+		}
+		// Transfer
+		Iterator<T> entitiesIter = entities.iterator();
+		Iterator<StackingTask<T>> tasksIter = tasks.iterator();
+		while (entitiesIter.hasNext()) {
+			tasksIter.next().reset(entitiesIter.next());
+		}
+		// Clear unused elements
+		while (tasksIter.hasNext()) {
+			tasksIter.next().clear();
+		}
+	}
+}

@@ -53,18 +53,23 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	private boolean enabled = true;
-	private TaskMeasurement loadmeas, genmeas;
+	private TaskMeasurement loadmeas, genmeas, unloadmeas;
 	private long prevtime;
 
 	private TimedChunkProviderServer(WorldServer world) {
 		super(world, null, null);
-		loadmeas = PluginLogger.getServerOperation("Chunk creation", "Chunk load", "Loads chunks from file");
-		genmeas = PluginLogger.getServerOperation("Chunk creation", "Chunk generate", "Generates the basic terrain");
+		loadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk load", "Loads chunks from file");
+		genmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk generate", "Generates the basic terrain");
+		unloadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk unload", "Unloads chunks and saves them to file");
+	}
+
+	public boolean isEnabled() {
+		return this.enabled && PluginLogger.isRunning();
 	}
 
 	@Override
 	public Chunk loadChunk(int x, int z) {
-		if (enabled && PluginLogger.isRunning()) {
+		if (isEnabled()) {
 			prevtime = System.nanoTime();
 			Chunk c = super.loadChunk(x, z);
 			this.loadmeas.setTime(prevtime);
@@ -76,7 +81,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 
 	@Override
 	public Chunk getChunkAt(int i, int j) {
-		if (enabled && PluginLogger.isRunning()) {
+		if (isEnabled()) {
 			// CraftBukkit start
 			this.unloadQueue.remove(i, j);
 			Chunk chunk = (Chunk) this.chunks.get(LongHash.toLong(i, j));
@@ -125,7 +130,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 
 	@Override
 	public void getChunkAt(IChunkProvider ichunkprovider, int i, int j) {
-		if (enabled && PluginLogger.isRunning()) {
+		if (isEnabled()) {
 			Chunk chunk = this.getOrCreateChunk(i, j);
 
 			if (!chunk.done) {
@@ -162,6 +167,18 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 			}
 		} else {
 			super.getChunkAt(ichunkprovider, i, j);
+		}
+	}
+
+	@Override
+	public boolean unloadChunks() {
+		if (isEnabled()) {
+			prevtime = System.nanoTime();
+			boolean rval = super.unloadChunks();
+			unloadmeas.setTime(prevtime);
+			return rval;
+		} else {
+			return super.unloadChunks();
 		}
 	}
 }

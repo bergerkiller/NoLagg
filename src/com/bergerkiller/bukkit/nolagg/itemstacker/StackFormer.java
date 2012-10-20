@@ -11,20 +11,23 @@ import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.WorldProperty;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class StackFormer extends AsyncTask {
-	private static StackFormer thread;
-	private static Task alterRefreshTask;
+	private static AsyncTask thread;
 	private static Task updateTask;
-
-	public static WorldProperty<Double> stackRadius = new WorldProperty<Double>(2.0);
-
 	private static Map<World, WorldStackFormer> globalWorlds = new HashMap<World, WorldStackFormer>();
 	private static List<WorldStackFormer> toAdd = new ArrayList<WorldStackFormer>();
 	private static boolean updated = false;
+	private final List<WorldStackFormer> worlds;
+
+	private StackFormer() {
+		synchronized (toAdd) {
+			this.worlds = new ArrayList<WorldStackFormer>(toAdd);
+			toAdd.clear();
+		}
+	}
 
 	public static WorldStackFormer get(org.bukkit.World world) {
 		return get(WorldUtil.getNative(world));
@@ -33,8 +36,7 @@ public class StackFormer extends AsyncTask {
 	public static WorldStackFormer get(World world) {
 		WorldStackFormer former = globalWorlds.get(world);
 		if (former == null) {
-			former = new WorldStackFormer(world);
-			former.stackRadiusSquared = Math.pow(stackRadius.get(world.getWorld()), 2.0);
+			former = new WorldStackFormer(world.getWorld());
 			globalWorlds.put(world, former);
 			synchronized (former) {
 				toAdd.add(former);
@@ -54,24 +56,21 @@ public class StackFormer extends AsyncTask {
 		updateTask = new Task(NoLagg.plugin) {
 			public void run() {
 				for (WorldStackFormer former : globalWorlds.values()) {
-					former.update();
+					former.runSync();
 				}
 				updated = true;
 			}
-		}.start(20, 20);
+		}.start(0, NoLaggItemStacker.interval);
 
 		for (WorldServer world : WorldUtil.getWorlds()) {
 			get(world);
 		}
-		thread = new StackFormer();
-		thread.start(true);
+		thread = new StackFormer().start(true);
 	}
 
 	public static void deinit() {
 		Task.stop(updateTask);
 		updateTask = null;
-		Task.stop(alterRefreshTask);
-		alterRefreshTask = null;
 
 		AsyncTask.stop(thread);
 		thread = null;
@@ -84,15 +83,7 @@ public class StackFormer extends AsyncTask {
 		globalWorlds.clear();
 	}
 
-	private final List<WorldStackFormer> worlds;
-
-	private StackFormer() {
-		synchronized (toAdd) {
-			this.worlds = new ArrayList<WorldStackFormer>(toAdd);
-			toAdd.clear();
-		}
-	}
-
+	@Override
 	public void run() {
 		try {
 			if (updated) {
@@ -110,7 +101,7 @@ public class StackFormer extends AsyncTask {
 					if (f.isDisabled()) {
 						iter.remove();
 					} else {
-						f.run();
+						f.runAsync();
 					}
 				}
 				sleep(300);
@@ -121,5 +112,4 @@ public class StackFormer extends AsyncTask {
 			t.printStackTrace();
 		}
 	}
-
 }

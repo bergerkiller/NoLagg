@@ -1,45 +1,45 @@
 package com.bergerkiller.bukkit.nolagg.itemstacker;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.LinkedList;
+
+import org.bukkit.World;
+
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityExperienceOrb;
 import net.minecraft.server.EntityItem;
-import net.minecraft.server.EntityTracker;
-import net.minecraft.server.World;
 
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-
-public class WorldStackFormer implements Runnable {
-	private Boolean isProcessing = true;
-	public final LinkedHashSet<EntityItem> syncItems = new LinkedHashSet<EntityItem>();
-	public final LinkedHashSet<EntityExperienceOrb> syncOrbs = new LinkedHashSet<EntityExperienceOrb>();
-	private final List<EntityItem> items = new ArrayList<EntityItem>();
-	private final List<EntityExperienceOrb> orbs = new ArrayList<EntityExperienceOrb>();
-	private final Set<EntityItem> itemsToRespawn = new HashSet<EntityItem>();
-	private final Set<Entity> entitiesToKill = new HashSet<Entity>();
-	public final EntityTracker tracker;
+/**
+ * Handles the entity item and orb stacking process
+ */
+public class WorldStackFormer {
+	private boolean isProcessing = false; // Processing state, True for async busy or waiting, False for sync available
+	private final double radiusSquared;
 	private boolean disabled = false;
-	public double stackRadiusSquared = 2.0;
-
-	public boolean isDisabled() {
-		return this.disabled;
-	}
-
-	public void disable() {
-		this.disabled = true;
-	}
+	private final LinkedList<EntityItem> syncItems = new LinkedList<EntityItem>();
+	private final LinkedList<EntityExperienceOrb> syncOrbs = new LinkedList<EntityExperienceOrb>();
+	private LinkedList<StackingTask<EntityExperienceOrb>> orbTasks = new LinkedList<StackingTask<EntityExperienceOrb>>();
+	private LinkedList<StackingTask<EntityItem>> itemTasks = new LinkedList<StackingTask<EntityItem>>();
 
 	public WorldStackFormer(World world) {
-		this.tracker = WorldUtil.getTracker(world);
-		for (Entity e : WorldUtil.getEntities(world)) {
-			addEntity(e);
-		}
+		this.radiusSquared = Math.pow(NoLaggItemStacker.stackRadius.get(world), 2.0);
+	}
+
+	/**
+	 * Disables this World Stack Former
+	 */
+	public void disable() {
+		this.disabled = false;
+	}
+
+	/**
+	 * Checks if this World Stack Former is disabled
+	 * 
+	 * @return True if it is disabled, False if not
+	 */
+	public boolean isDisabled() {
+		return this.disabled;
 	}
 
 	/**
@@ -73,160 +73,89 @@ public class WorldStackFormer implements Runnable {
 		}
 	}
 
-	public void update() {
-		synchronized (isProcessing) {
-			if (isProcessing)
-				return;
-
-			// re-spawn previously stacked items
-			for (EntityItem item : itemsToRespawn) {
-				ItemUtil.respawnItem(item);
-			}
-
-			// get rid of trackers of killed entities
-			for (Entity entity : entitiesToKill) {
-				if (entity.world.entityList.contains(entity)) {
-					entity.world.removeEntity(entity);
-				}
-			}
-
-			// fill the collections with new items and orbs again
-			entitiesToKill.clear();
-			items.clear();
-			orbs.clear();
-			itemsToRespawn.clear();
-			items.addAll(this.syncItems);
-			orbs.addAll(this.syncOrbs);
+	/**
+	 * Performs the asynchronous operations
+	 */
+	public void runAsync() {
+		if (!this.isProcessing) {
+			return;
 		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private void updateOrbs() {
-		for (EntityExperienceOrb orb : orbs) {
-			if (isDead(orb))
-				continue;
-			if (addSameOrbsNear(orbs, orb)) {
-				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
-					for (EntityExperienceOrb to : (List<EntityExperienceOrb>) near) {
-						if (isDead(to))
-							continue;
-						// add the experience
-						orb.value += to.value;
-						kill(to);
-					}
+		// Generate nearby items
+		for (StackingTask<EntityItem> task : itemTasks) {
+			if (!task.isValid()) {
+				break; // Reached end of data
+			}
+			task.fillNearby(itemTasks, radiusSquared);
+		}
+		// Generate nearby orbs
+		if (NoLaggItemStacker.stackOrbs) {
+			for (StackingTask<EntityExperienceOrb> task : orbTasks) {
+				if (!task.isValid()) {
+					break; // Reached end of data
 				}
-				near.clear();
+				task.fillNearby(orbTasks, radiusSquared);
 			}
 		}
+		// Finished
+		this.isProcessing = false;
 	}
 
-	private void kill(Entity entity) {
-		entitiesToKill.add(entity);
-	}
+	/**
+	 * Performs the synchronized (main thread) operations
+	 */
+	public void runSync() {
+		if (this.isProcessing) {
+			return;
+		}
 
-	private boolean isDead(Entity entity) {
-		return entity.dead || entitiesToKill.contains(entity);
-	}
-
-	@SuppressWarnings("unchecked")
-	private void updateItems() {
-		int maxsize;
-		for (EntityItem item : items) {
-			if (isDead(item))
-				continue;
-			maxsize = item.itemStack.getMaxStackSize();
-			if (item.itemStack.count >= maxsize)
-				continue;
-			if (addSameItemsNear(items, item)) {
-				if (near.size() > NoLaggItemStacker.stackThreshold - 2) {
-					// addition the items
-					for (EntityItem nearitem : (List<EntityItem>) near) {
-						if (isDead(nearitem))
-							continue;
-						if (nearitem.itemStack == null)
-							continue;
-						if (ItemUtil.transfer(nearitem.itemStack, item.itemStack, Integer.MAX_VALUE) > 0) {
-							if (nearitem.itemStack.count == 0) {
-								kill(nearitem);
-								// respawn item
-								itemsToRespawn.add(item);
+		// Finalize item stacking
+		boolean changed;
+		for (StackingTask<EntityItem> itemTask : itemTasks) {
+			if (!itemTask.isValid()) {
+				break; // Reached end of data
+			}
+			if (itemTask.canProcess()) {
+				// Stacking logic
+				changed = false;
+				for (EntityItem item : itemTask.getNearby()) {
+					if (!item.dead) {
+						if (ItemUtil.transfer(item.itemStack, itemTask.getEntity().itemStack, Integer.MAX_VALUE) > 0) {
+							if (item.itemStack.count == 0) {
+								item.dead = true;
 							}
+							changed = true;
 						}
 					}
 				}
-				near.clear();
-			}
-		}
-	}
-
-	@SuppressWarnings("rawtypes")
-	private static List near = new ArrayList(NoLaggItemStacker.stackThreshold - 1);
-
-	@SuppressWarnings("unchecked")
-	private boolean addSameItemsNear(List<EntityItem> from, EntityItem around) {
-		if (around.dead)
-			return false;
-		for (EntityItem item : from) {
-			if (item.dead)
-				continue;
-			if (item == around)
-				continue;
-			if (item.itemStack.id == around.itemStack.id && item.itemStack.getData() == around.itemStack.getData()) {
-				if (canStack(around, item)) {
-					near.add(item);
+				if (changed) {
+					ItemUtil.respawnItem(itemTask.getEntity());
 				}
 			}
 		}
-		return !near.isEmpty();
-	}
 
-	@SuppressWarnings("unchecked")
-	private boolean addSameOrbsNear(List<EntityExperienceOrb> from, EntityExperienceOrb around) {
-		if (around.dead)
-			return false;
-		for (EntityExperienceOrb orb : from) {
-			if (orb.dead)
-				continue;
-			if (orb == around)
-				continue;
-			if (canStack(around, orb)) {
-				near.add(orb);
+		// Finalize orb stacking
+		if (NoLaggItemStacker.stackOrbs) {
+			for (StackingTask<EntityExperienceOrb> orbTask : orbTasks) {
+				if (!orbTask.isValid()) {
+					break; // Reached end of data
+				}
+				if (orbTask.canProcess()) {
+					// Stacking logic
+					for (EntityExperienceOrb orb : orbTask.getNearby()) {
+						if (!orb.dead) {
+							orbTask.getEntity().value += orb.value;
+							orb.dead = true;
+						}
+					}
+				}
 			}
 		}
-		return !near.isEmpty();
+
+		// Transfer entities into tasks
+		StackingTask.transfer(syncItems, itemTasks);
+		StackingTask.transfer(syncOrbs, orbTasks);
+
+		// Start the next run
+		this.isProcessing = true;
 	}
-
-	private boolean canStack(Entity e1, Entity e2) {
-		double d = distance(e1.locX, e2.locX);
-		if (d > stackRadiusSquared)
-			return false;
-		d += distance(e1.locZ, e2.locZ);
-		if (d > stackRadiusSquared)
-			return false;
-		d += distance(e1.locY, e2.locY);
-		if (d > stackRadiusSquared)
-			return false;
-		return true;
-	}
-
-	private static double distance(double d1, double d2) {
-		d1 = Math.abs(d1 - d2);
-		return d1 * d1;
-	}
-
-	public void run() {
-		synchronized (this.isProcessing) {
-			this.isProcessing = true;
-		}
-
-		updateItems();
-		if (NoLaggItemStacker.stackOrbs) {
-			updateOrbs();
-		}
-
-		synchronized (this.isProcessing) {
-			this.isProcessing = false;
-		}
-	}
-
 }

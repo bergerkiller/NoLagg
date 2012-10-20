@@ -12,14 +12,13 @@ import org.bukkit.entity.Item;
 import com.bergerkiller.bukkit.common.WorldProperty;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.EnumUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemStacker extends NoLaggComponent {
-
 	public static NoLaggItemStacker plugin;
-
 	public static int stackThreshold = 2;
+	public static WorldProperty<Double> stackRadius = new WorldProperty<Double>(2.0);
 	public static Set<Material> ignoredTypes = new HashSet<Material>();
 	public static boolean stackOrbs = true;
 	public static int interval;
@@ -34,8 +33,8 @@ public class NoLaggItemStacker extends NoLaggComponent {
 		ConfigurationNode radius = config.getNode("radius");
 		radius.setHeader("The block radius to look for other items when stacking");
 		radius.addHeader("You can set it for multiple worlds");
-		StackFormer.stackRadius = new WorldProperty<Double>(1.0);
-		StackFormer.stackRadius.load(radius);
+		stackRadius = new WorldProperty<Double>(1.0);
+		stackRadius.load(radius);
 
 		stackThreshold = config.get("threshold", 2);
 		interval = config.get("interval", 20);
@@ -54,7 +53,7 @@ public class NoLaggItemStacker extends NoLaggComponent {
 				stackOrbs = false;
 				continue;
 			}
-			Material mat = EnumUtil.parseMaterial(type, null);
+			Material mat = ParseUtil.parseMaterial(type, null);
 			if (mat != null) {
 				ignoredTypes.add(mat);
 			} else {

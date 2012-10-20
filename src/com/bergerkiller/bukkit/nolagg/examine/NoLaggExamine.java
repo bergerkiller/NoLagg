@@ -10,17 +10,20 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggExamine extends NoLaggComponent {
-
 	public static NoLaggExamine plugin;
+	public static int maxExamineTime;
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
+		this.onReload(config);
 		for (WorldServer world : WorldUtil.getWorlds()) {
 			TimedChunkProviderServer.convert(world);
 		}
@@ -39,17 +42,16 @@ public class NoLaggExamine extends NoLaggComponent {
 
 	@Override
 	public void onReload(ConfigurationNode config) {
+		config.setHeader("maxExamineTime", "\nThe maximum time in ticks a generated examine report can be");
+		config.addHeader("maxExamineTime", "It can be increased, but the generated file might be too large for the viewer to handle");
+		maxExamineTime = config.get("maxExamineTime", 36000);
 	}
 
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length != 0) {
 			if (args[0].equalsIgnoreCase("examine")) {
-				int duration = 500;
-				try {
-					duration = Integer.parseInt(args[1]);
-				} catch (Exception ex) {
-				}
+				int duration = ParseUtil.parseInt(args[1], MathUtil.clamp(500, maxExamineTime));
 				if (sender instanceof Player) {
 					Permission.EXAMINE_RUN.handle(sender);
 					PluginLogger.recipients.add(sender.getName());
@@ -59,6 +61,8 @@ public class NoLaggExamine extends NoLaggComponent {
 				if (PluginLogger.isRunning()) {
 					CommonUtil.sendMessage(sender, ChatColor.RED + "The server is already being examined: " + PluginLogger.getDurPer() + "% completed");
 					CommonUtil.sendMessage(sender, ChatColor.GREEN + "You will be notified when the report has been generated");
+				} else if (duration > maxExamineTime) {
+					CommonUtil.sendMessage(sender, ChatColor.RED + "Examine duration of " + duration + " exceeded the maximum possible: " + maxExamineTime + " ticks");
 				} else {
 					PluginLogger.duration = duration;
 					PluginLogger.start();
