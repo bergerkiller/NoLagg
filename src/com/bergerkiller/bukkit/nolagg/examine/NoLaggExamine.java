@@ -51,7 +51,10 @@ public class NoLaggExamine extends NoLaggComponent {
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length != 0) {
 			if (args[0].equalsIgnoreCase("examine")) {
-				int duration = ParseUtil.parseInt(args[1], MathUtil.clamp(500, maxExamineTime));
+				int duration = MathUtil.clamp(500, maxExamineTime);
+				if (args.length >= 2) {
+					duration = ParseUtil.parseInt(args[1], duration);
+				}
 				if (sender instanceof Player) {
 					Permission.EXAMINE_RUN.handle(sender);
 					PluginLogger.recipients.add(sender.getName());
