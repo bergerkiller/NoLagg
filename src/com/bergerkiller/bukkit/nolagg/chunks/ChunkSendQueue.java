@@ -47,25 +47,14 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
 		}
 		prevtime = System.currentTimeMillis();
-		task = new Task(NoLagg.plugin) {
+		task = new Operation() {
+			@Override
 			public void run() {
-				double newper = ChunkCompressionThread.getBusyPercentage(System.currentTimeMillis() - prevtime);
-				compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
-
-				prevtime = System.currentTimeMillis();
 				try {
-					new Operation() {
-						public void run() {
-							this.doPlayers();
-						}
-
-						public void handle(EntityPlayer ep) {
-							ChunkSendQueue queue = bind(ep);
-							queue.setUpdating(true);
-							queue.update();
-							queue.setUpdating(false);
-						}
-					};
+					double newper = ChunkCompressionThread.getBusyPercentage(System.currentTimeMillis() - prevtime);
+					compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
+					prevtime = System.currentTimeMillis();
+					this.doPlayers();
 				} catch (Exception ex) {
 					NoLaggChunks.plugin.log(Level.SEVERE, "An error occured while sending chunks:");
 					ex.printStackTrace();
@@ -74,7 +63,16 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 					NoLaggChunks.plugin.log(Level.SEVERE, "Restart the server and increase the RAM usage available for Bukkit.");
 				}
 			}
-		}.start(1, 1);
+
+			@Override
+			public void handle(EntityPlayer ep) {
+				ChunkSendQueue queue = bind(ep);
+				// Test
+				queue.updating.next(true);
+				queue.update();
+				queue.updating.reset(false);
+			}
+		}.createTask(NoLagg.plugin).start(1, 1);
 	}
 
 	public static void deinit() {
@@ -196,9 +194,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		super.sort();
 		this.chunkQueue.sort();
 		synchronized (this) {
-			boolean old = this.setUpdating(true);
+			this.updating.next(true);
 			this.sort(this);
-			this.setUpdating(old);
+			this.updating.previous();
 		}
 	}
 

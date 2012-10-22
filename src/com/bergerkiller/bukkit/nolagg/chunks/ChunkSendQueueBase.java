@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 
+import com.bergerkiller.bukkit.common.ActiveState;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
 import net.minecraft.server.ChunkCoordIntPair;
@@ -16,22 +17,9 @@ import net.minecraft.server.ChunkCoordIntPair;
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
-	private boolean isUpdating = false;
+	protected final ActiveState<Boolean> updating = new ActiveState<Boolean>(false);
 	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
 	protected final Set<ChunkCoordIntPair> sentChunks = new HashSet<ChunkCoordIntPair>();
-
-	/**
-	 * Sets whether this collection is being updated
-	 * 
-	 * @param updating
-	 *            to set to
-	 * @return the old updating state
-	 */
-	public boolean setUpdating(boolean updating) {
-		boolean old = this.isUpdating;
-		this.isUpdating = updating;
-		return old;
-	}
 
 	/**
 	 * Sorts the contents of this queue to send in direction of the player<br>
@@ -129,41 +117,41 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	@Override
 	public boolean isEmpty() {
-		return this.isUpdating ? super.isEmpty() : true;
+		return this.updating.get() ? super.isEmpty() : true;
 	}
 
 	@Override
 	public int size() {
-		return this.isUpdating ? super.size() : 0;
+		return this.updating.get() ? super.size() : 0;
 	}
 
 	@Override
 	public Object[] toArray() {
-		boolean old = this.setUpdating(true);
+		this.updating.next(true);
 		try {
 			synchronized (this) {
 				return super.toArray();
 			}
 		} finally {
-			this.setUpdating(old);
+			this.updating.previous();
 		}
 	}
 
 	@Override
 	public Object[] toArray(Object[] value) {
-		boolean old = this.setUpdating(true);
+		this.updating.next(true);
 		try {
 			synchronized (this) {
 				return super.toArray(value);
 			}
 		} finally {
-			this.setUpdating(old);
+			this.updating.previous();
 		}
 	}
 
 	@Override
 	public void clear() {
-		if (this.isUpdating) {
+		if (this.updating.get()) {
 			super.clear();
 			return;
 		}
@@ -267,7 +255,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	@Override
 	public synchronized boolean add(Object object) {
-		if (this.isUpdating) {
+		if (this.updating.get()) {
 			return super.add(object);
 		}
 		if (object == null || !(object instanceof ChunkCoordIntPair)) {
@@ -278,7 +266,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 
 	@Override
 	public synchronized void add(int index, Object object) {
-		if (this.isUpdating) {
+		if (this.updating.get()) {
 			super.add(index, object);
 			return;
 		}

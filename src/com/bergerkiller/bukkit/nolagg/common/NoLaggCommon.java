@@ -27,7 +27,6 @@ import com.bergerkiller.bukkit.nolagg.itembuffer.ItemMap;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
-
 	private final Set<String> lastargs = new HashSet<String>();
 	private Map<String, List<String>> clearShortcuts = new HashMap<String, List<String>>();
 
@@ -84,8 +83,14 @@ public class NoLaggCommon extends NoLaggComponent {
 					types.add("experienceorb");
 				} else {
 					// Read the types
+					List<String> tmpList;
 					for (int i = 1; i < args.length; i++) {
 						String name = args[i].toLowerCase();
+						tmpList = clearShortcuts.get(name);
+						if (tmpList != null) {
+							types.addAll(tmpList);
+							continue;
+						}
 						if (name.contains("xp") || name.contains("orb")) {
 							types.add("experienceorb");
 							continue;
