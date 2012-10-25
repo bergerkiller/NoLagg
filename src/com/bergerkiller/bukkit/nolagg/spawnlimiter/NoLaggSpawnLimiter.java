@@ -23,19 +23,18 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 	@Override
 	public void onReload(ConfigurationNode config) {
 		// existing removable
-		config.setHeader("forceRemoved", "");
-		config.addHeader("forceRemoved", "Entity type or group names that can be removed from loaded chunks");
-		config.addHeader("forceRemoved", "If you don't want certain already spawned entities removed while the server runs, ");
-		config.addHeader("forceRemoved", "Remove them from this list");
+		config.setHeader("onlySpawning", "\nEntity type or group names that can not be removed from loaded chunks");
+		config.addHeader("onlySpawning", "If you don't want certain already spawned entities removed while the server runs, ");
+		config.addHeader("onlySpawning", "Add them to this list");
 
 		// default list
-		if (!config.contains("forceRemoved")) {
-			config.set("forceRemoved", Arrays.asList("monsters", "itemcobblestone", "itemdirt", "itemsand", "itemgravel"));
+		if (!config.contains("onlySpawning")) {
+			config.set("onlySpawning", Arrays.asList("itemdiamond", "itemcoal", "itemironore", "itemgoldore"));
 		}
 
 		ExistingRemovalMap.clear();
-		for (String type : config.getList("forceRemoved", String.class)) {
-			ExistingRemovalMap.addRemovable(type);
+		for (String type : config.getList("onlySpawning", String.class)) {
+			ExistingRemovalMap.addNotRemovable(type);
 		}
 
 		// default spawn limits

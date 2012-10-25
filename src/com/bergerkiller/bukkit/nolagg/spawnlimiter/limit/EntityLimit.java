@@ -7,6 +7,8 @@ import java.util.ArrayList;
  * Bundles multiple Spawn limits together to form one Entity limit
  */
 public class EntityLimit {
+	private final String name;
+	private final SpawnLimit[] limits;
 
 	public EntityLimit() {
 		this.name = "EMPTY";
@@ -36,33 +38,24 @@ public class EntityLimit {
 		return builder.toString();
 	}
 
-	private final String name;
-	private final SpawnLimit[] limits;
-
 	public boolean canSpawn() {
 		for (SpawnLimit limit : limits) {
-			if (!limit.canSpawn())
+			if (!limit.canSpawn()) {
 				return false;
+			}
 		}
 		return true;
 	}
 
 	public void spawn() {
-		for (SpawnLimit limit : limits)
+		for (SpawnLimit limit : limits) {
 			limit.spawn();
+		}
 	}
 
 	public void despawn() {
-		for (SpawnLimit limit : limits)
+		for (SpawnLimit limit : limits) {
 			limit.despawn();
-	}
-
-	public boolean handleSpawn() {
-		if (this.canSpawn()) {
-			this.spawn();
-			return true;
-		} else {
-			return false;
 		}
 	}
 }

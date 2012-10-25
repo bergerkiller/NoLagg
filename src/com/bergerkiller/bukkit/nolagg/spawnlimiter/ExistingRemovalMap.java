@@ -9,43 +9,44 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
  * Contains the entity names mapped to a Boolean, checking if they can be deleted from loading chunks
  */
 public class ExistingRemovalMap {
-	private static boolean removeMobs = false;
-	private static boolean removeAnimals = false;
-	private static boolean removeMonsters = false;
-	private static boolean removeItems = false;
-	private static boolean removeFallingBlocks = false;
+	private static boolean removeMobs = true;
+	private static boolean removeAnimals = true;
+	private static boolean removeMonsters = true;
+	private static boolean removeItems = true;
+	private static boolean removeFallingBlocks = true;
 	private static final Map<String, Boolean> canRemove = new HashMap<String, Boolean>();
 
 	public static void clear() {
-		removeMobs = false;
-		removeAnimals = false;
-		removeMonsters = false;
-		removeItems = false;
-		removeFallingBlocks = false;
+		removeMobs = true;
+		removeAnimals = true;
+		removeMonsters = true;
+		removeItems = true;
+		removeFallingBlocks = true;
 		canRemove.clear();
 	}
 
 	/**
-	 * Adds an entity type or group as removable
+	 * Adds an entity type or group as a force-remove cancelled type<br>
+	 * This type will not be removed from loaded chunks
 	 * 
 	 * @param entityname of the entity type of group
 	 */
-	public static void addRemovable(String entityname) {
+	public static void addNotRemovable(String entityname) {
 		entityname = entityname.toLowerCase();
 		if (entityname.contains("tnt"))
 			entityname = "tnt";
 		if (entityname.equals("mob") || entityname.equals("mobs")) {
-			removeMobs = true;
+			removeMobs = false;
 		} else if (entityname.equals("animal") || entityname.equals("animals")) {
-			removeAnimals = true;
+			removeAnimals = false;
 		} else if (entityname.equals("monster") || entityname.equals("monsters")) {
-			removeMonsters = true;
+			removeMonsters = false;
 		} else if (entityname.equals("item") || entityname.equals("items")) {
-			removeItems = true;
+			removeItems = false;
 		} else if (entityname.equals("fallingblock") || entityname.equals("fallingblocks")) {
-			removeFallingBlocks = true;
+			removeFallingBlocks = false;
 		} else {
-			canRemove.put(entityname, true);
+			canRemove.put(entityname, false);
 		}
 	}
 

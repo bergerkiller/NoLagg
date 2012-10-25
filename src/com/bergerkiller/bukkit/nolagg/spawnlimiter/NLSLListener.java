@@ -11,12 +11,14 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 
 public class NLSLListener implements Listener {
@@ -25,6 +27,16 @@ public class NLSLListener implements Listener {
 	public void onItemSpawn(ItemSpawnEvent event) {
 		if (!event.isCancelled()) {
 			if (!EntitySpawnHandler.handlePreSpawn(event.getEntity(), false)) {
+				event.setCancelled(true);
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void onPlayerDropItem(PlayerDropItemEvent event) {
+		if (!event.isCancelled()) {
+			if (!EntitySpawnHandler.handlePreSpawn(event.getItemDrop(), false)) {
+				event.getPlayer().sendMessage(NoLagg.plugin.getLocale("spawnlimiter.nodrop"));
 				event.setCancelled(true);
 			}
 		}

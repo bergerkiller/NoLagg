@@ -124,7 +124,12 @@ public class EntitySpawnHandler {
 		if (isIgnored(entity)) {
 			return true;
 		} else {
-			return getLimits(entity, mobSpawnerEntities.contains(entity.getEntityId())).handleSpawn();
+			EntityLimit limit = getLimits(entity, mobSpawnerEntities.contains(entity.getEntityId()));
+			boolean canSpawn = limit.canSpawn();
+			// Spawn anyhow, will be reduced in count when the entity is removed properly
+			limit.spawn();
+			// Return the spawn state (if true, kills the entity)
+			return canSpawn;
 		}
 	}
 

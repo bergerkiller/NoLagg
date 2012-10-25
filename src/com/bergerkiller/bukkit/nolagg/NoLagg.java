@@ -33,6 +33,11 @@ public class NoLagg extends PluginBase {
 	}
 
 	@Override
+	public void localization() {
+		this.loadLocale("spawnlimiter.nodrop", "§e[NoLagg] §cCan not drop this item: Item spawn limit reached!");
+	}
+
+	@Override
 	public void enable() {
 		plugin = this;
 
