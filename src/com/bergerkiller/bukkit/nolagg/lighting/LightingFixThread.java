@@ -10,6 +10,8 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.craftbukkit.util.LongHash;
+import org.bukkit.craftbukkit.util.LongHashSet;
 
 import net.minecraft.server.Block;
 import net.minecraft.server.Chunk;
@@ -65,6 +67,11 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	public static void fix(World world) {
+		LongHashSet chunks = new LongHashSet();
+		// Add the initial chunks that are already loaded
+		for (long value : WorldUtil.getNative(world).chunkProviderServer.chunks.keySet()) {
+			chunks.add(value);
+		}
 		// Get the region folder to look in
 		File regionFolder = new File(Bukkit.getWorldContainer() + File.separator + world.getName() + File.separator + "region");
 		if (regionFolder.exists()) {
@@ -106,7 +113,7 @@ public class LightingFixThread extends AsyncTask {
 					for (dz = 0; dz < 32; dz++) {
 						if (reg.c(dx, dz)) {
 							// Region file exists - add it
-							fix(world, rx + dx, rz + dz, true);
+							chunks.add(rx + dx, rz + dz);
 						}
 					}
 				}
@@ -115,8 +122,9 @@ public class LightingFixThread extends AsyncTask {
 					reg.c();
 				}
 			}
-		} else {
-			NoLagg.plugin.log(Level.WARNING, "Failed to fix world '" + world.getName() + "': Region folder is missing!");
+		}
+		for (long key : chunks.toArray()) {
+			fix(world, LongHash.msw(key), LongHash.lsw(key), true);
 		}
 	}
 
