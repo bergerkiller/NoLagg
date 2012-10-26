@@ -1,9 +1,15 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
+import java.io.File;
+import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 
 import net.minecraft.server.Block;
 import net.minecraft.server.Chunk;
@@ -11,11 +17,13 @@ import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.ChunkSection;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.EnumSkyBlock;
+import net.minecraft.server.RegionFile;
 import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -23,21 +31,22 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingFixThread extends AsyncTask {
-
 	private static AsyncTask task;
 	private static LinkedHashSet<Chunk> toFix = new LinkedHashSet<Chunk>();
+	private static List<FixOperation> next = new ArrayList<FixOperation>();
+	private static LinkedList<PendingChunk> pendingChunks = new LinkedList<PendingChunk>();
+	private static int pending = 0;
+	private static Task chunkLoadTask;
 
 	public static int getPendingSize() {
-		synchronized (toFix) {
-			return toFix.size();
-		}
+		return pending;
 	}
 
-	public static void fix(org.bukkit.Chunk chunk) {
-		fix(WorldUtil.getNative(chunk));
+	private static void addForFixing(org.bukkit.Chunk chunk) {
+		addForFixing(WorldUtil.getNative(chunk));
 	}
 
-	public static void fix(Chunk chunk) {
+	private static void addForFixing(Chunk chunk) {
 		synchronized (toFix) {
 			toFix.add(chunk);
 			if (task == null) {
@@ -55,6 +64,103 @@ public class LightingFixThread extends AsyncTask {
 		}
 	}
 
+	public static void fix(World world) {
+		// Get the region folder to look in
+		File regionFolder = new File(Bukkit.getWorldContainer() + File.separator + world.getName() + File.separator + "region");
+		if (regionFolder.exists()) {
+			// Loop through all region files of the world
+			int dx, dz;
+			int rx, rz;
+			for (String regionFileName : regionFolder.list()) {
+				// Validate file
+				File file = new File(regionFolder + File.separator + regionFileName);
+				if (!file.isFile() || !file.exists()) {
+					continue;
+				}
+				String[] parts = regionFileName.split("\\.");
+				if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
+					continue;
+				}
+				// Obtain the chunk offset of this region file
+				try {
+					rx = Integer.parseInt(parts[1]) << 5;
+					rz = Integer.parseInt(parts[2]) << 5;
+				} catch (Exception ex) {
+					continue;
+				}
+
+				// Is it contained in the cache?
+				Reference<RegionFile> ref = RegionFileCacheRef.FILES.get(file);
+				RegionFile reg = null;
+				if (ref != null) {
+					reg = ref.get();
+				}
+				boolean closeOnFinish = false;
+				if (reg == null) {
+					closeOnFinish = true;
+					// Manually load this region file
+					reg = new RegionFile(file);
+				}
+				// Obtain all generated chunks in this region file
+				for (dx = 0; dx < 32; dx++) {
+					for (dz = 0; dz < 32; dz++) {
+						if (reg.c(dx, dz)) {
+							// Region file exists - add it
+							fix(world, rx + dx, rz + dz, true);
+						}
+					}
+				}
+				if (closeOnFinish) {
+					// Close the region file stream - we are done with it
+					reg.c();
+				}
+			}
+		} else {
+			NoLagg.plugin.log(Level.WARNING, "Failed to fix world '" + world.getName() + "': Region folder is missing!");
+		}
+	}
+
+	public static void fix(org.bukkit.Chunk chunk) {
+		pending++;
+		addForFixing(chunk);
+	}
+
+	public static void fix(World world, int x, int z, boolean allowLoad) {
+		pending++;
+		org.bukkit.Chunk chunk = WorldUtil.getChunk(world, x, z);
+		if (chunk != null) {
+			// Already loaded, no need to queue it
+			addForFixing(chunk);
+			return;
+		}
+		// Load this chunk in a tick task
+		pendingChunks.add(new PendingChunk(world, x, z));
+		if (chunkLoadTask == null && allowLoad) {
+			chunkLoadTask = new Task(NoLagg.plugin) {
+				public void run() {
+					// If nothing left to do, abort this task
+					if (pendingChunks.isEmpty()) {
+						stop();
+						chunkLoadTask = null;
+						return;
+					}
+					// Ignore this run if fixing is still being performed
+					synchronized (toFix) {
+						if (toFix.size() > 500) {
+							return;
+						}
+					}
+					// Load a maximum of 20 chunks
+					final int loadRate = 20;
+					for (int i = 0; i < loadRate && !pendingChunks.isEmpty(); i++) {
+						PendingChunk pending = pendingChunks.poll();
+						addForFixing(pending.world.getChunkAt(pending.x, pending.z));
+					}
+				}
+			}.start(1, 1);
+		}
+	}
+
 	public static boolean isFixing(org.bukkit.Chunk chunk) {
 		return isFixing(WorldUtil.getNative(chunk));
 	}
@@ -66,6 +172,13 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	public static void finish() {
+		Task.stop(chunkLoadTask);
+		chunkLoadTask = null;
+		pending -= pendingChunks.size();
+		pendingChunks.clear();
+		if (getPendingSize() > 10) {
+			NoLagg.plugin.log(Level.INFO, "Finishing " + getPendingSize() + " remaining lighting fix operations...");
+		}
 		executeAll();
 		AsyncTask.stop(task);
 		task = null;
@@ -78,8 +191,6 @@ public class LightingFixThread extends AsyncTask {
 			task = null;
 		}
 	}
-
-	private static List<FixOperation> next = new ArrayList<FixOperation>();
 
 	private static boolean executeAll() {
 		synchronized (next) {
@@ -94,17 +205,34 @@ public class LightingFixThread extends AsyncTask {
 			for (FixOperation fix : next) {
 				fix.prepare();
 			}
+			int procctr = 0;
 
-			final int redocount = 4;
-			for (int i = 0; i < redocount; i++) {
+			// Sky light
+			boolean haderror = true;
+			boolean first = true;
+			while (haderror) {
+				haderror = false;
 				for (FixOperation fix : next) {
-					fix.smooth(EnumSkyBlock.SKY);
-					fix.smooth(EnumSkyBlock.BLOCK);
+					haderror |= fix.smooth(EnumSkyBlock.SKY);
+					if (first && (procctr++ % 2) == 0) {
+						pending--;
+					}
 				}
+				first = false;
 			}
 
-			for (FixOperation fix : next) {
-				fix.finish();
+			// Block light
+			haderror = true;
+			first = true;
+			while (haderror) {
+				haderror = false;
+				for (FixOperation fix : next) {
+					haderror |= fix.smooth(EnumSkyBlock.BLOCK);
+					if (first && (procctr++ % 2) == 0) {
+						pending--;
+					}
+				}
+				first = false;
 			}
 
 			// remove
@@ -114,9 +242,21 @@ public class LightingFixThread extends AsyncTask {
 				}
 			}
 
+			// finish (next tick operations)
+			for (FixOperation fix : next) {
+				fix.finish();
+			}
 			next.clear();
 			return true;
 		}
+	}
+
+	private static class PendingChunk extends ChunkCoordIntPair {
+		public PendingChunk(World world, int x, int z) {
+			super(x, z);
+			this.world = world;
+		}
+		public final World world;
 	}
 
 	private static class FixOperation {
@@ -148,10 +288,17 @@ public class LightingFixThread extends AsyncTask {
 			return chunk.getBrightness(mode, x, y, z);
 		}
 
-		public void smooth(EnumSkyBlock mode) {
+		/**
+		 * Performs light smoothing to fix dark glitches
+		 * 
+		 * @param mode of lighting
+		 * @return True if errors were fixed, False if not
+		 */
+		public boolean smooth(EnumSkyBlock mode) {
 			int x, y, z, typeid, light, factor;
 			int loops = 0;
 			boolean haserror = true;
+			boolean haderror = false;
 			int lasterrx, lasterry, lasterrz;
 			lasterrx = lasterry = lasterrz = 0;
 			while (haserror) {
@@ -209,6 +356,7 @@ public class LightingFixThread extends AsyncTask {
 										lasterry = y;
 										lasterrz = z;
 										haserror = true;
+										haderror = true;
 									}
 								}
 							}
@@ -216,6 +364,7 @@ public class LightingFixThread extends AsyncTask {
 					}
 				}
 			}
+			return haderror;
 		}
 
 		public void prepare() {
@@ -245,28 +394,28 @@ public class LightingFixThread extends AsyncTask {
 		}
 
 		public void finish() {
-			// transfer new block data
-			final ChunkCoordIntPair pair = new ChunkCoordIntPair(chunk.x, chunk.z);
-			new Task(NoLagg.plugin) {
+			// send chunk (update)
+			CommonUtil.nextTick(new Operation(false) {
+				boolean found = false;
+
 				public void run() {
-					new Operation() {
-						public void run() {
-							this.doPlayers(world);
-						}
-
-						@SuppressWarnings("unchecked")
-						public void handle(EntityPlayer ep) {
-							if (Math.abs(pair.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
-								return;
-							if (Math.abs(pair.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
-								return;
-							ep.chunkCoordIntPairQueue.add(0, pair);
-						}
-					};
+					this.doPlayers(world);
+					if (!found) {
+						// unload chunk if there were no players nearby
+						world.chunkProviderServer.queueUnload(chunk.x, chunk.z);
+					}
 				}
-			}.start();
+
+				@SuppressWarnings("unchecked")
+				public void handle(EntityPlayer ep) {
+					if (Math.abs(chunk.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
+						return;
+					if (Math.abs(chunk.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
+						return;
+					ep.chunkCoordIntPairQueue.add(0, new ChunkCoordIntPair(chunk.x, chunk.z));
+					found = true;
+				}
+			});
 		}
-
 	}
-
 }

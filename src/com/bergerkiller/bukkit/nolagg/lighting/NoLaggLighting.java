@@ -2,13 +2,12 @@ package com.bergerkiller.bukkit.nolagg.lighting;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
@@ -38,6 +37,28 @@ public class NoLaggLighting extends NoLaggComponent {
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length == 0)
 			return false;
+		if (args[0].equalsIgnoreCase("fixworld")) {
+			Permission.LIGHTING_FIX.handle(sender);
+			final World world;
+			if (args.length >= 2) {
+				world = Bukkit.getWorld(args[1]);
+				if (world == null) {
+					sender.sendMessage(ChatColor.RED + "World '" + args[1] + "' was not found!");
+					return true;
+				}
+			} else if (sender instanceof Player) {
+				world = ((Player) sender).getWorld();
+			} else {
+				sender.sendMessage("As a console you have to specify the world to fix!");
+				return true;
+			}
+			// Fix all the chunks in this world
+			sender.sendMessage(ChatColor.YELLOW + "The world is now being fixed, this may take very long!");
+			sender.sendMessage(ChatColor.YELLOW + "To view the fixing status, use /lag stat");
+			// Get an iterator for all the chunks to fix
+			LightingFixThread.fix(world);
+			return true;
+		}
 		if (args[0].equalsIgnoreCase("fix")) {
 			if (sender instanceof Player) {
 				Permission.LIGHTING_FIX.handle(sender);
@@ -53,10 +74,7 @@ public class NoLaggLighting extends NoLaggComponent {
 				int cz = p.getLocation().getBlockZ() >> 4;
 				for (int a = -radius; a <= radius; a++) {
 					for (int b = -radius; b <= radius; b++) {
-						Chunk chunk = WorldUtil.getChunk(p.getWorld(), cx + a, cz + b);
-						if (chunk != null) {
-							LightingFixThread.fix(chunk);
-						}
+						LightingFixThread.fix(p.getWorld(), cx + a, cz + b, false);
 					}
 				}
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
