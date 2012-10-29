@@ -10,6 +10,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.craftbukkit.util.LongHashSet;
 
@@ -28,6 +29,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -66,6 +68,22 @@ public class LightingFixThread extends AsyncTask {
 		}
 	}
 
+	public static File getRegionFolder(World world) {
+		StringBuilder path = new StringBuilder();
+		// Main root path
+		path.append(Bukkit.getWorldContainer()).append(File.separator).append(world.getName());
+		// Special dim folder for nether and the_end
+		if (world.getEnvironment() == Environment.NETHER) {
+			path.append(File.separator).append("DIM-1");
+		} else if (world.getEnvironment() == Environment.THE_END) {
+			path.append(File.separator).append("DIM1");
+		}
+		// Final region folder appending
+		path.append(File.separator).append("region");
+		// Convert path to file
+		return new File(path.toString());
+	}
+
 	public static void fix(World world) {
 		LongHashSet chunks = new LongHashSet();
 		// Add the initial chunks that are already loaded
@@ -73,14 +91,14 @@ public class LightingFixThread extends AsyncTask {
 			chunks.add(value);
 		}
 		// Get the region folder to look in
-		File regionFolder = new File(Bukkit.getWorldContainer() + File.separator + world.getName() + File.separator + "region");
+		File regionFolder = getRegionFolder(world);
 		if (regionFolder.exists()) {
 			// Loop through all region files of the world
 			int dx, dz;
 			int rx, rz;
 			for (String regionFileName : regionFolder.list()) {
 				// Validate file
-				File file = new File(regionFolder + File.separator + regionFileName);
+				File file = new File(regionFolder, regionFileName);
 				if (!file.isFile() || !file.exists()) {
 					continue;
 				}
@@ -95,18 +113,16 @@ public class LightingFixThread extends AsyncTask {
 				} catch (Exception ex) {
 					continue;
 				}
-
 				// Is it contained in the cache?
 				Reference<RegionFile> ref = RegionFileCacheRef.FILES.get(file);
 				RegionFile reg = null;
 				if (ref != null) {
 					reg = ref.get();
 				}
-				boolean closeOnFinish = false;
 				if (reg == null) {
-					closeOnFinish = true;
-					// Manually load this region file
+					// Manually load this region file and close it (we don't use it to load chunks)
 					reg = new RegionFile(file);
+					reg.c();
 				}
 				// Obtain all generated chunks in this region file
 				for (dx = 0; dx < 32; dx++) {
@@ -116,10 +132,6 @@ public class LightingFixThread extends AsyncTask {
 							chunks.add(rx + dx, rz + dz);
 						}
 					}
-				}
-				if (closeOnFinish) {
-					// Close the region file stream - we are done with it
-					reg.c();
 				}
 			}
 		}
@@ -201,12 +213,16 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	private static boolean executeAll() {
+		int maxChunksPerRun = 500;
 		synchronized (next) {
 			synchronized (toFix) {
 				if (toFix.isEmpty())
 					return false;
 				for (Chunk c : toFix) {
 					next.add(new FixOperation(c));
+					if (maxChunksPerRun-- <= 0) {
+						break;
+					}
 				}
 			}
 
@@ -338,8 +354,8 @@ public class LightingFixThread extends AsyncTask {
 								continue;
 							}
 							typeid = this.chunk.getTypeId(x, y, z);
-							if (!Block.n[typeid]) {
-								factor = Math.max(1, Block.lightBlock[typeid]);
+							if (!MaterialUtil.ISSOLID.get(typeid)) {
+								factor = Math.max(1, MaterialUtil.OPACITY.get(typeid));
 								light = this.chunk.getBrightness(mode, x, y, z);
 								// actual editing here
 								int newlight = light + factor;

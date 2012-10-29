@@ -30,6 +30,7 @@ import org.bukkit.Location;
 // CraftBukkit end
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 
 public class CustomExplosion {
@@ -404,7 +405,7 @@ public class CustomExplosion {
 			}
 			if (this.fire) {
 				int typeBelow = this.world.getTypeId(x, y - 1, z);
-				if (type == 0 && Block.n[typeBelow] && this.h.nextInt(3) == 0) {
+				if (type == 0 && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
 					this.world.setTypeId(x, y, z, Block.FIRE.id);
 				}
 			}

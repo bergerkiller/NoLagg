@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggLighting extends NoLaggComponent {
-
 	public static boolean auto = true;
 	public static NoLaggLighting plugin;
 

@@ -1,26 +1,24 @@
 package com.bergerkiller.bukkit.nolagg.saving;
 
-import java.io.FileDescriptor;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.SyncFailedException;
 import java.lang.ref.Reference;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.logging.Level;
 
 import net.minecraft.server.RegionFile;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class RegionFileFlusher {
 	private static Task flushTask;
+	public static final SafeField<File> regionFile = new SafeField<File>(RegionFile.class, "b");
 
 	public static void reload() {
 		Task.stop(flushTask);
@@ -28,32 +26,41 @@ public class RegionFileFlusher {
 			flushTask = new Task(NoLagg.plugin) {
 				public void run() {
 					// get all the required region files to flush
-					final List<Entry<RegionFile, RandomAccessFile>> regions = new ArrayList<Entry<RegionFile, RandomAccessFile>>();
+					final List<RegionFile> regions = new ArrayList<RegionFile>();
 					for (Reference<RegionFile> ref : RegionFileCacheRef.FILES.values()) {
 						RegionFile regionfile = ref.get();
 						if (regionfile != null) {
-							RandomAccessFile raf = RegionFileRef.stream.get(regionfile);
-							if (raf != null) {
-								regions.add(new SimpleEntry<RegionFile, RandomAccessFile>(regionfile, raf));
-							}
+							regions.add(regionfile);
 						}
 					}
 
 					// create an async task to write stuff to file
 					new AsyncTask("NoLagg saving data writer") {
 						public void run() {
-							for (Entry<RegionFile, RandomAccessFile> file : regions) {
-								synchronized (file.getKey()) {
+							for (RegionFile region : regions) {
+								synchronized (region) {
+									RandomAccessFile raf = RegionFileRef.stream.get(region);
+									if (raf == null) {
+										continue;
+									}
+									File source = regionFile.get(region);
+									if (source == null) {
+										continue;
+									}
+
+									/* Old method:
+									FileDescriptor fd = raf.getFD();
+									if (fd.valid()) {
+										fd.sync();
+									}
+									*/
+
 									try {
-										FileDescriptor fd = file.getValue().getFD();
-										if (fd.valid()) {
-											fd.sync();
-										}
-									} catch (SyncFailedException e) {
-										// Suppress
-									} catch (IOException e) {
-										NoLaggSaving.plugin.log(Level.SEVERE, "Failed to sync region data to file:");
-										e.printStackTrace();
+										raf.close();
+										// Replace with a new instance
+										RegionFileRef.stream.set(region, new RandomAccessFile(source, "rw"));
+									} catch (IOException ex) {
+										// Was already closed
 									}
 								}
 							}
