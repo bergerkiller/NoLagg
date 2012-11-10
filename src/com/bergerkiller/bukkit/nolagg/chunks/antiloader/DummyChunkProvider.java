@@ -16,8 +16,6 @@ public class DummyChunkProvider extends ChunkProviderServer {
 
 	public DummyChunkProvider(WorldServer world) {
 		super(world, null, null);
-		this.chunks = null;
-		this.unloadQueue = null;
 		this.chunkProvider = null;
 	}
 
@@ -68,12 +66,12 @@ public class DummyChunkProvider extends ChunkProviderServer {
 
 	@Override
 	public boolean isChunkLoaded(int i, int j) {
-		throw FAIL;
+		return false;
 	}
 
 	@Override
 	public Chunk loadChunk(int arg0, int arg1) {
-		throw FAIL;
+		return null;
 	}
 
 	@Override

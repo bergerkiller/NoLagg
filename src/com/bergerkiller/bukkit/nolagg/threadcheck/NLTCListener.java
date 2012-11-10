@@ -25,6 +25,7 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
+@SuppressWarnings("deprecation")
 public class NLTCListener implements org.bukkit.event.Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)

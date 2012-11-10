@@ -87,8 +87,8 @@ public class LightingFixThread extends AsyncTask {
 	public static void fix(World world) {
 		LongHashSet chunks = new LongHashSet();
 		// Add the initial chunks that are already loaded
-		for (long value : WorldUtil.getNative(world).chunkProviderServer.chunks.keySet()) {
-			chunks.add(value);
+		for (Chunk chunk : WorldUtil.getChunks(WorldUtil.getNative(world))) {
+			chunks.add(LongHash.toLong(chunk.x, chunk.z));
 		}
 		// Get the region folder to look in
 		File regionFolder = getRegionFolder(world);

@@ -18,6 +18,7 @@ import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NetworkManagerRef;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
@@ -41,38 +42,40 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private static long prevtime;
 	private static Task task;
 
+	private static class ChunkLoadingTask extends Task {
+		public ChunkLoadingTask() {
+			super(NoLagg.plugin);
+		}
+
+		@Override
+		public void run() {
+			try {
+				double newper = ChunkCompressionThread.getBusyPercentage(System.currentTimeMillis() - prevtime);
+				compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
+				prevtime = System.currentTimeMillis();
+				for (EntityPlayer ep : CommonUtil.getOnlinePlayers()) {
+					ChunkSendQueue queue = bind(ep);
+					queue.updating.next(true);
+					queue.update();
+					queue.updating.reset(false);
+				}
+			} catch (Exception ex) {
+				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured while sending chunks:");
+				ex.printStackTrace();
+			} catch (OutOfMemoryError ex) {
+				NoLaggChunks.plugin.log(Level.SEVERE, "We are running out of memory here!");
+				NoLaggChunks.plugin.log(Level.SEVERE, "Restart the server and increase the RAM usage available for Bukkit.");
+			}
+		}
+	}
+
 	public static void init() {
 		if (!NetworkManagerRef.queueSize.isValid()) {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Failed to hook into the player packet queue size field");
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
 		}
 		prevtime = System.currentTimeMillis();
-		task = new Operation() {
-			@Override
-			public void run() {
-				try {
-					double newper = ChunkCompressionThread.getBusyPercentage(System.currentTimeMillis() - prevtime);
-					compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
-					prevtime = System.currentTimeMillis();
-					this.doPlayers();
-				} catch (Exception ex) {
-					NoLaggChunks.plugin.log(Level.SEVERE, "An error occured while sending chunks:");
-					ex.printStackTrace();
-				} catch (OutOfMemoryError ex) {
-					NoLaggChunks.plugin.log(Level.SEVERE, "We are running out of memory here!");
-					NoLaggChunks.plugin.log(Level.SEVERE, "Restart the server and increase the RAM usage available for Bukkit.");
-				}
-			}
-
-			@Override
-			public void handle(EntityPlayer ep) {
-				ChunkSendQueue queue = bind(ep);
-				// Test
-				queue.updating.next(true);
-				queue.update();
-				queue.updating.reset(false);
-			}
-		}.createTask(NoLagg.plugin).start(1, 1);
+		task = new ChunkLoadingTask().start(1, 1);
 	}
 
 	public static void deinit() {
