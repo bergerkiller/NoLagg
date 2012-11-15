@@ -33,7 +33,6 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
 import com.bergerkiller.bukkit.nolagg.lighting.LightingFixThread;
-import com.bergerkiller.bukkit.nolagg.saving.AutoSaveChanger;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class PerformanceMonitor extends Task {
@@ -55,11 +54,6 @@ public class PerformanceMonitor extends Task {
 	public static double broadcastThreshold;
 
 	private static final double strength = 0.7;
-	public static final ProcessTime entityListGen = new ProcessTime("Entity lstng", ChatColor.GREEN);
-	public static final ProcessTime entitySpawnLimit = new ProcessTime("Spwn limtr", ChatColor.DARK_GREEN);
-	public static final ProcessTime chunkUpdate = new ProcessTime("Chnk updtr", ChatColor.DARK_RED);
-	public static final ProcessTime chunkSend = new ProcessTime("Chnk sending", ChatColor.RED);
-	private static final ProcessTime[] times = new ProcessTime[] { entityListGen, entitySpawnLimit, chunkUpdate, chunkSend };
 
 	public static ArrayList<String> recipients = new ArrayList<String>();
 	public static HashSet<String> removalReq = new HashSet<String>();
@@ -343,20 +337,6 @@ public class PerformanceMonitor extends Task {
 					totaluchunkcount -= 144;
 				}
 			}
-
-			double totaltime = 0;
-			String maxelement = null;
-			{
-				double max = Double.MIN_VALUE;
-				for (ProcessTime ptime : times) {
-					double dur = ptime.get(monitorInterval);
-					totaltime += dur;
-					if (dur > max) {
-						max = dur;
-						maxelement = ptime.name;
-					}
-				}
-			}
 			// ================
 			if (sendLog && logger != null) {
 				try {
@@ -392,8 +372,6 @@ public class PerformanceMonitor extends Task {
 					msg += getColumn(String.valueOf(itemcount));
 					msg += getColumn(String.valueOf(tntcount));
 					msg += getColumn(String.valueOf(playercount));
-					msg += getColumn(MathUtil.round(totaltime, 1) + " ms");
-					msg += getColumn(maxelement);
 					log(msg);
 					logger.flush();
 				} catch (IOException ex) {
@@ -412,9 +390,6 @@ public class PerformanceMonitor extends Task {
 				// Line
 				s.sendMessage("-");
 				String mem;
-				// update times
-				mem = "Update: " + MathUtil.round(totaltime, 1) + " ms (" + maxelement + " took longest)";
-				s.sendMessage(mem);
 				// memory
 				s.sendMessage(getMemory(false));
 				// chunks
@@ -444,48 +419,6 @@ public class PerformanceMonitor extends Task {
 				messages.add("");
 
 				String mem;
-				// Global update times
-				if (totaltime > 0) {
-					mem = "";
-					for (ProcessTime ptim : times)
-						mem += ptim.toString();
-					messages.add(mem);
-
-					final int length = 50;
-					// get bar lengths
-					int totallength = 0;
-					for (ProcessTime ptime : times) {
-						totallength += (ptime.barlength = (int) (length * ptime.get(monitorInterval) / totaltime));
-					}
-					int i = 0;
-					while (totallength > length) {
-						times[i].barlength--;
-						totallength--;
-						i++;
-						if (i > times.length - 1)
-							i = 0;
-					}
-					while (totallength < length) {
-						times[i].barlength++;
-						totallength++;
-						i++;
-						if (i > times.length - 1)
-							i = 0;
-					}
-					// get message
-
-					mem = ChatColor.YELLOW + "Update: ";
-					for (ProcessTime ptime : times) {
-						mem += getProgress(ptime.barlength, ptime.color);
-					}
-					mem += ChatColor.YELLOW + " (" + MathUtil.round(totaltime, 1) + " MS/tick)";
-					if (NoLaggComponents.SAVING.isEnabled()) {
-						if (AutoSaveChanger.isSaving()) {
-							mem += ChatColor.RED + " (SAVING " + AutoSaveChanger.SAVE_PERCENTAGE + "%)";
-						}
-					}
-					messages.add(mem);
-				}
 
 				// Memory
 				messages.add(getMemory(true));
@@ -555,11 +488,6 @@ public class PerformanceMonitor extends Task {
 
 				}
 			}
-		}
-
-		// reset processing times calculations
-		for (ProcessTime ptime : times) {
-			ptime.clear();
 		}
 
 		NLMListener.reset();

@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.zip.Deflater;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.lishid.orebfuscator.obfuscation.Calculations;
 
 import net.minecraft.server.Chunk;
@@ -108,16 +109,16 @@ public class ChunkCompressionThread extends AsyncTask {
 
 	public static Packet51MapChunk createPacket(Chunk chunk, ChunkMap buffer) {
 		Packet51MapChunk mapchunk = new Packet51MapChunk();
-		mapchunk.a = chunk.x;
-		mapchunk.b = chunk.z;
-		mapchunk.e = true; // yes, has biome data
+		Packet51MapChunkRef.x.set(mapchunk, chunk.x);
+		Packet51MapChunkRef.z.set(mapchunk, chunk.z);
+		Packet51MapChunkRef.hasBiomeData.set(mapchunk, true); // yes, has biome data
 		if (buffer == null) {
 			buffer = new ChunkMap();
 		}
 		fill(chunk, buffer);
-		mapchunk.d = buffer.c;
-		mapchunk.c = buffer.b;
-		mapchunk.inflatedBuffer = buffer.a;
+		Packet51MapChunkRef.chunkDataBitMap.set(mapchunk, buffer.b);
+		Packet51MapChunkRef.chunkBiomeBitMap.set(mapchunk, buffer.c);
+		Packet51MapChunkRef.inflatedBuffer.set(mapchunk, buffer.a);
 		return mapchunk;
 	}
 
@@ -193,15 +194,17 @@ public class ChunkCompressionThread extends AsyncTask {
 	private void deflate(Packet51MapChunk packet) {
 		this.deflater.reset();
 		this.deflater.setLevel(6);
-		this.deflater.setInput(packet.inflatedBuffer);
+		this.deflater.setInput(Packet51MapChunkRef.inflatedBuffer.get(packet));
 		this.deflater.finish();
-		packet.size = this.deflater.deflate(this.compbuffer);
-		if (packet.size == 0) {
-			packet.size = this.deflater.deflate(this.compbuffer);
+		int size = this.deflater.deflate(this.compbuffer);
+		if (size == 0) {
+			size = this.deflater.deflate(this.compbuffer);
 		}
-		packet.buffer = new byte[packet.size];
-		System.arraycopy(this.compbuffer, 0, packet.buffer, 0, packet.size);
-		packet.inflatedBuffer = null; // dereference
+		byte[] buffer = new byte[size];
+		System.arraycopy(this.compbuffer, 0, buffer, 0, size);
+		Packet51MapChunkRef.size.set(packet, size);
+		Packet51MapChunkRef.buffer.set(packet, buffer);
+		Packet51MapChunkRef.inflatedBuffer.set(packet, null); // dereference
 	}
 
 	public static double getBusyPercentage(long timescale) {

@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.common;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,6 +50,9 @@ public class NoLaggCommon extends NoLaggComponent {
 			node.set("enemies", Arrays.asList("monster"));
 			node.set("notneutral", Arrays.asList("monster", "item", "tnt", "egg", "arrow"));
 		}
+		if (!config.contains("clearShortcuts.all")) {
+			config.set("clearShortcuts.all", Arrays.asList("items", "mobs", "fallingblocks", "tnt", "xporb"));
+		}
 		ConfigurationNode shortc = config.getNode("clearShortcuts");
 		shortc.setHeader("");
 		shortc.addHeader("Several shortcuts you can use for the /nolagg clear(all) command");
@@ -84,13 +88,17 @@ public class NoLaggCommon extends NoLaggComponent {
 				} else {
 					// Read the types
 					List<String> tmpList;
+					ArrayList<String> inputTypes = new ArrayList<String>();
 					for (int i = 1; i < args.length; i++) {
 						String name = args[i].toLowerCase();
 						tmpList = clearShortcuts.get(name);
 						if (tmpList != null) {
-							types.addAll(tmpList);
-							continue;
+							inputTypes.addAll(tmpList);
+						} else {
+							inputTypes.add(name);
 						}
+					}
+					for (String name : inputTypes) {
 						if (name.contains("xp") || name.contains("orb")) {
 							types.add("experienceorb");
 							continue;
@@ -141,39 +149,32 @@ public class NoLaggCommon extends NoLaggComponent {
 
 				// Entity removal logic
 				int remcount = 0; // The amount of removed entities
+				boolean monsters = types.contains("monsters");
+				boolean animals = types.contains("animals");
+				boolean items = types.contains("items");
+				boolean fallingblocks = types.contains("fallingblocks");
+				boolean remove;
 				for (World world : worlds) {
-					if (types.contains("all")) {
-						// Clear all types of entities
-						for (Entity e : world.getEntities()) {
-							if (!(e instanceof Player)) {
-								e.remove();
-								remcount++;
-							}
+					// Use the types set and clear them
+					for (Entity e : world.getEntities()) {
+						if (e instanceof Player) {
+							continue;
 						}
-					} else {
-						// Use the types set and clear them
-						boolean monsters = types.contains("monsters");
-						boolean animals = types.contains("animals");
-						boolean items = types.contains("items");
-						boolean fallingblocks = types.contains("fallingblocks");
-						boolean remove;
-						for (Entity e : world.getEntities()) {
-							remove = false;
-							if (monsters && EntityUtil.isMonster(e)) {
-								remove = true;
-							} else if (animals && EntityUtil.isAnimal(e)) {
-								remove = true;
-							} else if (items && e instanceof Item) {
-								remove = true;
-							} else if (fallingblocks && e instanceof FallingBlock) {
-								remove = true;
-							} else if (types.contains(EntityUtil.getName(e))) {
-								remove = true;
-							}
-							if (remove) {
-								e.remove();
-								remcount++;
-							}
+						remove = false;
+						if (monsters && EntityUtil.isMonster(e)) {
+							remove = true;
+						} else if (animals && EntityUtil.isAnimal(e)) {
+							remove = true;
+						} else if (items && e instanceof Item) {
+							remove = true;
+						} else if (fallingblocks && e instanceof FallingBlock) {
+							remove = true;
+						} else if (types.contains(EntityUtil.getName(e))) {
+							remove = true;
+						}
+						if (remove) {
+							e.remove();
+							remcount++;
 						}
 					}
 				}
