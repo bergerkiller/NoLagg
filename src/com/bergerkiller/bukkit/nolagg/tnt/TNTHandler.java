@@ -58,8 +58,9 @@ public class TNTHandler {
 					if (intervalCounter == interval) {
 						intervalCounter = 1;
 						CustomExplosion.useQuickDamageMode = todo.size() > 500;
-						if (todo.isEmpty())
+						if (todo.isEmpty()) {
 							return;
+						}
 						for (int i = 0; i < rate; i++) {
 							Block next = todo.poll();
 							if (next == null)
@@ -68,7 +69,18 @@ public class TNTHandler {
 							int x = next.getX();
 							int y = next.getY();
 							int z = next.getZ();
-							if (next.getWorld().isChunkLoaded(x >> 4, z >> 4)) {
+							int cx = x >> 4;
+							int cz = z >> 4;
+							int dcx, dcz;
+							boolean isLoaded = true;
+							for (dcx = -2; dcx <= 5 && isLoaded; dcx++) {
+								for (dcz = -2; dcz <= 5 && isLoaded; dcz++) {
+									if (!WorldUtil.isLoaded(next.getWorld(), cx + dcx, cz+ dcz)) {
+										isLoaded = false;
+									}
+								}
+							}
+							if (isLoaded) {
 								Chunk chunk = WorldUtil.getNative(next.getChunk());
 								if (chunk.getTypeId(x & 15, y, z & 15) == Material.TNT.getId()) {
 									chunk.world.setTypeId(x, y, z, 0);
@@ -99,7 +111,8 @@ public class TNTHandler {
 		return world.random.nextInt(n);
 	}
 
-	private static int denyExplosionsCounter = 0; // tick countdown to deny explosions
+	private static int denyExplosionsCounter = 0; // tick countdown to deny
+													// explosions
 
 	public static void clear(World world) {
 		Iterator<BlockLocation> iter = added.iterator();
