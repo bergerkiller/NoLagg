@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
 import java.io.File;
-import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -114,11 +113,7 @@ public class LightingFixThread extends AsyncTask {
 					continue;
 				}
 				// Is it contained in the cache?
-				Reference<RegionFile> ref = RegionFileCacheRef.FILES.get(file);
-				RegionFile reg = null;
-				if (ref != null) {
-					reg = ref.get();
-				}
+				RegionFile reg = RegionFileCacheRef.FILES.get(file);
 				if (reg == null) {
 					// Manually load this region file and close it (we don't use it to load chunks)
 					reg = new RegionFile(file);

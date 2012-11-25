@@ -27,12 +27,14 @@ public class SchedulerWatcher extends PriorityQueue {
 		if (o == null) {
 			return null;
 		}
-		Runnable run = CraftTaskRef.task.get(o);
-		if (run != null) {
-			if (!(run instanceof TimedWrapper)) {
-				Plugin plugin = CraftTaskRef.plugin.get(o);
-				if (plugin != null && plugin.isEnabled()) {
-					CraftTaskRef.task.set(o, PluginLogger.getWrapper(run, plugin));
+		if (CraftTaskRef.TEMPLATE.isType(o)) {
+			Runnable run = CraftTaskRef.task.get(o);
+			if (run != null) {
+				if (!(run instanceof TimedWrapper)) {
+					Plugin plugin = CraftTaskRef.plugin.get(o);
+					if (plugin != null && plugin.isEnabled()) {
+						CraftTaskRef.task.set(o, PluginLogger.getWrapper(run, plugin));
+					}
 				}
 			}
 		}

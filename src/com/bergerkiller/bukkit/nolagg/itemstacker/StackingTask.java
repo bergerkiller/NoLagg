@@ -67,6 +67,15 @@ public class StackingTask <T extends Entity> {
 	}
 
 	/**
+	 * Checks whether a given item reached it's maximum stacking size
+	 * 
+	 * @return True if the item is maxed, False if not
+	 */
+	public static boolean isMaxed(EntityItem item) {
+		return item.itemStack.count >= item.itemStack.getMaxStackSize();
+	}
+
+	/**
 	 * Fills the nearby entities of this task
 	 * 
 	 * @param Entitytasks to use as source for entities
@@ -108,7 +117,7 @@ public class StackingTask <T extends Entity> {
 			// Do a compatibility check
 			EntityItem from = (EntityItem) this.entity;
 			EntityItem to = (EntityItem) entity;
-			if (from.itemStack.id != to.itemStack.id || from.itemStack.getData() != to.itemStack.getData()) {
+			if (isMaxed(from) || from.itemStack.id != to.itemStack.id || from.itemStack.getData() != to.itemStack.getData()) {
 				return;
 			}
 		}

@@ -45,13 +45,19 @@ public class NoLaggCommon extends NoLaggComponent {
 	public void onReload(ConfigurationNode config) {
 		// clear shortcuts
 		this.clearShortcuts.clear();
+		config.setHeader("clearShortcuts", "\nDefines all shortcuts for the /lag clear command, more can be added");
 		if (!config.contains("clearShortcuts")) {
 			ConfigurationNode node = config.getNode("clearShortcuts");
 			node.set("enemies", Arrays.asList("monster"));
 			node.set("notneutral", Arrays.asList("monster", "item", "tnt", "egg", "arrow"));
 		}
 		if (!config.contains("clearShortcuts.all")) {
-			config.set("clearShortcuts.all", Arrays.asList("items", "mobs", "fallingblocks", "tnt", "xporb"));
+			config.setHeader("clearShortcuts.all", "The entity types removed when using /lag clear all");
+			config.set("clearShortcuts.all", Arrays.asList("items", "mobs", "fallingblocks", "tnt", "xporb", "minecart", "boat"));
+		}
+		if (!config.contains("clearShortcuts.default")) {
+			config.setHeader("clearShortcuts.default", "The entity types removed when using /lag clear without arguments");
+			config.set("clearShortcuts.default", Arrays.asList("items", "tnt", "xporb"));
 		}
 		ConfigurationNode shortc = config.getNode("clearShortcuts");
 		shortc.setHeader("");
@@ -82,9 +88,7 @@ public class NoLaggCommon extends NoLaggComponent {
 				Set<String> types = new HashSet<String>();
 				if (args.length == 1) {
 					// Default types
-					types.add("items");
-					types.add("tnt");
-					types.add("experienceorb");
+					types.addAll(clearShortcuts.get("default"));
 				} else {
 					// Read the types
 					List<String> tmpList;

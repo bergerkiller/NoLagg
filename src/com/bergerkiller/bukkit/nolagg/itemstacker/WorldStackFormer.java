@@ -118,7 +118,10 @@ public class WorldStackFormer {
 				// Stacking logic
 				changed = false;
 				for (EntityItem item : itemTask.getNearby()) {
-					if (!item.dead) {
+					if (StackingTask.isMaxed(itemTask.getEntity())) {
+						break;
+					}
+					if (!item.dead && !StackingTask.isMaxed(item)) {
 						if (ItemUtil.transfer(item.itemStack, itemTask.getEntity().itemStack, Integer.MAX_VALUE) > 0) {
 							if (item.itemStack.count == 0) {
 								item.dead = true;

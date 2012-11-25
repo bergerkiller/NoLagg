@@ -67,14 +67,17 @@ public class ChunkCompressQueue {
 	}
 
 	public void enqueue(final Chunk chunk) {
-		if (chunk == null)
+		if (chunk == null) {
 			return;
+		}
 		if (NoLaggChunks.useBufferedLoading) {
+			// Tell the threads to start the compression
 			synchronized (this.toCompress) {
 				this.toCompress.offer(chunk);
 			}
 		} else {
-			Packet51MapChunk packet = ChunkCompressionThread.createPacket(chunk, null);
+			// Let the server itself deal with it
+			Packet51MapChunk packet = new Packet51MapChunk(chunk, true, 0xffff);
 			packet.lowPriority = true;
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}

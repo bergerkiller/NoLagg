@@ -3,11 +3,11 @@ package com.bergerkiller.bukkit.nolagg.saving;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.ref.Reference;
 import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.server.RegionFile;
+import net.minecraft.server.RegionFileCache;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
@@ -27,8 +27,7 @@ public class RegionFileFlusher {
 				public void run() {
 					// get all the required region files to flush
 					final List<RegionFile> regions = new ArrayList<RegionFile>();
-					for (Reference<RegionFile> ref : RegionFileCacheRef.FILES.values()) {
-						RegionFile regionfile = ref.get();
+					for (RegionFile regionfile : RegionFileCacheRef.FILES.values()) {
 						if (regionfile != null) {
 							regions.add(regionfile);
 						}
@@ -56,9 +55,14 @@ public class RegionFileFlusher {
 									*/
 
 									try {
-										raf.close();
-										// Replace with a new instance
-										RegionFileRef.stream.set(region, new RandomAccessFile(source, "rw"));
+										RandomAccessFile old;
+										synchronized (RegionFileCache.class) {
+											// Replace the old instance with a new instance
+											old = RegionFileRef.stream.get(region);
+											RegionFileRef.stream.set(region, new RandomAccessFile(source, "rw"));
+										}
+										// Flush the old instance to disk
+										old.close();
 									} catch (IOException ex) {
 										// Was already closed
 									}
