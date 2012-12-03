@@ -1,12 +1,15 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
-import com.lishid.orebfuscator.obfuscation.Calculations;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkSection;
@@ -225,6 +228,54 @@ public class ChunkCompressionThread extends AsyncTask {
 	public long busyDuration = 0;
 	private long lasttime;
 	private byte[] obfuscationBuffer;
+	private Method obfuscationMethod;
+	private int obfuscationMethodMode = 0;
+
+	private boolean handleOrebfuscator(Packet51MapChunk packet, EntityPlayer player) {
+		if (this.obfuscationMethod == null) {
+			Class<?> calcs = CommonUtil.getClass("com.lishid.orebfuscator.obfuscation.Calculations");
+			if (calcs != null) {
+				try {
+					obfuscationMethod = calcs.getDeclaredMethod("Obfuscate", Packet51MapChunk.class, CraftPlayer.class, boolean.class, byte[].class);
+					obfuscationMethodMode = 1;
+					obfuscationBuffer = new byte[65536];
+				} catch (Throwable t1) {
+					try {
+						obfuscationMethod = calcs.getDeclaredMethod("Obfuscate", Packet51MapChunk.class, CraftPlayer.class, byte[].class);
+						obfuscationMethodMode = 2;
+						obfuscationBuffer = new byte[65536];
+					} catch (Throwable t2) {
+						try {
+							obfuscationMethod = calcs.getDeclaredMethod("Obfuscate", Packet51MapChunk.class, CraftPlayer.class);
+							obfuscationMethodMode = 3;
+						} catch (Throwable t3) {
+						}
+					}
+				}
+			}
+			if (obfuscationMethod == null) {
+				NoLaggChunks.plugin.log(Level.SEVERE, "Error: Could not find Obfuscation method");
+				return false;
+			}
+		}
+		try {
+			CraftPlayer cp = player.netServerHandler.getPlayer();
+			if (obfuscationMethodMode == 1) {
+				obfuscationMethod.invoke(null, packet, cp, false, this.obfuscationBuffer);
+			} else if (obfuscationMethodMode == 2) {
+				obfuscationMethod.invoke(null, packet, cp, this.obfuscationBuffer);
+			} else if (obfuscationMethodMode == 3) {
+				obfuscationMethod.invoke(null, packet, cp);
+			} else {
+				return false;
+			}
+			return true;
+		} catch (Throwable t) {
+			NoLaggChunks.plugin.log(Level.SEVERE, "Error: An error occured in Orebfuscator:");
+			t.printStackTrace();
+			return false;
+		}
+	}
 
 	/**
 	 * Obtains the compressed chunk data packet for the given chunk
@@ -239,18 +290,10 @@ public class ChunkCompressionThread extends AsyncTask {
 
 		// send chunk through possible plugins
 		// ========================================
-		if (NoLaggChunks.isOreObfEnabled) {
-			if (this.obfuscationBuffer == null) {
-				this.obfuscationBuffer = new byte[65536];
-			}
-			try {
-				Calculations.Obfuscate(mapchunk, player.netServerHandler.getPlayer(), false, this.obfuscationBuffer);
-			} catch (Throwable t) {
-				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured in Orebfuscator: support for this plugin had to be removed!");
-				t.printStackTrace();
-				NoLaggChunks.isOreObfEnabled = false;
-				this.obfuscationBuffer = null;
-			}
+		if (NoLaggChunks.isOreObfEnabled && !handleOrebfuscator(mapchunk, player)) {
+			NoLaggChunks.isOreObfEnabled = false;
+			this.obfuscationBuffer = null;
+			NoLaggChunks.plugin.log(Level.SEVERE, "Support for Orebfuscator had to be removed!");
 		}
 		// ========================================
 

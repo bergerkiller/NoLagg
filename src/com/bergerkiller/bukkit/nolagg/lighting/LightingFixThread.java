@@ -229,7 +229,8 @@ public class LightingFixThread extends AsyncTask {
 			// Sky light
 			boolean haderror = true;
 			boolean first = true;
-			while (haderror) {
+			int maxTries = 2;
+			while (haderror && maxTries-- > 0) {
 				haderror = false;
 				for (FixOperation fix : next) {
 					haderror |= fix.smooth(EnumSkyBlock.SKY);
@@ -243,7 +244,8 @@ public class LightingFixThread extends AsyncTask {
 			// Block light
 			haderror = true;
 			first = true;
-			while (haderror) {
+			maxTries = 2;
+			while (haderror && maxTries-- > 0) {
 				haderror = false;
 				for (FixOperation fix : next) {
 					haderror |= fix.smooth(EnumSkyBlock.BLOCK);

@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
@@ -24,7 +25,7 @@ public class NoLagg extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		return 8;
+		return Common.VERSION;
 	}
 
 	@Override

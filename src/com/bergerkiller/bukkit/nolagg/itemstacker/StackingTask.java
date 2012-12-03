@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
+
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
 
@@ -72,7 +74,7 @@ public class StackingTask <T extends Entity> {
 	 * @return True if the item is maxed, False if not
 	 */
 	public static boolean isMaxed(EntityItem item) {
-		return item.itemStack.count >= item.itemStack.getMaxStackSize();
+		return item.itemStack.count >= ItemUtil.getMaxSize(item.itemStack);
 	}
 
 	/**
