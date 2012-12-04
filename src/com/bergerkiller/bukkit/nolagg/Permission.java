@@ -1,63 +1,26 @@
 package com.bergerkiller.bukkit.nolagg;
 
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.permissions.PermissionDefault;
 
-import com.bergerkiller.bukkit.common.permissions.IPermissionDefault;
-import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.permissions.PermissionEnum;
 
-public enum Permission implements IPermissionDefault {
-
-	RELOAD("nolagg.reload", PermissionDefault.OP, "Allows a player to reload NoLagg"), 
-	COMMON_CLEAR("nolagg.common.clear", PermissionDefault.OP, "Allows a player to clear all entities on the server"), 
-	COMMON_GC("nolagg.common.gc", PermissionDefault.OP, "Allows a player to garbage collect the server memory"), 
-	CHUNKS_SENDING("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself"), 
-	EXAMINE_RUN("nolagg.examine.run", PermissionDefault.OP, "Allows a player to examine the server"), 
-	LIGHTING_FIX("nolagg.lighting.fix", PermissionDefault.OP, "Allows a player to fix lighting issues in chunks around him"), 
-	MONITOR_USE("nolagg.monitor.use", PermissionDefault.OP, "Allows a player to monitor server stats"), 
-	MONITOR_LOG("nolagg.monitor.log", PermissionDefault.OP, "Allows a player to toggle server stats being written to a log file"), 
-	MONITOR_CLEARLOG("nolagg.monitor.clearlog", PermissionDefault.OP, "Allows a player to clear the NoLagg log file"), 
-	MONITOR_SHOWTICKRATE("nolagg.monitor.showtickrate", PermissionDefault.TRUE, "Allows a player to see the tick rate of the server"), 
-	MONITOR_SHOWMEMORY("nolagg.monitor.showmemory", PermissionDefault.OP, "Allows a player to see the current memory usage of the server"), 
-	MONITOR_NOTIFYLAGGING("nolagg.monitor.notifylagging", PermissionDefault.OP, "Lets the player receive a message if the tick rate dropped signficiantly"), 
-	TNT_INFO("nolagg.tnt.info", PermissionDefault.OP, "The player can show TNT information"), 
-	TNT_CLEAR("nolagg.tnt.clear", PermissionDefault.OP, "The player can stop TNT detonation");
+public class Permission extends PermissionEnum {
+	public static final Permission RELOAD = new Permission("nolagg.reload", PermissionDefault.OP, "Allows a player to reload NoLagg");
+	public static final Permission COMMON_CLEAR = new Permission("nolagg.common.clear", PermissionDefault.OP, "Allows a player to clear all entities on the server");
+	public static final Permission COMMON_GC = new Permission("nolagg.common.gc", PermissionDefault.OP, "Allows a player to garbage collect the server memory");
+	public static final Permission CHUNKS_SENDING = new Permission("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself");
+	public static final Permission EXAMINE_RUN = new Permission("nolagg.examine.run", PermissionDefault.OP, "Allows a player to examine the server");
+	public static final Permission LIGHTING_FIX = new Permission("nolagg.lighting.fix", PermissionDefault.OP, "Allows a player to fix lighting issues in chunks around him");
+	public static final Permission MONITOR_USE = new Permission("nolagg.monitor.use", PermissionDefault.OP, "Allows a player to monitor server stats");
+	public static final Permission MONITOR_LOG = new Permission("nolagg.monitor.log", PermissionDefault.OP, "Allows a player to toggle server stats being written to a log file");
+	public static final Permission MONITOR_CLEARLOG = new Permission("nolagg.monitor.clearlog", PermissionDefault.OP, "Allows a player to clear the NoLagg log file");
+	public static final Permission MONITOR_SHOWTICKRATE = new Permission("nolagg.monitor.showtickrate", PermissionDefault.TRUE, "Allows a player to see the tick rate of the server");
+	public static final Permission MONITOR_SHOWMEMORY = new Permission("nolagg.monitor.showmemory", PermissionDefault.OP, "Allows a player to see the current memory usage of the server");
+	public static final Permission MONITOR_NOTIFYLAGGING = new Permission("nolagg.monitor.notifylagging", PermissionDefault.OP, "Lets the player receive a message if the tick rate dropped signficiantly");
+	public static final Permission TNT_INFO = new Permission("nolagg.tnt.info", PermissionDefault.OP, "The player can show TNT information");
+	public static final Permission TNT_CLEAR = new Permission("nolagg.tnt.clear", PermissionDefault.OP, "The player can stop TNT detonation");
 
 	private Permission(final String path, final PermissionDefault def, final String desc) {
-		this.path = path;
-		this.def = def;
-		this.desc = desc;
+		super(path, def, desc);
 	}
-
-	public boolean has(Player player) {
-		return player.hasPermission(this.path);
-	}
-
-	public void handle(CommandSender sender) throws NoPermissionException {
-		if (sender instanceof Player) {
-			if (!has((Player) sender))
-				throw new NoPermissionException();
-		}
-	}
-
-	private final String path;
-	private final PermissionDefault def;
-	private final String desc;
-
-	@Override
-	public String getName() {
-		return this.path;
-	}
-
-	@Override
-	public PermissionDefault getDefault() {
-		return this.def;
-	}
-
-	@Override
-	public String getDescription() {
-		return this.desc;
-	}
-
 }
