@@ -20,6 +20,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	protected final ActiveState<Boolean> updating = new ActiveState<Boolean>(false);
 	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
 	protected final Set<ChunkCoordIntPair> sentChunks = new HashSet<ChunkCoordIntPair>();
+	private boolean isSentChunksVerified = true;
 
 	/**
 	 * Sorts the contents of this queue to send in direction of the player<br>
@@ -52,6 +53,30 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		return this.sentChunks.remove(chunkCoord);
 	}
 
+	public abstract int getCenterX();
+
+	public abstract int getCenterZ();
+
+	public void verifySentChunks() {
+		if (!this.isSentChunksVerified) {
+			this.isSentChunksVerified = true;
+			// Verify all chunks - add those that haven't been sent yet
+			final int view = DynamicViewDistance.viewDistance;
+			int cx, cz;
+			int x = this.getCenterX();
+			int z = this.getCenterZ();
+			ChunkCoordIntPair pair;
+			for (cx = x - view; cx <= x + view; cx++) {
+				for (cz = z - view; cz <= z + view; cz++) {
+					pair = new ChunkCoordIntPair(cx, cz);
+					if (!this.sentChunks.contains(pair)) {
+						this.add(pair);
+					}
+				}
+			}
+		}
+	}
+
 	protected boolean remove(ChunkCoordIntPair pair) {
 		synchronized (this) {
 			return this.contained.remove(pair) && super.remove(pair);
@@ -59,16 +84,17 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	protected boolean add(ChunkCoordIntPair pair) {
-		if (!this.isNear(pair, CommonUtil.view))
-			return false;
-		synchronized (this) {
-			// Add to sending queue if not contained, or a re-send is requested
-			if (this.contained.add(pair) || !super.contains(pair)) {
-				return super.add(pair);
-			} else {
-				return false;
+		if (this.isNear(pair, CommonUtil.view)) {
+			synchronized (this) {
+				// Add to sending queue if not contained, or a re-send is
+				// requested
+				if (this.contained.add(pair) || !super.contains(pair)) {
+					this.isSentChunksVerified = false;
+					return super.add(pair);
+				}
 			}
 		}
+		return false;	
 	}
 
 	/**

@@ -24,6 +24,8 @@ import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
+import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
+import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
@@ -159,6 +161,16 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		}
 	}
 
+	@Override
+	public int getCenterX() {
+		return this.x;
+	}
+
+	@Override
+	public int getCenterZ() {
+		return this.z;
+	}
+
 	public static double getAverageRate() {
 		return new Operation() {
 			public void run() {
@@ -204,8 +216,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	public void sort(List elements) {
-		if (elements.isEmpty())
+		if (elements.isEmpty()) {
 			return;
+		}
 		ChunkCoordIntPair middle = new ChunkCoordIntPair(this.x, this.z);
 		try {
 			Collections.sort(elements, ChunkCoordComparator.get(this.sendDirection, middle));
@@ -241,8 +254,13 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			return;
 		}
 
-		if (this.isEmpty() && !this.chunkQueue.canSend())
-			return;
+		if (this.isEmpty() && !this.chunkQueue.canSend()) {
+			// Queue some remaining chunks?
+			this.verifySentChunks();
+			if (this.isEmpty()) {
+				return;
+			}
+		}
 		double newrate = this.rate.get();
 		if (this.packetBufferQueueSize > this.maxQueueSize) {
 			newrate = minRate;
@@ -319,7 +337,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 * @param yaw to set to
 	 */
 	public void updatePosition(World world, double locX, double locZ, float yaw) {
-		BlockFace newDirection = FaceUtil.yawToFace(this.ep.yaw - 90.0F);
+		BlockFace newDirection = FaceUtil.yawToFace(yaw - 90.0F);
 		int newx = MathUtil.locToChunk(locX);
 		int newz = MathUtil.locToChunk(locZ);
 		if (world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
@@ -343,11 +361,20 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 */
 	private void sendBatch(int count) {
 		// load chunks
+		long start = System.nanoTime();
 		for (int i = 0; i < count; i++) {
 			ChunkCoordIntPair pair = this.pollNextChunk();
-			if (pair == null)
+			if (pair == null) {
 				break;
+			}
 			this.chunkQueue.enqueue(((WorldServer) this.ep.world).chunkProviderServer.getChunkAt(pair.x, pair.z));
+		}
+		// Filter the chunk load times to prevent duplication in the examiner
+		if (NoLaggComponents.EXAMINE.isEnabled()) {
+			if (PluginLogger.isRunning()) {
+				// Subtract time from chunk loading task
+				PluginLogger.getTask(task, NoLagg.plugin).subtractTime(start);
+			}
 		}
 
 		// send chunks
@@ -403,4 +430,5 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			return false;
 		}
 	}
+
 }

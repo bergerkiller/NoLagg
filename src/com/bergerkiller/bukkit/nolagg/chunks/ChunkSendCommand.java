@@ -3,7 +3,9 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 import java.util.Collection;
 
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
@@ -30,16 +32,24 @@ public class ChunkSendCommand {
 
 	@SuppressWarnings("unchecked")
 	public static void send(final ChunkSendQueue queue, final Packet51MapChunk mapPacket, final Chunk chunk) {
-		if (mapPacket == null)
+		if (mapPacket == null) {
 			return;
+		}
 		queue.sentChunks.add(new ChunkCoordIntPair(chunk.x, chunk.z));
 		PacketUtil.sendPacket(queue.ep, mapPacket, !NoLaggChunks.useBufferedLoading);
 		chunk.seenByPlayer = true;
+		// Tile entities
 		Packet p;
 		for (TileEntity tile : (Collection<TileEntity>) chunk.tileEntities.values()) {
 			if ((p = BlockUtil.getUpdatePacket(tile)) != null) {
-				PacketUtil.sendPacket(queue.ep, p, !NoLaggChunks.useBufferedLoading);
+				PacketUtil.sendPacket(queue.ep, p);
 			}
 		}
+		// Spawn messages
+		CommonUtil.nextTick(new Runnable() {
+			public void run() {
+				WorldUtil.getTracker(queue.ep.world).a(queue.ep, chunk);
+			}
+		});
 	}
 }

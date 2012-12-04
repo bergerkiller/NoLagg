@@ -201,7 +201,8 @@ public class ChunkCoordComparator implements Comparator<Object> {
 			Chunk chunk = (Chunk) coord;
 			return getIndex(chunk.x, chunk.z);
 		} else if (coord instanceof ChunkSendCommand) {
-			return getIndex(((ChunkSendCommand) coord).chunk);
+			Chunk chunk = (Chunk) ((ChunkSendCommand) coord).chunk;
+			return getIndex(chunk.x, chunk.z);
 		} else {
 			return Integer.MAX_VALUE;
 		}
@@ -209,8 +210,9 @@ public class ChunkCoordComparator implements Comparator<Object> {
 
 	@Override
 	public int compare(Object coord1, Object coord2) {
-		if (coord2.equals(coord1))
+		if (coord2.equals(coord1)) {
 			return 0;
+		}
 		return getIndex(coord1) - getIndex(coord2);
 	}
 }
