@@ -1,18 +1,28 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 
+import net.minecraft.server.ChunkCoordinates;
+import net.minecraft.server.WorldServer;
+
+import org.bukkit.Chunk;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
@@ -23,37 +33,26 @@ import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
  * Instead the sending queue is used to load the chunks. If any of the many component fail to initialize, this is not active.
  */
 public class NoLaggChunks extends NoLaggComponent {
+	private static final int UNLOAD_INTERVAL = 200; // Tick interval between chunk unload tries
+	private static Task chunkUnloadTask;
 	public static NoLaggChunks plugin;
 	public static boolean isOreObfEnabled = false;
-	public static boolean isRawCritOrbEnabled = false;
-	public static boolean isSpoutEnabled = false;
 	public static boolean useBufferedLoading = true;
 	public static boolean useDynamicView = true;
 	public static boolean hasDynamicView = false;
 
 	@Override
 	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
-		if (pluginName.equals("Spout")) {
-			isSpoutEnabled = enabled;
-		} else if (pluginName.equals("Chunk Manager")) {
+		if (pluginName.equals("Chunk Manager")) {
 			if (enabled) {
 				log(Level.WARNING, "Chunk Manager detected, NoLaggChunks has been disabled.");
 				log(Level.WARNING, "Either disable Chunk Manager or disable NoLaggChunks.");
 				this.disable();
 			}
-		} else {
-			if (pluginName.equals("Orebfuscator")) {
-				if (isOreObfEnabled = enabled && useBufferedLoading) {
-					log(Level.INFO, "Orebfuscation has been detected and will be used when sending chunks");
-					log(Level.INFO, "Note that this may require you to set more threads used for sending!");
-				}
-			} else if (pluginName.equals("RawcriticsOreObfuscationPluginSpout")) {
-				if (isRawCritOrbEnabled = enabled && useBufferedLoading) {
-					// log(Level.INFO,
-					// "Raw Critics Ore Obfuscation has been detected and will be used when sending chunks");
-					// log(Level.INFO,
-					// "Note that this may require you to set more threads used for sending!");
-				}
+		} else if (pluginName.equals("Orebfuscator")) {
+			if (isOreObfEnabled = enabled && useBufferedLoading) {
+				log(Level.INFO, "Orebfuscation has been detected and will be used when sending chunks");
+				log(Level.INFO, "Note that this may require you to set more threads used for sending!");
 			}
 		}
 	}
@@ -100,13 +99,52 @@ public class NoLaggChunks extends NoLaggComponent {
 		this.onReload(config);
 		ChunkSendQueue.init();
 		DummyInstanceMap.ENABLED = true;
+		// Start chunk unloading task
+		chunkUnloadTask = new ChunkUnloadTask(NoLagg.plugin).start(UNLOAD_INTERVAL, UNLOAD_INTERVAL);
 	}
+
+	private static class ChunkUnloadTask extends Task {
+		public ChunkUnloadTask(JavaPlugin plugin) {
+			super(plugin);
+		}
+
+		public void run() {
+			for (WorldServer world : WorldUtil.getWorlds()) {
+				ArrayList<Chunk> unloadChunks = new ArrayList<Chunk>();
+				for (net.minecraft.server.Chunk nmschunk : WorldUtil.getChunks(world)) {
+					Chunk chunk = nmschunk.bukkitChunk;
+					// Part of world spawn?
+					if (nmschunk.world.keepSpawnInMemory) {
+						ChunkCoordinates chunkcoordinates = nmschunk.world.getSpawn();
+						int centerSpawnX = nmschunk.x * 16 + 8 - chunkcoordinates.x;
+						int centerSpawnZ = nmschunk.z * 16 + 8 - chunkcoordinates.z;
+						final short short1 = 128;
+						if (centerSpawnX >= -short1 && centerSpawnX <= short1 && centerSpawnZ >= -short1 && centerSpawnZ <= short1) {
+							continue;
+						}
+					}
+					if (!chunk.getWorld().isChunkInUse(chunk.getX(), chunk.getZ())) {
+						// Event
+						if (!CommonUtil.callEvent(new ChunkUnloadEvent(chunk)).isCancelled()) {
+							System.out.println("UNLOAD!");
+							unloadChunks.add(chunk);
+						}
+					}
+				}
+				for (Chunk chunk : unloadChunks) {
+					chunk.unload();
+				}
+			}
+		}
+	};
 
 	public void onDisable(ConfigurationNode config) {
 		ChunkSendQueue.deinit();
 		ChunkCompressionThread.deinit();
 		DynamicViewDistance.deinit();
 		DummyInstanceMap.ENABLED = false;
+		Task.stop(chunkUnloadTask);
+		chunkUnloadTask = null;
 	}
 
 	@Override

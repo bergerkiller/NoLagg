@@ -6,7 +6,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 
 public enum NoLaggComponents {
-	CHUNKS("Chunks", "Manages chunk loading and sending to clients using various new settings"), 
+	CHUNKS("Chunks", "Manages chunk loading and sending to clients using various new settings, also fixes chunk unload problems"), 
 	EXAMINE("Examine", "Can examine server tick rate performance"), 
 	MONITOR("Monitor", "Can monitor and log server and player performance statistics"), 
 	ITEMBUFFER("ItemBuffer", "Buffers items in chunks to prevent lag-outs because of lots of items"), 
