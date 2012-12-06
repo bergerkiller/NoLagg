@@ -11,22 +11,21 @@ import org.bukkit.World;
 import org.bukkit.entity.Item;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
-import net.minecraft.server.ChunkCoordIntPair;
-
 public class ItemMap {
 	private static Map<org.bukkit.Chunk, ChunkItems> items = new WeakHashMap<org.bukkit.Chunk, ChunkItems>();
 	private static Task updateTask;
 
-	public static ChunkCoordIntPair getChunkCoords(Item item) {
-		return new ChunkCoordIntPair(MathUtil.locToChunk(EntityUtil.getLocX(item)), MathUtil.locToChunk(EntityUtil.getLocZ(item)));
+	public static IntVector2 getChunkCoords(Item item) {
+		return new IntVector2(MathUtil.locToChunk(EntityUtil.getLocX(item)), MathUtil.locToChunk(EntityUtil.getLocZ(item)));
 	}
 
-	private static ChunkItems getItems(World world, ChunkCoordIntPair chunkCoordinates) {
+	private static ChunkItems getItems(World world, IntVector2 chunkCoordinates) {
 		if (currentUnload != null && chunkCoordinates.x == currentUnload.x && chunkCoordinates.z == currentUnload.z) {
 			return null;
 		}
@@ -106,10 +105,10 @@ public class ItemMap {
 		Task.stop(updateTask);
 	}
 
-	public static ChunkCoordIntPair currentUnload = null;
+	public static IntVector2 currentUnload = null;
 
 	public static void unloadChunk(org.bukkit.Chunk chunk) {
-		currentUnload = new ChunkCoordIntPair(chunk.getX(), chunk.getZ());
+		currentUnload = new IntVector2(chunk.getX(), chunk.getZ());
 		ChunkItems citems = items.remove(chunk);
 		if (citems != null) {
 			citems.deinit();
@@ -130,7 +129,7 @@ public class ItemMap {
 		return addItem(getChunkCoords(item), item);
 	}
 
-	public static boolean addItem(ChunkCoordIntPair coords, Item item) {
+	public static boolean addItem(IntVector2 coords, Item item) {
 		if (item == null) {
 			return true;
 		}

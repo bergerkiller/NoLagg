@@ -12,17 +12,16 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.util.LongHash;
 import org.bukkit.craftbukkit.util.LongHashSet;
+import org.bukkit.entity.Player;
 
-import net.minecraft.server.Block;
 import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.ChunkSection;
-import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.EnumSkyBlock;
 import net.minecraft.server.RegionFile;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -52,12 +51,9 @@ public class LightingFixThread extends AsyncTask {
 			}
 		}
 		// get rid of current sending requests for this chunk
-		ChunkCoordIntPair p = new ChunkCoordIntPair(chunk.getX(), chunk.getZ());
-		for (EntityPlayer ep : NativeUtil.getOnlinePlayers()) {
-			if (ep != null && ep.world.getWorld() == chunk.getWorld() && ep.chunkCoordIntPairQueue != null) {
-				if (EntityUtil.isNearChunk(ep, chunk.getX(), chunk.getZ(), CommonUtil.view)) {
-					ep.chunkCoordIntPairQueue.remove(p);
-				}
+		for (Player player : CommonUtil.getOnlinePlayers()) {
+			if (EntityUtil.isNearChunk(player, chunk.getX(), chunk.getZ(), CommonUtil.view)) {
+				EntityUtil.cancelChunkSend(player, chunk);
 			}
 		}
 	}
@@ -263,12 +259,13 @@ public class LightingFixThread extends AsyncTask {
 		}
 	}
 
-	private static class PendingChunk extends ChunkCoordIntPair {
+	private static class PendingChunk extends IntVector2 {
+		public final World world;
+
 		public PendingChunk(World world, int x, int z) {
 			super(x, z);
 			this.world = world;
 		}
-		public final World world;
 	}
 
 	private static class FixOperation {
@@ -399,25 +396,24 @@ public class LightingFixThread extends AsyncTask {
 							ll = 0;
 						}
 						sec.c(x, y & 0xf, z, ll);
-						sec.d(x, y & 0xf, z, Block.lightEmission[sec.a(x, y & 0xf, z)]);
+						sec.d(x, y & 0xf, z, MaterialUtil.EMISSION.get(sec.a(x, y & 0xf, z)));
 					}
 				}
 			}
 		}
 
-		@SuppressWarnings("unchecked")
 		public void finish() {
 			// send chunk (update)
 			CommonUtil.nextTick(new Runnable() {
 				@Override
 				public void run() {
 					boolean found = false;
-					for (EntityPlayer ep : NativeUtil.getOnlinePlayers()) {
-						if (Math.abs(chunk.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
+					for (Player player : CommonUtil.getOnlinePlayers()) {
+						if (Math.abs(chunk.x - MathUtil.locToChunk(EntityUtil.getLocX(player))) > CommonUtil.view)
 							return;
-						if (Math.abs(chunk.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
+						if (Math.abs(chunk.z - MathUtil.locToChunk(EntityUtil.getLocZ(player))) > CommonUtil.view)
 							return;
-						ep.chunkCoordIntPairQueue.add(0, new ChunkCoordIntPair(chunk.x, chunk.z));
+						EntityUtil.queueChunkSend(player, chunk.x, chunk.z);
 						found = true;
 					}
 					if (!found) {

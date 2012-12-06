@@ -2,12 +2,10 @@ package com.bergerkiller.bukkit.nolagg.tnt;
 
 import net.minecraft.server.AxisAlignedBB;
 import net.minecraft.server.Block;
-import net.minecraft.server.ChunkPosition;
 import net.minecraft.server.DamageSource;
 import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
 import net.minecraft.server.EntityTNTPrimed;
-import net.minecraft.server.MathHelper;
 import net.minecraft.server.Vec3D;
 import net.minecraft.server.World;
 
@@ -29,12 +27,13 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.Location;
 // CraftBukkit end
 
+import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
 public class CustomExplosion {
-
 	public boolean fire;
 	private Random h = new Random();
 	private World world;
@@ -43,17 +42,17 @@ public class CustomExplosion {
 	public double posZ;
 	public Entity source;
 	public float size;
-	private static List<ChunkPosition> blocks = new ArrayList<ChunkPosition>(100);
+	private static List<IntVector3> blocks = new ArrayList<IntVector3>(100);
 
 	public boolean wasCanceled = false; // CraftBukkit
 
-	public CustomExplosion(World world, Entity entity, double x, double y, double z, float size, boolean fire) {
-		this.world = world;
-		this.source = entity;
+	public CustomExplosion(org.bukkit.entity.Entity entity, Location location, float size, boolean fire) {
+		this.world = NativeUtil.getNative(location.getWorld());
+		this.posX = location.getX();
+		this.posY = location.getY();
+		this.posZ = location.getZ();
+		this.source = NativeUtil.getNative(entity);
 		this.size = size;
-		this.posX = x;
-		this.posY = y;
-		this.posZ = z;
 		this.fire = fire;
 	}
 
@@ -65,18 +64,18 @@ public class CustomExplosion {
 	private static ExplosionSlot root;
 	private static List<ExplosionLayer> explosionLayers = new ArrayList<ExplosionLayer>();
 	private static List<ExplosionBlock> explosionBlocks = new ArrayList<ExplosionBlock>();
-	private static Map<ChunkPosition, ExplosionBlock> explosionBlockMap = new HashMap<ChunkPosition, ExplosionBlock>();
+	private static Map<IntVector3, ExplosionBlock> explosionBlockMap = new HashMap<IntVector3, ExplosionBlock>();
 	static {
 		explosionLayers.add(new ExplosionLayer());
-		root = explosionLayers.get(0).slots.get(new ChunkPosition(0, 0, 0));
+		root = explosionLayers.get(0).slots.get(new IntVector3(0, 0, 0));
 	}
 
 	private static class ExplosionBlock {
-		public ExplosionBlock(final ChunkPosition pos) {
+		public ExplosionBlock(final IntVector3 pos) {
 			this.pos = pos;
 		}
 
-		public final ChunkPosition pos;
+		public final IntVector3 pos;
 		public boolean isSet = false;
 		public boolean destroy = false;
 		public int type = 0;
@@ -124,13 +123,13 @@ public class CustomExplosion {
 
 		private final int index;
 		private final ExplosionSlot[] slotArray;
-		private Map<ChunkPosition, ExplosionSlot> slots = new HashMap<ChunkPosition, ExplosionSlot>();
+		private Map<IntVector3, ExplosionSlot> slots = new HashMap<IntVector3, ExplosionSlot>();
 
 		public ExplosionSlot createSlot(final double dx, final double dy, final double dz) {
-			int x = MathHelper.floor(dx * (double) this.index + 0.5);
-			int y = MathHelper.floor(dy * (double) this.index + 0.5);
-			int z = MathHelper.floor(dz * (double) this.index + 0.5);
-			ChunkPosition pos = new ChunkPosition(x, y, z);
+			int x = MathUtil.floor(dx * (double) this.index + 0.5);
+			int y = MathUtil.floor(dy * (double) this.index + 0.5);
+			int z = MathUtil.floor(dz * (double) this.index + 0.5);
+			IntVector3 pos = new IntVector3(x, y, z);
 			ExplosionSlot slot = this.slots.get(pos);
 			if (slot == null) {
 				slot = new ExplosionSlot(pos);
@@ -141,7 +140,7 @@ public class CustomExplosion {
 	}
 
 	private static class ExplosionSlot {
-		public ExplosionSlot(ChunkPosition pos) {
+		public ExplosionSlot(IntVector3 pos) {
 			this.block = explosionBlockMap.get(pos);
 			if (this.block == null) {
 				this.block = new ExplosionBlock(pos);
@@ -160,9 +159,9 @@ public class CustomExplosion {
 
 	@SuppressWarnings("unchecked")
 	public void prepare() {
-		int xoff = MathHelper.floor(this.posX);
-		int yoff = MathHelper.floor(this.posY);
-		int zoff = MathHelper.floor(this.posZ);
+		int xoff = MathUtil.floor(this.posX);
+		int yoff = MathUtil.floor(this.posY);
+		int zoff = MathUtil.floor(this.posZ);
 
 		root.sourcedamage = (float) factor * this.size * (0.7F + this.world.random.nextFloat() * 0.6F);
 
@@ -201,7 +200,7 @@ public class CustomExplosion {
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
-					blocks.add(new ChunkPosition(x, y, z));
+					blocks.add(new IntVector3(x, y, z));
 				}
 
 				// one block layer further...
@@ -341,7 +340,7 @@ public class CustomExplosion {
 		// generate org.bukkit Block array
 		List<org.bukkit.block.Block> blockList = new ArrayList<org.bukkit.block.Block>(blocks.size());
 		for (int i = blocks.size() - 1; i >= 0; i--) {
-			ChunkPosition cpos = blocks.get(i);
+			IntVector3 cpos = blocks.get(i);
 			blockList.add(bworld.getBlockAt(cpos.x, cpos.y, cpos.z));
 		}
 
@@ -359,13 +358,13 @@ public class CustomExplosion {
 		}
 
 		for (org.bukkit.block.Block block : event.blockList()) {
-			ChunkPosition coords = new ChunkPosition(block.getX(), block.getY(), block.getZ());
+			IntVector3 coords = new IntVector3(block.getX(), block.getY(), block.getZ());
 			blocks.add(coords);
 		}
 
 		// CraftBukkit end
 
-		ChunkPosition chunkposition;
+		IntVector3 chunkposition;
 		int x;
 		int y;
 		int z;
@@ -384,7 +383,7 @@ public class CustomExplosion {
 			double d3 = d0 - this.posX;
 			double d4 = d1 - this.posY;
 			double d5 = d2 - this.posZ;
-			double d6 = (double) MathHelper.sqrt(d3 * d3 + d4 * d4 + d5 * d5);
+			double d6 = Math.sqrt(d3 * d3 + d4 * d4 + d5 * d5);
 
 			d3 /= d6;
 			d4 /= d6;
@@ -397,7 +396,7 @@ public class CustomExplosion {
 			d5 *= d7;
 
 			// CraftBukkit - stop explosions from putting out fire
-			if (type > 0 && type != Block.FIRE.id) {
+			if (type > 0 && type != org.bukkit.Material.FIRE.getId()) {
 				// CraftBukkit
 				Block.byId[type].dropNaturally(this.world, x, y, z, this.world.getData(x, y, z), event.getYield(), 0);
 				this.world.setTypeId(x, y, z, 0);

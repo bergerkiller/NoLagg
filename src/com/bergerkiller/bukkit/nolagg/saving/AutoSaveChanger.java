@@ -5,8 +5,6 @@ import java.util.Queue;
 
 import org.bukkit.World;
 
-import net.minecraft.server.ServerConfigurationManager;
-
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
@@ -26,10 +24,7 @@ public class AutoSaveChanger {
 	public static void init() {
 		autoSaveTask = new Task(NoLagg.plugin) {
 			public void run() {
-				ServerConfigurationManager scm = CommonUtil.getServerConfig();
-				if (scm != null) {
-					scm.savePlayers();
-				}
+				CommonUtil.getServerConfig().savePlayers();
 				if (!isSaving()) {
 					// Obtain a list of all the chunks to save
 					final Queue<org.bukkit.Chunk> chunks = new LinkedList<org.bukkit.Chunk>();

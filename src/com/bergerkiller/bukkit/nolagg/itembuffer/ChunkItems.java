@@ -10,12 +10,8 @@ import java.util.Set;
 import org.bukkit.World;
 import org.bukkit.entity.Item;
 
-import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.EntityItem;
-import net.minecraft.server.WorldServer;
-
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class ChunkItems {
@@ -44,19 +40,10 @@ public class ChunkItems {
 		return chunk.getWorld();
 	}
 
-	private void restoreItem(Item bitem) {
-		ChunkCoordIntPair coord = ItemMap.getChunkCoords(bitem);
-		WorldServer world = NativeUtil.getNative(getWorld());
-		world.getChunkAt(coord.x, coord.z);
-		EntityItem item = NativeUtil.getNative(bitem);
-		item.dead = false;
-		world.addEntity(item);
-	}
-
 	public synchronized void deinit() {
 		if (!this.hiddenItems.isEmpty()) {
 			for (Item item : this.hiddenItems) {
-				restoreItem(item);
+				EntityUtil.addEntity(item);
 			}
 			this.hiddenItems.clear();
 		}
@@ -78,7 +65,7 @@ public class ChunkItems {
 
 	public synchronized void spawnInChunk() {
 		while (!hiddenItems.isEmpty() && spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
-			restoreItem(hiddenItems.poll());
+			EntityUtil.addEntity(hiddenItems.poll());
 		}
 	}
 
@@ -117,7 +104,7 @@ public class ChunkItems {
 	private boolean refreshSpawnedItems() {
 		Iterator<Item> iter = this.spawnedItems.iterator();
 		Item e;
-		ChunkCoordIntPair pair;
+		IntVector2 pair;
 		try {
 			while (iter.hasNext()) {
 				e = iter.next();

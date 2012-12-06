@@ -5,13 +5,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import net.minecraft.server.Entity;
-
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
 public class StackingTask <T extends org.bukkit.entity.Entity> {
 	private T entity;
@@ -92,7 +90,6 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 		}
 		T entity;
 		double d;
-		Entity selfEntity = NativeUtil.getNative(this.entity);
 		for (StackingTask<T> task : Entitytasks) {
 			if (!task.isValid()) {
 				break; // Reached end of data
@@ -100,16 +97,15 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 			entity = task.entity;
 			if (!entity.isDead() && entity != this.entity) {
 				// Distance check
-				Entity e = NativeUtil.getNative(entity);
-				d = distance(selfEntity.locX, e.locX);
+				d = distance(EntityUtil.getLocX(this.entity), EntityUtil.getLocX(entity));
 				if (d > radiusSquared) {
 					continue;
 				}
-				d += distance(selfEntity.locZ, e.locZ);
+				d += distance(EntityUtil.getLocZ(this.entity), EntityUtil.getLocY(entity));
 				if (d > radiusSquared) {
 					continue;
 				}
-				d += distance(selfEntity.locY, e.locY);
+				d += distance(EntityUtil.getLocZ(this.entity), EntityUtil.getLocZ(entity));
 				if (d > radiusSquared) {
 					continue;
 				}

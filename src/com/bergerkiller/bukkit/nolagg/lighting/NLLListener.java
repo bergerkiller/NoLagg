@@ -21,5 +21,4 @@ public class NLLListener implements Listener {
 			event.setCancelled(true);
 		}
 	}
-
 }
