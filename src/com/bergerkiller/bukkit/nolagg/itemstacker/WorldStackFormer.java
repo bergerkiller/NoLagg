@@ -3,12 +3,12 @@ package com.bergerkiller.bukkit.nolagg.itemstacker;
 import java.util.LinkedList;
 
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.ExperienceOrb;
+import org.bukkit.entity.Item;
 
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
-
-import net.minecraft.server.Entity;
-import net.minecraft.server.EntityExperienceOrb;
-import net.minecraft.server.EntityItem;
 
 /**
  * Handles the entity item and orb stacking process
@@ -17,10 +17,10 @@ public class WorldStackFormer {
 	private boolean isProcessing = false; // Processing state, True for async busy or waiting, False for sync available
 	private final double radiusSquared;
 	private boolean disabled = false;
-	private final LinkedList<EntityItem> syncItems = new LinkedList<EntityItem>();
-	private final LinkedList<EntityExperienceOrb> syncOrbs = new LinkedList<EntityExperienceOrb>();
-	private LinkedList<StackingTask<EntityExperienceOrb>> orbTasks = new LinkedList<StackingTask<EntityExperienceOrb>>();
-	private LinkedList<StackingTask<EntityItem>> itemTasks = new LinkedList<StackingTask<EntityItem>>();
+	private final LinkedList<Item> syncItems = new LinkedList<Item>();
+	private final LinkedList<ExperienceOrb> syncOrbs = new LinkedList<ExperienceOrb>();
+	private LinkedList<StackingTask<ExperienceOrb>> orbTasks = new LinkedList<StackingTask<ExperienceOrb>>();
+	private LinkedList<StackingTask<Item>> itemTasks = new LinkedList<StackingTask<Item>>();
 
 	public WorldStackFormer(World world) {
 		this.radiusSquared = Math.pow(NoLaggItemStacker.stackRadius.get(world), 2.0);
@@ -48,12 +48,12 @@ public class WorldStackFormer {
 	 * @param e the entity to add
 	 */
 	public void addEntity(Entity e) {
-		if (e instanceof EntityItem) {
+		if (e instanceof Item) {
 			if (!NoLaggItemStacker.isIgnoredItem(e)) {
-				syncItems.add((EntityItem) e);
+				syncItems.add((Item) e);
 			}
-		} else if (e instanceof EntityExperienceOrb && NoLaggItemStacker.stackOrbs) {
-			syncOrbs.add((EntityExperienceOrb) e);
+		} else if (e instanceof ExperienceOrb && NoLaggItemStacker.stackOrbs) {
+			syncOrbs.add((ExperienceOrb) e);
 		}
 	}
 
@@ -63,13 +63,13 @@ public class WorldStackFormer {
 	 * @param e the entity to remove
 	 */
 	public void removeEntity(Entity e) {
-		if (e instanceof EntityItem) {
+		if (e instanceof Item) {
 			if (!NoLaggItemStacker.isIgnoredItem(e)) {
 				// don't bother doing an 'ignored item' check as it checks in a map or set anyway
-				syncItems.remove((EntityItem) e);
+				syncItems.remove((Item) e);
 			}
-		} else if (e instanceof EntityExperienceOrb && NoLaggItemStacker.stackOrbs) {
-			syncOrbs.remove((EntityExperienceOrb) e);
+		} else if (e instanceof ExperienceOrb && NoLaggItemStacker.stackOrbs) {
+			syncOrbs.remove((ExperienceOrb) e);
 		}
 	}
 
@@ -81,7 +81,7 @@ public class WorldStackFormer {
 			return;
 		}
 		// Generate nearby items
-		for (StackingTask<EntityItem> task : itemTasks) {
+		for (StackingTask<Item> task : itemTasks) {
 			if (!task.isValid()) {
 				break; // Reached end of data
 			}
@@ -89,7 +89,7 @@ public class WorldStackFormer {
 		}
 		// Generate nearby orbs
 		if (NoLaggItemStacker.stackOrbs) {
-			for (StackingTask<EntityExperienceOrb> task : orbTasks) {
+			for (StackingTask<ExperienceOrb> task : orbTasks) {
 				if (!task.isValid()) {
 					break; // Reached end of data
 				}
@@ -110,44 +110,48 @@ public class WorldStackFormer {
 
 		// Finalize item stacking
 		boolean changed;
-		for (StackingTask<EntityItem> itemTask : itemTasks) {
+		for (StackingTask<Item> itemTask : itemTasks) {
 			if (!itemTask.isValid()) {
 				break; // Reached end of data
 			}
 			if (itemTask.canProcess()) {
 				// Stacking logic
 				changed = false;
-				for (EntityItem item : itemTask.getNearby()) {
+				for (Item item : itemTask.getNearby()) {
 					if (StackingTask.isMaxed(itemTask.getEntity())) {
 						break;
 					}
-					if (!item.dead && !StackingTask.isMaxed(item)) {
-						if (ItemUtil.transfer(item.itemStack, itemTask.getEntity().itemStack, Integer.MAX_VALUE) > 0) {
-							if (item.itemStack.count == 0) {
-								item.dead = true;
+					if (!item.isDead() && !StackingTask.isMaxed(item)) {
+						org.bukkit.inventory.ItemStack stack = item.getItemStack();
+						if (ItemUtil.transfer(stack, itemTask.getEntity().getItemStack(), Integer.MAX_VALUE) > 0) {
+							if (stack.getAmount() == 0) {
+								item.remove();
+							} else {
+								item.setItemStack(stack);
 							}
 							changed = true;
 						}
 					}
 				}
 				if (changed) {
-					ItemUtil.respawnItem(itemTask.getEntity());
+					ItemUtil.respawnItem(EntityUtil.getNative(itemTask.getEntity()));
 				}
 			}
 		}
 
 		// Finalize orb stacking
 		if (NoLaggItemStacker.stackOrbs) {
-			for (StackingTask<EntityExperienceOrb> orbTask : orbTasks) {
+			for (StackingTask<ExperienceOrb> orbTask : orbTasks) {
 				if (!orbTask.isValid()) {
 					break; // Reached end of data
 				}
 				if (orbTask.canProcess()) {
 					// Stacking logic
-					for (EntityExperienceOrb orb : orbTask.getNearby()) {
-						if (!orb.dead) {
-							orbTask.getEntity().value += orb.value;
-							orb.dead = true;
+					for (ExperienceOrb orb : orbTask.getNearby()) {
+						if (!orb.isDead()) {
+							ExperienceOrb e = orbTask.getEntity();
+							e.setExperience(e.getExperience() + orb.getExperience());
+							orb.remove();
 						}
 					}
 				}

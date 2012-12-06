@@ -6,12 +6,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.server.World;
-import net.minecraft.server.WorldServer;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class StackFormer extends AsyncTask {
@@ -29,14 +28,10 @@ public class StackFormer extends AsyncTask {
 		}
 	}
 
-	public static WorldStackFormer get(org.bukkit.World world) {
-		return get(WorldUtil.getNative(world));
-	}
-
 	public static WorldStackFormer get(World world) {
 		WorldStackFormer former = globalWorlds.get(world);
 		if (former == null) {
-			former = new WorldStackFormer(world.getWorld());
+			former = new WorldStackFormer(world);
 			globalWorlds.put(world, former);
 			synchronized (former) {
 				toAdd.add(former);
@@ -45,7 +40,7 @@ public class StackFormer extends AsyncTask {
 		return former;
 	}
 
-	public static void remove(WorldServer world) {
+	public static void remove(World world) {
 		WorldStackFormer f = globalWorlds.remove(world);
 		if (f != null) {
 			f.disable();
@@ -62,7 +57,7 @@ public class StackFormer extends AsyncTask {
 			}
 		}.start(0, NoLaggItemStacker.interval);
 
-		for (WorldServer world : WorldUtil.getWorlds()) {
+		for (World world : Bukkit.getWorlds()) {
 			get(world);
 		}
 		thread = new StackFormer().start(true);

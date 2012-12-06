@@ -5,10 +5,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
+import org.bukkit.inventory.ItemStack;
 
-import net.minecraft.server.Entity;
-import net.minecraft.server.EntityItem;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 public class StackingTask <T extends Entity> {
 	private T entity;
@@ -65,7 +67,7 @@ public class StackingTask <T extends Entity> {
 	 * @return True if processing is possible, False if not
 	 */
 	public boolean canProcess() {
-		return !this.entity.dead && this.nearby.size() >= NoLaggItemStacker.stackThreshold - 1;
+		return !this.entity.isDead() && this.nearby.size() >= NoLaggItemStacker.stackThreshold - 1;
 	}
 
 	/**
@@ -73,8 +75,8 @@ public class StackingTask <T extends Entity> {
 	 * 
 	 * @return True if the item is maxed, False if not
 	 */
-	public static boolean isMaxed(EntityItem item) {
-		return item.itemStack.count >= ItemUtil.getMaxSize(item.itemStack);
+	public static boolean isMaxed(Item item) {
+		return item.getItemStack().getAmount() >= ItemUtil.getMaxSize(item.getItemStack());
 	}
 
 	/**
@@ -84,27 +86,29 @@ public class StackingTask <T extends Entity> {
 	 * @param radiusSquared for stacking
 	 */
 	public void fillNearby(List<StackingTask<T>> Entitytasks, final double radiusSquared) {
-		if (this.entity.dead) {
+		if (this.entity.isDead()) {
 			return;
 		}
 		T entity;
 		double d;
+		net.minecraft.server.Entity selfEntity = EntityUtil.getNative(this.entity);
 		for (StackingTask<T> task : Entitytasks) {
 			if (!task.isValid()) {
 				break; // Reached end of data
 			}
 			entity = task.entity;
-			if (!entity.dead && entity != this.entity) {
+			if (!entity.isDead() && entity != this.entity) {
 				// Distance check
-				d = distance(this.entity.locX, entity.locX);
+				net.minecraft.server.Entity e = EntityUtil.getNative(this.entity);
+				d = distance(selfEntity.locX, e.locX);
 				if (d > radiusSquared) {
 					continue;
 				}
-				d += distance(this.entity.locZ, entity.locZ);
+				d += distance(selfEntity.locZ, e.locZ);
 				if (d > radiusSquared) {
 					continue;
 				}
-				d += distance(this.entity.locY, entity.locY);
+				d += distance(selfEntity.locY, e.locY);
 				if (d > radiusSquared) {
 					continue;
 				}
@@ -115,15 +119,21 @@ public class StackingTask <T extends Entity> {
 	}
 
 	private void addNearby(T entity) {
-		if (this.entity instanceof EntityItem) {
+		if (this.entity instanceof Item) {
 			// Do a compatibility check
-			EntityItem from = (EntityItem) this.entity;
-			EntityItem to = (EntityItem) entity;
-			if (isMaxed(from) || from.itemStack.id != to.itemStack.id || from.itemStack.getData() != to.itemStack.getData()) {
+			Item from = (Item) this.entity;
+			Item to = (Item) entity;
+			if (isMaxed(from) || !itemEquals(from, to)) {
 				return;
 			}
 		}
 		this.nearby.add(entity);
+	}
+
+	private static boolean itemEquals(Item item1, Item item2) {
+		ItemStack stack1 = item1.getItemStack();
+		ItemStack stack2 = item2.getItemStack();
+		return stack1.getTypeId() == stack2.getTypeId() && stack1.getDurability() == stack2.getDurability();
 	}
 
 	private static double distance(final double d1, final double d2) {

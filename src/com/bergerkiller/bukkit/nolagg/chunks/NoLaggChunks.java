@@ -118,7 +118,7 @@ public class NoLaggChunks extends NoLaggComponent {
 						ChunkCoordinates chunkcoordinates = nmschunk.world.getSpawn();
 						int centerSpawnX = nmschunk.x * 16 + 8 - chunkcoordinates.x;
 						int centerSpawnZ = nmschunk.z * 16 + 8 - chunkcoordinates.z;
-						final short short1 = 128;
+						final int short1 = 128;
 						if (centerSpawnX >= -short1 && centerSpawnX <= short1 && centerSpawnZ >= -short1 && centerSpawnZ <= short1) {
 							continue;
 						}
@@ -126,7 +126,6 @@ public class NoLaggChunks extends NoLaggComponent {
 					if (!chunk.getWorld().isChunkInUse(chunk.getX(), chunk.getZ())) {
 						// Event
 						if (!CommonUtil.callEvent(new ChunkUnloadEvent(chunk)).isCancelled()) {
-							System.out.println("UNLOAD!");
 							unloadChunks.add(chunk);
 						}
 					}
