@@ -3,13 +3,14 @@ package com.bergerkiller.bukkit.nolagg.saving;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import net.minecraft.server.Chunk;
-import net.minecraft.server.ServerConfigurationManager;
-import net.minecraft.server.WorldServer;
+import org.bukkit.World;
 
-import com.bergerkiller.bukkit.common.Operation;
+import net.minecraft.server.ServerConfigurationManager;
+
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class AutoSaveChanger {
@@ -31,24 +32,20 @@ public class AutoSaveChanger {
 				}
 				if (!isSaving()) {
 					// Obtain a list of all the chunks to save
-					final Queue<Chunk> chunks = new LinkedList<Chunk>();
-					new Operation() {
-						public void run() {
-							this.doChunks();
-						}
-						@Override
-						public void handle(Chunk chunk) {
-							if (chunk.a(false)) {
+					final Queue<org.bukkit.Chunk> chunks = new LinkedList<org.bukkit.Chunk>();
+					for (World world : WorldUtil.getWorlds()) {
+						for (org.bukkit.Chunk chunk : WorldUtil.getChunks(world)) {
+							if (NativeUtil.getNative(chunk).a(false)) {
 								chunks.offer(chunk);
 							}
 						}
-					};
+					}
 					final double total = chunks.size();
 
 					activeTask = new Task(NoLagg.plugin) {
 						public void run() {
 							for (int i = 0; i < NoLaggSaving.autoSaveBatch; i++) {
-								Chunk chunk = chunks.poll();
+								org.bukkit.Chunk chunk = chunks.poll();
 								if (chunk == null) {
 									Task.stop(activeTask);
 									activeTask = null;
@@ -56,8 +53,8 @@ public class AutoSaveChanger {
 								} else {
 									SAVE_PERCENTAGE = (int) ((100.0 * (double) chunks.size()) / total);
 								}
-								if (chunk.bukkitChunk != null && chunk.bukkitChunk.isLoaded()) {
-									((WorldServer) chunk.world).chunkProviderServer.saveChunk(chunk);
+								if (chunk.isLoaded()) {
+									WorldUtil.saveChunk(chunk);
 								}
 							}
 						}

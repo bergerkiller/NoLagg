@@ -4,10 +4,9 @@ import java.util.Queue;
 
 import org.bukkit.World;
 
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.EntityPlayer;
@@ -23,22 +22,16 @@ public class DummyPlayerManager extends PlayerManager {
 	}
 
 	public static void convert(World world) {
-		convert(WorldUtil.getNative(world));
+		convert(NativeUtil.getNative(world));
 	}
 
 	public static void revert() {
-		new Operation() {
-			public void run() {
-				this.doWorlds();
+		for (WorldServer world : NativeUtil.getWorlds()) {
+			PlayerManager manager = world.getPlayerManager();
+			if (manager instanceof DummyPlayerManager) {
+				WorldServerRef.playerManager.set(world, ((DummyPlayerManager) manager).base);
 			}
-
-			public void handle(WorldServer world) {
-				PlayerManager manager = world.getPlayerManager();
-				if (manager instanceof DummyPlayerManager) {
-					WorldServerRef.playerManager.set(world, ((DummyPlayerManager) manager).base);
-				}
-			}
-		};
+		}
 	}
 
 	public final PlayerManager base;

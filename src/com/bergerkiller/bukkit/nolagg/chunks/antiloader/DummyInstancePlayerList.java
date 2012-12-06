@@ -2,7 +2,10 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.ArrayList;
 
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerInstanceRef;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 
 import net.minecraft.server.ChunkCoordIntPair;
@@ -27,7 +30,7 @@ public class DummyInstancePlayerList extends ArrayList {
 	@Override
 	public boolean contains(Object o) {
 		if (super.contains(o)) {
-			if (!FILTER || ChunkSendQueue.bind((EntityPlayer) o).preUnloadChunk(this.location)) {
+			if (!FILTER || ChunkSendQueue.bind((Player) NativeUtil.getEntity((EntityPlayer) o)).preUnloadChunk(this.location)) {
 				return true;
 			}
 

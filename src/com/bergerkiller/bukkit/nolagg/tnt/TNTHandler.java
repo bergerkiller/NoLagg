@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.Packet60Explosion;
 import net.minecraft.server.WorldServer;
 
@@ -27,7 +26,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class TNTHandler {
-
 	private static Queue<Block> todo = new LinkedList<Block>();
 	private static BlockSet added = new BlockSet();
 	private static Task task;
@@ -81,9 +79,9 @@ public class TNTHandler {
 								}
 							}
 							if (isLoaded) {
-								Chunk chunk = WorldUtil.getNative(next.getChunk());
-								if (chunk.getTypeId(x & 15, y, z & 15) == Material.TNT.getId()) {
-									chunk.world.setTypeId(x, y, z, 0);
+								org.bukkit.Chunk chunk = next.getChunk();
+								if (WorldUtil.getBlockTypeId(chunk, x, y, z) == Material.TNT.getId()) {
+									WorldUtil.setBlock(chunk, x, y, z, 0, 0);
 
 									TNTPrimed tnt = next.getWorld().spawn(next.getLocation().add(0.5, 0.5, 0.5), TNTPrimed.class);
 									int fuse = tnt.getFuseTicks();

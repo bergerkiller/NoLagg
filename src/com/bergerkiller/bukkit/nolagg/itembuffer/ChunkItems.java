@@ -4,57 +4,59 @@ import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
-import net.minecraft.server.Chunk;
+import org.bukkit.World;
+import org.bukkit.entity.Item;
+
 import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.Entity;
 import net.minecraft.server.EntityItem;
+import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class ChunkItems {
+	public final Set<Item> spawnedItems = new HashSet<Item>();
+	public final Queue<Item> hiddenItems = new LinkedList<Item>();
+	public final org.bukkit.Chunk chunk;
 
-	public final Set<EntityItem> spawnedItems = new HashSet<EntityItem>();
-	public final Queue<EntityItem> hiddenItems = new LinkedList<EntityItem>();
-	public final Chunk chunk;
-
-	public ChunkItems(org.bukkit.Chunk chunk) {
-		this(WorldUtil.getNative(chunk));
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public ChunkItems(final Chunk chunk) {
+	public ChunkItems(final org.bukkit.Chunk chunk) {
 		this.chunk = chunk;
-		for (List list : chunk.entitySlices) {
-			for (Entity entity : (List<Entity>) list) {
-				if (entity instanceof EntityItem) {
-					if (entity.dead)
-						continue;
-					if (EntityUtil.isIgnored(entity.getBukkitEntity()))
-						continue;
-					if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
-						this.spawnedItems.add((EntityItem) entity);
-					} else {
-						this.hiddenItems.add((EntityItem) entity);
-						entity.dead = true;
-					}
+		for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
+			if (entity instanceof Item) {
+				if (entity.isDead() || EntityUtil.isIgnored(entity)) {
+					continue;
+				}
+				if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
+					this.spawnedItems.add((Item) entity);
+				} else {
+					this.hiddenItems.add((Item) entity);
+					entity.remove();
 				}
 			}
 		}
 	}
 
+	public World getWorld() {
+		return chunk.getWorld();
+	}
+
+	private void restoreItem(Item bitem) {
+		ChunkCoordIntPair coord = ItemMap.getChunkCoords(bitem);
+		WorldServer world = NativeUtil.getNative(getWorld());
+		world.getChunkAt(coord.x, coord.z);
+		EntityItem item = NativeUtil.getNative(bitem);
+		item.dead = false;
+		world.addEntity(item);
+	}
+
 	public synchronized void deinit() {
 		if (!this.hiddenItems.isEmpty()) {
-			ChunkCoordIntPair coord;
-			for (EntityItem item : this.hiddenItems) {
-				item.dead = false;
-				coord = ItemMap.getChunkCoords(item);
-				this.chunk.world.getChunkAt(coord.x, coord.z);
-				this.chunk.world.addEntity(item);
+			for (Item item : this.hiddenItems) {
+				restoreItem(item);
 			}
 			this.hiddenItems.clear();
 		}
@@ -62,7 +64,7 @@ public class ChunkItems {
 	}
 
 	public synchronized void clear(Set<String> types) {
-		Iterator<EntityItem> iter = this.hiddenItems.iterator();
+		Iterator<Item> iter = this.hiddenItems.iterator();
 		while (iter.hasNext()) {
 			if (types.contains(EntityUtil.getName(iter.next()))) {
 				iter.remove();
@@ -76,11 +78,7 @@ public class ChunkItems {
 
 	public synchronized void spawnInChunk() {
 		while (!hiddenItems.isEmpty() && spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
-			EntityItem item = hiddenItems.poll();
-			ChunkCoordIntPair coord = ItemMap.getChunkCoords(item);
-			this.chunk.world.getChunkAt(coord.x, coord.z); // Load chunk
-			item.dead = false;
-			this.chunk.world.addEntity(item);
+			restoreItem(hiddenItems.poll());
 		}
 	}
 
@@ -93,7 +91,7 @@ public class ChunkItems {
 		this.spawnInChunk();
 	}
 
-	public synchronized boolean handleSpawn(EntityItem item) {
+	public synchronized boolean handleSpawn(Item item) {
 		if (this.spawnedItems.contains(item)) {
 			return true;
 		}
@@ -117,18 +115,18 @@ public class ChunkItems {
 	 * @return True if a change occurred, False if not
 	 */
 	private boolean refreshSpawnedItems() {
-		Iterator<EntityItem> iter = this.spawnedItems.iterator();
-		EntityItem e;
+		Iterator<Item> iter = this.spawnedItems.iterator();
+		Item e;
 		ChunkCoordIntPair pair;
 		try {
 			while (iter.hasNext()) {
 				e = iter.next();
-				if (e.dead) {
+				if (e.isDead()) {
 					iter.remove();
 					return true; // Changed
 				} else {
 					pair = ItemMap.getChunkCoords(e);
-					if (pair.x != this.chunk.x || pair.z != this.chunk.z) {
+					if (pair.x != this.chunk.getX() || pair.z != this.chunk.getZ()) {
 						// respawn in correct chunk
 						iter.remove();
 						ItemMap.addItem(pair, e);

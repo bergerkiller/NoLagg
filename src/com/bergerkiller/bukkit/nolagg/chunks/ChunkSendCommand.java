@@ -2,12 +2,14 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Collection;
 
+import org.bukkit.Chunk;
+
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
 import net.minecraft.server.Packet;
 import net.minecraft.server.Packet51MapChunk;
@@ -35,20 +37,21 @@ public class ChunkSendCommand {
 		if (mapPacket == null) {
 			return;
 		}
-		queue.sentChunks.add(new ChunkCoordIntPair(chunk.x, chunk.z));
-		PacketUtil.sendPacket(queue.ep, mapPacket, !NoLaggChunks.useBufferedLoading);
-		chunk.seenByPlayer = true;
+		final net.minecraft.server.Chunk nativeChunk = NativeUtil.getNative(chunk);
+		queue.sentChunks.add(new ChunkCoordIntPair(chunk.getX(), chunk.getZ()));
+		PacketUtil.sendPacket(queue.player, mapPacket, !NoLaggChunks.useBufferedLoading);
+		nativeChunk.seenByPlayer = true;
 		// Tile entities
 		Packet p;
-		for (TileEntity tile : (Collection<TileEntity>) chunk.tileEntities.values()) {
+		for (TileEntity tile : (Collection<TileEntity>) nativeChunk.tileEntities.values()) {
 			if ((p = BlockUtil.getUpdatePacket(tile)) != null) {
-				PacketUtil.sendPacket(queue.ep, p);
+				PacketUtil.sendPacket(queue.player, p);
 			}
 		}
 		// Spawn messages
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
-				WorldUtil.getTracker(queue.ep.world).a(queue.ep, chunk);
+				WorldUtil.getTracker(queue.player.getWorld()).a(NativeUtil.getNative(queue.player), nativeChunk);
 			}
 		});
 	}

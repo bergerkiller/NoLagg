@@ -3,11 +3,12 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Packet51MapChunk;
 
@@ -47,11 +48,8 @@ public class ChunkCompressQueue {
 	}
 
 	public boolean isAlive() {
-		if (this.owner.ep.netServerHandler == null)
-			return false;
-		if (this.owner.ep.netServerHandler.disconnected)
-			return false;
-		return true;
+		EntityPlayer ep = NativeUtil.getNative(this.owner.player);
+		return ep.netServerHandler != null && !ep.netServerHandler.disconnected;
 	}
 
 	public boolean canSend() {
@@ -77,7 +75,7 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			Packet51MapChunk packet = new Packet51MapChunk(chunk, true, 0xffff);
+			Packet51MapChunk packet = new Packet51MapChunk(NativeUtil.getNative(chunk), true, 0xffff);
 			packet.lowPriority = true;
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
@@ -98,7 +96,7 @@ public class ChunkCompressQueue {
 			Iterator<Chunk> iter = this.toCompress.iterator();
 			while (iter.hasNext()) {
 				Chunk chunk = iter.next();
-				if (chunk.x == x && chunk.z == z) {
+				if (chunk.getX() == x && chunk.getZ() == z) {
 					iter.remove();
 					return true;
 				}
@@ -108,7 +106,7 @@ public class ChunkCompressQueue {
 			Iterator<ChunkSendCommand> iter = this.toSend.iterator();
 			while (iter.hasNext()) {
 				ChunkSendCommand cmd = iter.next();
-				if (cmd.chunk.x == x && cmd.chunk.z == z) {
+				if (cmd.chunk.getX() == x && cmd.chunk.getZ() == z) {
 					iter.remove();
 					return true;
 				}
@@ -118,7 +116,7 @@ public class ChunkCompressQueue {
 	}
 
 	public boolean isNear(Chunk chunk) {
-		return this.isNear(chunk.x, chunk.z);
+		return this.isNear(chunk.getX(), chunk.getZ());
 	}
 
 	public boolean isNear(int x, int z) {
@@ -127,12 +125,8 @@ public class ChunkCompressQueue {
 		}
 	}
 
-	public EntityPlayer nativeOwner() {
-		return this.owner.ep;
-	}
-
 	public Player owner() {
-		return (Player) this.owner.ep.getBukkitEntity();
+		return this.owner.player;
 	}
 
 	public boolean hasChunk() {
@@ -160,7 +154,7 @@ public class ChunkCompressQueue {
 				// In range of dynamic view?
 				return cmd;
 			} else {
-				this.owner.removeContained(cmd.chunk.x, cmd.chunk.z);
+				this.owner.removeContained(cmd.chunk.getX(), cmd.chunk.getZ());
 				return this.pollSendCommand();
 			}
 		}
@@ -168,10 +162,11 @@ public class ChunkCompressQueue {
 
 	public boolean sendNext() {
 		ChunkSendCommand next = this.pollSendCommand();
-		if (next == null)
+		if (next == null) {
 			return false;
+		}
 		next.send(this.owner);
-		this.owner.removeContained(next.chunk.x, next.chunk.z);
+		this.owner.removeContained(next.chunk.getX(), next.chunk.getZ());
 		return true;
 	}
 }

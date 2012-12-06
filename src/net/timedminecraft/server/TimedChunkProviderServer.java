@@ -7,6 +7,7 @@ import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkProviderServerRef;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
@@ -23,7 +24,8 @@ import net.minecraft.server.WorldServer;
  * To keep things fair, all rights for this Class go to the Mojang team
  */
 public class TimedChunkProviderServer extends ChunkProviderServer {
-	public static void transfer(ChunkProviderServer to, WorldServer world) {
+	private static void transfer(ChunkProviderServer to, org.bukkit.World bworld) {
+		WorldServer world = NativeUtil.getNative(bworld);
 		try {
 			ChunkProviderServerRef.TEMPLATE.transfer(world.chunkProviderServer, to);
 			if (world.chunkProviderServer instanceof TimedChunkProviderServer) {
@@ -36,27 +38,19 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	public static void convert(org.bukkit.World world) {
-		convert(WorldUtil.getNative(world));
-	}
-
-	public static void convert(WorldServer world) {
 		transfer(new TimedChunkProviderServer(world), world);
 	}
 
 	public static void restore(org.bukkit.World world) {
-		restore(WorldUtil.getNative(world));
-	}
-
-	public static void restore(WorldServer world) {
-		transfer(new ChunkProviderServer(world, null, null), world);
+		transfer(new ChunkProviderServer(NativeUtil.getNative(world), null, null), world);
 	}
 
 	private boolean enabled = true;
 	private TaskMeasurement loadmeas, genmeas, unloadmeas;
 	private long prevtime;
 
-	private TimedChunkProviderServer(WorldServer world) {
-		super(world, null, null);
+	private TimedChunkProviderServer(org.bukkit.World world) {
+		super(NativeUtil.getNative(world), null, null);
 		loadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk load", "Loads chunks from file");
 		genmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk generate", "Generates the basic terrain");
 		unloadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk unload", "Unloads chunks and saves them to file");
@@ -82,8 +76,8 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	public Chunk getChunkAt(int i, int j) {
 		if (isEnabled()) {
 			// CraftBukkit start
-			WorldUtil.setChunkUnloading(this, i, j, false);
-			Chunk chunk = WorldUtil.getChunk(this, i, j);
+			WorldUtil.setChunkUnloading(this.world.getWorld(), i, j, false);
+			Chunk chunk = NativeUtil.getNative(WorldUtil.getChunk(this.world.getWorld(), i, j));
 			boolean newChunk = false;
 			// CraftBukkit end
 
@@ -100,7 +94,7 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 					newChunk = true; // CraftBukkit
 				}
 
-				WorldUtil.setChunk(this, i, j, chunk);
+				WorldUtil.setChunk(this.world.getWorld(), i, j, NativeUtil.getChunk(chunk));
 				if (chunk != null) {
 					chunk.addEntities();
 				}

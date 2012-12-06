@@ -2,8 +2,7 @@ package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
 import java.util.HashSet;
 
-import net.minecraft.server.WorldServer;
-
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -90,14 +89,14 @@ public class EntitySpawnHandler {
 	 * Fills all handlers with the entities on the server
 	 */
 	public static void initEntities() {
-		for (WorldServer world : WorldUtil.getWorlds()) {
-			for (net.minecraft.server.Entity e : WorldUtil.getEntities(world)) {
-				if (ExistingRemovalMap.isRemovable(EntityUtil.getName(e))) {
+		for (World world : WorldUtil.getWorlds()) {
+			for (Entity entity : WorldUtil.getEntities(world)) {
+				if (ExistingRemovalMap.isRemovable(EntityUtil.getName(entity))) {
 					// Can remove it - remove if needed
-					addEntity(e.getBukkitEntity());
+					addEntity(entity);
 				} else {
 					// Can not remove it - just increment the count
-					forceSpawn(e.getBukkitEntity());
+					forceSpawn(entity);
 				}
 			}
 		}

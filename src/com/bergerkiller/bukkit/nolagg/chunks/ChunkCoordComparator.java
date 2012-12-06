@@ -2,12 +2,12 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Comparator;
 
+import org.bukkit.Chunk;
 import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
 
 /*
@@ -199,10 +199,10 @@ public class ChunkCoordComparator implements Comparator<Object> {
 			return getIndex(pair.x, pair.z);
 		} else if (coord instanceof Chunk) {
 			Chunk chunk = (Chunk) coord;
-			return getIndex(chunk.x, chunk.z);
+			return getIndex(chunk.getX(), chunk.getZ());
 		} else if (coord instanceof ChunkSendCommand) {
-			Chunk chunk = (Chunk) ((ChunkSendCommand) coord).chunk;
-			return getIndex(chunk.x, chunk.z);
+			ChunkSendCommand cmd = (ChunkSendCommand) coord;
+			return getIndex(cmd.chunk.getX(), cmd.chunk.getZ());
 		} else {
 			return Integer.MAX_VALUE;
 		}

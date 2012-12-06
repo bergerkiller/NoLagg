@@ -1,13 +1,10 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.io.File;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.World.Environment;
 
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
@@ -115,15 +112,7 @@ public class DummyWorld extends WorldServer {
 		super(CommonUtil.getMCServer(), getDummyDataManager(), worldname, 0, getDummySettings(), CommonUtil.getMCServer().methodProfiler, Environment.NORMAL, null);
 		enabled = true;
 		// dereference this dummy world again...
-		Map<String, World> worlds = WorldUtil.getWorldsMap();
-		Iterator<World> iter = worlds.values().iterator();
-		while (iter.hasNext()) {
-			if (iter.next() == this.getWorld()) {
-				iter.remove();
-			}
-		}
-		worlds.remove(worldname.toLowerCase());
-		WorldUtil.getWorlds().remove(this);
+		WorldUtil.removeWorld(this.getWorld());
 		// set some variables to null
 		this.chunkProvider = this.chunkProviderServer = new DummyChunkProvider(this);
 		this.generator = null;

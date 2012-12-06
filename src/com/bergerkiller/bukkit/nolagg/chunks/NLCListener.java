@@ -72,7 +72,7 @@ public class NLCListener implements Listener {
 		if (event.isCancelled() || !NoLaggChunks.useDynamicView) {
 			return;
 		}
-		int chunkCount = WorldUtil.getNative(event.getWorld()).chunkProviderServer.getLoadedChunks();
+		int chunkCount = WorldUtil.getChunks(event.getWorld()).size();
 		for (int i = 0; i < chunkCount; i++) {
 			DynamicViewDistance.removeChunk();
 		}

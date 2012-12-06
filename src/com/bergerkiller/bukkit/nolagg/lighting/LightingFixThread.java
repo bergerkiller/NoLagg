@@ -20,22 +20,21 @@ import net.minecraft.server.ChunkSection;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.EnumSkyBlock;
 import net.minecraft.server.RegionFile;
-import net.minecraft.server.WorldServer;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingFixThread extends AsyncTask {
 	private static AsyncTask task;
-	private static LinkedHashSet<Chunk> toFix = new LinkedHashSet<Chunk>();
+	private static LinkedHashSet<org.bukkit.Chunk> toFix = new LinkedHashSet<org.bukkit.Chunk>();
 	private static List<FixOperation> next = new ArrayList<FixOperation>();
 	private static LinkedList<PendingChunk> pendingChunks = new LinkedList<PendingChunk>();
 	private static int pending = 0;
@@ -46,10 +45,6 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	private static void addForFixing(org.bukkit.Chunk chunk) {
-		addForFixing(WorldUtil.getNative(chunk));
-	}
-
-	private static void addForFixing(Chunk chunk) {
 		synchronized (toFix) {
 			toFix.add(chunk);
 			if (task == null) {
@@ -57,10 +52,10 @@ public class LightingFixThread extends AsyncTask {
 			}
 		}
 		// get rid of current sending requests for this chunk
-		ChunkCoordIntPair p = new ChunkCoordIntPair(chunk.x, chunk.z);
-		for (EntityPlayer ep : CommonUtil.getOnlinePlayers()) {
-			if (ep != null && ep.world == chunk.world && ep.chunkCoordIntPairQueue != null) {
-				if (EntityUtil.isNearChunk(ep, chunk.x, chunk.z, CommonUtil.view)) {
+		ChunkCoordIntPair p = new ChunkCoordIntPair(chunk.getX(), chunk.getZ());
+		for (EntityPlayer ep : NativeUtil.getOnlinePlayers()) {
+			if (ep != null && ep.world.getWorld() == chunk.getWorld() && ep.chunkCoordIntPairQueue != null) {
+				if (EntityUtil.isNearChunk(ep, chunk.getX(), chunk.getZ(), CommonUtil.view)) {
 					ep.chunkCoordIntPairQueue.remove(p);
 				}
 			}
@@ -86,8 +81,8 @@ public class LightingFixThread extends AsyncTask {
 	public static void fix(World world) {
 		LongHashSet chunks = new LongHashSet();
 		// Add the initial chunks that are already loaded
-		for (Chunk chunk : WorldUtil.getChunks(WorldUtil.getNative(world))) {
-			chunks.add(LongHash.toLong(chunk.x, chunk.z));
+		for (org.bukkit.Chunk chunk : WorldUtil.getChunks(world)) {
+			chunks.add(LongHash.toLong(chunk.getX(), chunk.getZ()));
 		}
 		// Get the region folder to look in
 		File regionFolder = getRegionFolder(world);
@@ -177,10 +172,6 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	public static boolean isFixing(org.bukkit.Chunk chunk) {
-		return isFixing(WorldUtil.getNative(chunk));
-	}
-
-	public static boolean isFixing(Chunk chunk) {
 		synchronized (toFix) {
 			return toFix.contains(chunk);
 		}
@@ -213,7 +204,7 @@ public class LightingFixThread extends AsyncTask {
 			synchronized (toFix) {
 				if (toFix.isEmpty())
 					return false;
-				for (Chunk c : toFix) {
+				for (org.bukkit.Chunk c : toFix) {
 					next.add(new FixOperation(c));
 					if (maxChunksPerRun-- <= 0) {
 						break;
@@ -282,17 +273,17 @@ public class LightingFixThread extends AsyncTask {
 
 	private static class FixOperation {
 		private final Chunk chunk;
-		private final WorldServer world;
+		private final World world;
 		public final ChunkSection[] sections;
 
-		public FixOperation(final Chunk chunk) {
-			this.chunk = chunk;
-			this.world = (WorldServer) chunk.world;
+		public FixOperation(org.bukkit.Chunk chunk) {
+			this.chunk = NativeUtil.getNative(chunk);
+			this.world = chunk.getWorld();
 			this.sections = this.chunk.i();
 		}
 
 		private Chunk getChunk(final int x, final int z) {
-			return WorldUtil.getChunk(this.world, x, z);
+			return NativeUtil.getNative(WorldUtil.getChunk(this.world, x, z));
 		}
 
 		private int getLightLevel(EnumSkyBlock mode, int x, final int y, int z) {
@@ -340,11 +331,11 @@ public class LightingFixThread extends AsyncTask {
 					for (z = 0; z < 16; z++) {
 						if (mode == EnumSkyBlock.SKY) {
 							inity = this.chunk.b(x, z);
-							if (inity >= this.world.getHeight()) {
-								inity = this.world.getHeight() - 1;
+							if (inity >= this.world.getMaxHeight()) {
+								inity = this.world.getMaxHeight() - 1;
 							}
 						} else {
-							inity = this.world.getHeight() - 1;
+							inity = this.world.getMaxHeight() - 1;
 						}
 						for (y = inity; y > 0; --y) {
 							if (this.chunk.i()[y >> 4] == null) {
@@ -391,7 +382,7 @@ public class LightingFixThread extends AsyncTask {
 		public void prepare() {
 			int x, y, z;
 			int slicesLight = this.chunk.h();
-			int maxheight = this.world.getHeight() - 1;
+			int maxheight = this.world.getMaxHeight() - 1;
 			ChunkSection sec;
 			// initial calculation of sky light
 			for (x = 0; x < 16; x++) {
@@ -414,27 +405,25 @@ public class LightingFixThread extends AsyncTask {
 			}
 		}
 
+		@SuppressWarnings("unchecked")
 		public void finish() {
 			// send chunk (update)
-			CommonUtil.nextTick(new Operation(false) {
-				boolean found = false;
-
+			CommonUtil.nextTick(new Runnable() {
+				@Override
 				public void run() {
-					this.doPlayers(world);
+					boolean found = false;
+					for (EntityPlayer ep : NativeUtil.getOnlinePlayers()) {
+						if (Math.abs(chunk.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
+							return;
+						if (Math.abs(chunk.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
+							return;
+						ep.chunkCoordIntPairQueue.add(0, new ChunkCoordIntPair(chunk.x, chunk.z));
+						found = true;
+					}
 					if (!found) {
 						// unload chunk if there were no players nearby
-						world.chunkProviderServer.queueUnload(chunk.x, chunk.z);
+						WorldUtil.setChunkUnloading(world, chunk.x, chunk.z, true);
 					}
-				}
-
-				@SuppressWarnings("unchecked")
-				public void handle(EntityPlayer ep) {
-					if (Math.abs(chunk.x - MathUtil.locToChunk(ep.locX)) > CommonUtil.view)
-						return;
-					if (Math.abs(chunk.z - MathUtil.locToChunk(ep.locZ)) > CommonUtil.view)
-						return;
-					ep.chunkCoordIntPairQueue.add(0, new ChunkCoordIntPair(chunk.x, chunk.z));
-					found = true;
 				}
 			});
 		}

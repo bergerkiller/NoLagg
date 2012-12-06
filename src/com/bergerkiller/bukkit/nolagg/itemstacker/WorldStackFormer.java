@@ -7,7 +7,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Item;
 
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
 /**
@@ -134,7 +133,7 @@ public class WorldStackFormer {
 					}
 				}
 				if (changed) {
-					ItemUtil.respawnItem(EntityUtil.getNative(itemTask.getEntity()));
+					ItemUtil.respawnItem(itemTask.getEntity());
 				}
 			}
 		}

@@ -4,10 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 
-import net.minecraft.server.ChunkCoordinates;
-import net.minecraft.server.WorldServer;
-
 import org.bukkit.Chunk;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -109,15 +108,14 @@ public class NoLaggChunks extends NoLaggComponent {
 		}
 
 		public void run() {
-			for (WorldServer world : WorldUtil.getWorlds()) {
+			for (World world : WorldUtil.getWorlds()) {
 				ArrayList<Chunk> unloadChunks = new ArrayList<Chunk>();
-				for (net.minecraft.server.Chunk nmschunk : WorldUtil.getChunks(world)) {
-					Chunk chunk = nmschunk.bukkitChunk;
+				Location spawn = world.getKeepSpawnInMemory() ? world.getSpawnLocation() : null;
+				for (Chunk chunk : WorldUtil.getChunks(world)) {
 					// Part of world spawn?
-					if (nmschunk.world.keepSpawnInMemory) {
-						ChunkCoordinates chunkcoordinates = nmschunk.world.getSpawn();
-						int centerSpawnX = nmschunk.x * 16 + 8 - chunkcoordinates.x;
-						int centerSpawnZ = nmschunk.z * 16 + 8 - chunkcoordinates.z;
+					if (spawn != null) {
+						int centerSpawnX = chunk.getX() * 16 + 8 - spawn.getBlockX();
+						int centerSpawnZ = chunk.getZ() * 16 + 8 - spawn.getBlockZ();
 						final int short1 = 128;
 						if (centerSpawnX >= -short1 && centerSpawnX <= short1 && centerSpawnZ >= -short1 && centerSpawnZ <= short1) {
 							continue;

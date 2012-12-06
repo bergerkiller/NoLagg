@@ -1,9 +1,9 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
-import net.minecraft.server.WorldServer;
 import net.timedminecraft.server.TimedChunkProviderServer;
 
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -24,7 +24,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
 		this.onReload(config);
-		for (WorldServer world : WorldUtil.getWorlds()) {
+		for (World world : WorldUtil.getWorlds()) {
 			TimedChunkProviderServer.convert(world);
 		}
 		this.register(NLEListener.class);
@@ -35,7 +35,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	public void onDisable(ConfigurationNode config) {
 		SchedulerWatcher.deinit();
 		PluginLogger.stopTask();
-		for (WorldServer world : WorldUtil.getWorlds()) {
+		for (World world : WorldUtil.getWorlds()) {
 			TimedChunkProviderServer.restore(world);
 		}
 	}

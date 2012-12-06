@@ -10,8 +10,6 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.logging.Level;
 
-import net.minecraft.server.WorldServer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -329,11 +327,11 @@ public class PerformanceMonitor extends Task {
 			int totalchunkcount = 0;
 			int totaluchunkcount = 0;
 
-			for (WorldServer world : WorldUtil.getWorlds()) {
-				int count = world.chunkProviderServer.getLoadedChunks();
+			for (World world : WorldUtil.getWorlds()) {
+				int count = WorldUtil.getChunks(world).size();
 				totalchunkcount += count;
 				totaluchunkcount += count;
-				if (world.keepSpawnInMemory) {
+				if (world.getKeepSpawnInMemory()) {
 					totaluchunkcount -= 144;
 				}
 			}

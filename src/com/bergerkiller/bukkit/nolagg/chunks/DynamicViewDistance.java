@@ -5,12 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.minecraft.server.WorldServer;
+import org.bukkit.World;
 
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 
@@ -43,15 +43,9 @@ public class DynamicViewDistance {
 		}
 
 		// Alter player manager to prevent chunk loading outside range
-		new Operation() {
-			public void run() {
-				this.doWorlds();
-			}
-
-			public void handle(WorldServer world) {
-				DummyPlayerManager.convert(world);
-			}
-		};
+		for (World world : WorldUtil.getWorlds()) {
+			DummyPlayerManager.convert(world);
+		}
 
 		int lowest = Integer.MAX_VALUE;
 		Iterator<String> iter = elements.iterator();
@@ -76,15 +70,9 @@ public class DynamicViewDistance {
 		}
 		NoLaggChunks.hasDynamicView = true;
 		chunks = 0;
-		new Operation() {
-			public void run() {
-				this.doWorlds();
-			}
-
-			public void handle(WorldServer world) {
-				chunks += world.chunkProviderServer.getLoadedChunks();
-			}
-		};
+		for (World world : WorldUtil.getWorlds()) {
+			chunks += WorldUtil.getChunks(world).size();
+		}
 		chunksChanged = true;
 
 		task = new Task(NoLagg.plugin) {

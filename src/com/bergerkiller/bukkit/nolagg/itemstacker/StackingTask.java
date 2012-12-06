@@ -5,14 +5,15 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import org.bukkit.entity.Entity;
+import net.minecraft.server.Entity;
+
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-public class StackingTask <T extends Entity> {
+public class StackingTask <T extends org.bukkit.entity.Entity> {
 	private T entity;
 	private List<T> nearby = new ArrayList<T>(0);
 
@@ -91,7 +92,7 @@ public class StackingTask <T extends Entity> {
 		}
 		T entity;
 		double d;
-		net.minecraft.server.Entity selfEntity = EntityUtil.getNative(this.entity);
+		Entity selfEntity = NativeUtil.getNative(this.entity);
 		for (StackingTask<T> task : Entitytasks) {
 			if (!task.isValid()) {
 				break; // Reached end of data
@@ -99,7 +100,7 @@ public class StackingTask <T extends Entity> {
 			entity = task.entity;
 			if (!entity.isDead() && entity != this.entity) {
 				// Distance check
-				net.minecraft.server.Entity e = EntityUtil.getNative(this.entity);
+				Entity e = NativeUtil.getNative(entity);
 				d = distance(selfEntity.locX, e.locX);
 				if (d > radiusSquared) {
 					continue;
@@ -146,7 +147,7 @@ public class StackingTask <T extends Entity> {
 	 * @param entities to transfer
 	 * @param tasks to transfer the entities to
 	 */
-	public static <T extends Entity> void transfer(Collection<T> entities, Collection<StackingTask<T>> tasks) {
+	public static <T extends org.bukkit.entity.Entity> void transfer(Collection<T> entities, Collection<StackingTask<T>> tasks) {
 		// Ensure required tasks capacity
 		if (entities.size() > tasks.size()) {
 			for (int i = tasks.size(); i < entities.size(); i++) {

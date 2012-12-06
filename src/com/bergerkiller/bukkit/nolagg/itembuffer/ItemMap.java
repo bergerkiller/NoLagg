@@ -8,26 +8,25 @@ import java.util.WeakHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Item;
 
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
-import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.EntityItem;
 
 public class ItemMap {
-	private static Map<Chunk, ChunkItems> items = new WeakHashMap<Chunk, ChunkItems>();
+	private static Map<org.bukkit.Chunk, ChunkItems> items = new WeakHashMap<org.bukkit.Chunk, ChunkItems>();
 	private static Task updateTask;
 
-	public static ChunkCoordIntPair getChunkCoords(EntityItem item) {
-		return new ChunkCoordIntPair(MathUtil.locToChunk(item.locX), MathUtil.locToChunk(item.locZ));
+	public static ChunkCoordIntPair getChunkCoords(Item item) {
+		return new ChunkCoordIntPair(MathUtil.locToChunk(EntityUtil.getLocX(item)), MathUtil.locToChunk(EntityUtil.getLocZ(item)));
 	}
 
-	private static ChunkItems getItems(net.minecraft.server.World world, ChunkCoordIntPair chunkCoordinates) {
+	private static ChunkItems getItems(World world, ChunkCoordIntPair chunkCoordinates) {
 		if (currentUnload != null && chunkCoordinates.x == currentUnload.x && chunkCoordinates.z == currentUnload.z) {
 			return null;
 		}
@@ -48,14 +47,14 @@ public class ItemMap {
 			if (types.contains("all") || types.contains("items")) {
 				// Remove all from worlds
 				for (ChunkItems ci : items.values()) {
-					if (worldsClone.contains(ci.chunk.world.getWorld())) {
+					if (worldsClone.contains(ci.getWorld())) {
 						ci.clear();
 					}
 				}
 			} else {
 				// Remove item per type
 				for (ChunkItems ci : items.values()) {
-					if (worldsClone.contains(ci.chunk.world.getWorld())) {
+					if (worldsClone.contains(ci.getWorld())) {
 						ci.clear(types);
 					}
 				}
@@ -66,7 +65,7 @@ public class ItemMap {
 	public static void clear(World world) {
 		synchronized (items) {
 			for (ChunkItems ci : items.values()) {
-				if (ci.chunk.world.getWorld() == world) {
+				if (ci.chunk.getWorld() == world) {
 					ci.clear();
 				}
 			}
@@ -82,15 +81,11 @@ public class ItemMap {
 	}
 
 	public static void init() {
-		new Operation() {
-			public void run() {
-				this.doChunks();
-			}
-
-			public void handle(Chunk chunk) {
+		for (World world : WorldUtil.getWorlds()) {
+			for (org.bukkit.Chunk chunk : WorldUtil.getChunks(world)) {
 				loadChunk(chunk);
 			}
-		};
+		}
 		updateTask = new Task(NoLagg.plugin) {
 			public void run() {
 				synchronized (items) {
@@ -114,11 +109,7 @@ public class ItemMap {
 	public static ChunkCoordIntPair currentUnload = null;
 
 	public static void unloadChunk(org.bukkit.Chunk chunk) {
-		unloadChunk(WorldUtil.getNative(chunk));
-	}
-
-	public static void unloadChunk(Chunk chunk) {
-		currentUnload = new ChunkCoordIntPair(chunk.x, chunk.z);
+		currentUnload = new ChunkCoordIntPair(chunk.getX(), chunk.getZ());
 		ChunkItems citems = items.remove(chunk);
 		if (citems != null) {
 			citems.deinit();
@@ -127,25 +118,23 @@ public class ItemMap {
 	}
 
 	public static void loadChunk(org.bukkit.Chunk chunk) {
-		loadChunk(WorldUtil.getNative(chunk));
-	}
-
-	public static void loadChunk(Chunk chunk) {
 		synchronized (items) {
 			items.put(chunk, new ChunkItems(chunk));
 		}
 	}
 
-	public static boolean addItem(EntityItem item) {
-		if (item == null)
+	public static boolean addItem(Item item) {
+		if (item == null) {
 			return true;
+		}
 		return addItem(getChunkCoords(item), item);
 	}
 
-	public static boolean addItem(ChunkCoordIntPair coords, EntityItem item) {
-		if (item == null)
+	public static boolean addItem(ChunkCoordIntPair coords, Item item) {
+		if (item == null) {
 			return true;
-		ChunkItems citems = getItems(item.world, coords);
+		}
+		ChunkItems citems = getItems(item.getWorld(), coords);
 		if (citems == null) {
 			return true;
 		} else {
@@ -153,10 +142,11 @@ public class ItemMap {
 		}
 	}
 
-	public static void removeItem(EntityItem item) {
-		if (item == null)
+	public static void removeItem(Item item) {
+		if (item == null) {
 			return;
-		ChunkItems citems = getItems(item.world, getChunkCoords(item));
+		}
+		ChunkItems citems = getItems(item.getWorld(), getChunkCoords(item));
 		if (citems != null) {
 			citems.spawnedItems.remove(item);
 			citems.spawnInChunk();

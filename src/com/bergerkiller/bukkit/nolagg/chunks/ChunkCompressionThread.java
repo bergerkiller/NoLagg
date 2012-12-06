@@ -4,13 +4,16 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.Player;
+
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.lishid.orebfuscator.obfuscation.Calculations;
 
 import net.minecraft.server.Chunk;
 import net.minecraft.server.ChunkSection;
-import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.Packet51MapChunk;
 
 public class ChunkCompressionThread extends AsyncTask {
@@ -112,7 +115,8 @@ public class ChunkCompressionThread extends AsyncTask {
 		this.rawLength += data.length;
 	}
 
-	public Packet51MapChunk createPacket(Chunk chunk) {
+	public Packet51MapChunk createPacket(org.bukkit.Chunk bchunk) {
+		Chunk chunk = NativeUtil.getNative(bchunk);
 		// Version which uses the Chunkmap buffer to create the packet
 		Packet51MapChunk mapchunk = new Packet51MapChunk();
 		Packet51MapChunkRef.x.set(mapchunk, chunk.x);
@@ -232,7 +236,7 @@ public class ChunkCompressionThread extends AsyncTask {
 	 * @param chunk to get the data for
 	 * @return compressed packet of which the raw data can no longer be used
 	 */
-	public Packet51MapChunk getCompressedPacket(EntityPlayer player, Chunk chunk) {
+	public Packet51MapChunk getCompressedPacket(Player player, org.bukkit.Chunk chunk) {
 		this.lasttime = System.currentTimeMillis();
 		Packet51MapChunk mapchunk = createPacket(chunk);
 
@@ -240,7 +244,7 @@ public class ChunkCompressionThread extends AsyncTask {
 		// ========================================
 		if (NoLaggChunks.isOreObfEnabled) {
 			try {
-				Calculations.Obfuscate(mapchunk, player.netServerHandler.getPlayer(), false);
+				Calculations.Obfuscate(mapchunk, (CraftPlayer) player, false);
 			} catch (Throwable t) {
 				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured in Orebfuscator: support for this plugin had to be removed!");
 				t.printStackTrace();
@@ -264,12 +268,12 @@ public class ChunkCompressionThread extends AsyncTask {
 				sleep(200);
 				return;
 			}
-			Chunk chunk = queue.pollChunk();
+			org.bukkit.Chunk chunk = queue.pollChunk();
 			if (chunk != null) {
 				try {
-					queue.enqueue(new ChunkSendCommand(this.getCompressedPacket(queue.nativeOwner(), chunk), chunk));
+					queue.enqueue(new ChunkSendCommand(this.getCompressedPacket(queue.owner(), chunk), chunk));
 				} catch (Throwable t) {
-					NoLaggChunks.plugin.log(Level.SEVERE, "Failed to compress map chunk [" + chunk.x + ", " + chunk.z + "] for player " + queue.owner().getName());
+					NoLaggChunks.plugin.log(Level.SEVERE, "Failed to compress map chunk [" + chunk.getX() + ", " + chunk.getZ() + "] for player " + queue.owner().getName());
 					t.printStackTrace();
 				}
 			} else if (idleCounter++ > compress.size()) {

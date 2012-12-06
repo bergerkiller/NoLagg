@@ -7,13 +7,11 @@ import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
-import org.bukkit.craftbukkit.entity.CraftPlayer;
-
 import com.bergerkiller.bukkit.common.IntRemainder;
-import com.bergerkiller.bukkit.common.Operation;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
@@ -22,6 +20,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
@@ -32,8 +31,6 @@ import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.INetworkManager;
 import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet;
-import net.minecraft.server.World;
-import net.minecraft.server.WorldServer;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -55,8 +52,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 				double newper = ChunkCompressionThread.getBusyPercentage(System.currentTimeMillis() - prevtime);
 				compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
 				prevtime = System.currentTimeMillis();
-				for (EntityPlayer ep : CommonUtil.getOnlinePlayers()) {
-					ChunkSendQueue queue = bind(ep);
+				for (Player player : CommonUtil.getOnlinePlayers()) {
+					ChunkSendQueue queue = bind(player);
 					queue.updating.next(true);
 					queue.update();
 					queue.updating.reset(false);
@@ -84,34 +81,25 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		Task.stop(task);
 		task = null;
 		// clear bound queues
-		new Operation() {
-			public void run() {
-				this.doPlayers();
+		for (Player player : CommonUtil.getOnlinePlayers()) {
+			ChunkSendQueue queue = bind(player);
+			if (queue != null) {
+				EntityPlayerRef.chunkQueue.set(NativeUtil.getNative(player), queue.toLinkedList());
 			}
-
-			public void handle(EntityPlayer ep) {
-				ChunkSendQueue queue = bind(ep);
-				if (queue != null) {
-					EntityPlayerRef.chunkQueue.set(ep, queue.toLinkedList());
-				}
-			}
-		};
+		}
 	}
 
 	public static ChunkSendQueue bind(Player with) {
-		return bind(((CraftPlayer) with).getHandle());
-	}
-
-	public static ChunkSendQueue bind(EntityPlayer with) {
-		if (!(with.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
+		EntityPlayer ep = NativeUtil.getNative(with);
+		if (!(ep.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
 			ChunkSendQueue queue = new ChunkSendQueue(with);
-			with.chunkCoordIntPairQueue.clear();
-			EntityPlayerRef.chunkQueue.set(with, queue);
+			ep.chunkCoordIntPairQueue.clear();
+			EntityPlayerRef.chunkQueue.set(ep, queue);
 		}
-		return (ChunkSendQueue) with.chunkCoordIntPairQueue;
+		return (ChunkSendQueue) ep.chunkCoordIntPairQueue;
 	}
 
-	public final EntityPlayer ep;
+	public final Player player;
 	private int idleTicks = 0;
 	public BlockFace sendDirection = BlockFace.NORTH;
 	public World world;
@@ -129,10 +117,11 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private int packetBufferQueueSize = 0;
 	private int buffersizeavg = 0;
 
-	private ChunkSendQueue(final EntityPlayer ep) {
-		this.ep = ep;
-		this.world = ep.world;
+	private ChunkSendQueue(final Player player) {
+		this.player = player;
+		this.world = player.getWorld();
 		this.sendDirection = null; // Force a sorting operation the next tick
+		EntityPlayer ep = NativeUtil.getNative(player);
 		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
 		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
 		this.chunkQueue = new ChunkCompressQueue(this);
@@ -143,7 +132,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	private void enforceBufferFullSize() {
-		INetworkManager nm = this.ep.netServerHandler.networkManager;
+		INetworkManager nm = NativeUtil.getNative(this.player).netServerHandler.networkManager;
 		Object lockObject = new SafeField<Object>(NetworkManager.class, "h").get(nm);
 		if (lockObject != null) {
 			List<Packet> low = new SafeField<List<Packet>>(NetworkManager.class, "lowPriorityQueue").get(nm);
@@ -172,21 +161,13 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	public static double getAverageRate() {
-		return new Operation() {
-			public void run() {
-				this.doPlayers();
-				this.average = this.totalrate / (double) pcount;
-			}
-
-			private double totalrate = 0;
-			private int pcount = 0;
-			public double average;
-
-			public void handle(EntityPlayer ep) {
-				this.totalrate += bind(ep).rate.get();
-				this.pcount++;
-			}
-		}.average;
+		double totalrate = 0;
+		int pcount = 0;
+		for (Player player : CommonUtil.getOnlinePlayers()) {
+			totalrate += bind(player).rate.get();
+			pcount++;
+		}
+		return totalrate / (double) pcount;
 	}
 
 	public double getRate() {
@@ -239,7 +220,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private void update() {
 		// Update queue size
 		if (NetworkManagerRef.queueSize.isValid()) {
-			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(this.ep.netServerHandler.networkManager);
+			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(NativeUtil.getNative(this.player).netServerHandler.networkManager);
 			this.packetBufferQueueSize += 9437184;
 		}
 		// Update current buffer size
@@ -311,7 +292,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (rate == 0)
 			return;
 		if (this.intervalcounter >= interval) {
-			updatePosition(ep.world, ep.locX + ep.motX * 16, ep.locZ + ep.motZ * 16, ep.yaw);
+			EntityPlayer ep = NativeUtil.getNative(this.player);
+			updatePosition(this.player.getWorld(), ep.locX + ep.motX * 16, ep.locZ + ep.motZ * 16, ep.yaw);
 			this.sendBatch(rate);
 			this.intervalcounter = 1;
 		} else {
@@ -325,7 +307,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 * @param position to set to
 	 */
 	public void updatePosition(Location position) {
-		updatePosition(WorldUtil.getNative(position.getWorld()), position.getX(), position.getZ(), position.getYaw());
+		updatePosition(position.getWorld(), position.getX(), position.getZ(), position.getYaw());
 	}
 
 	/**
@@ -356,8 +338,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 * Prepares the given amount of chunks for sending and flushed compressed
 	 * chunks
 	 * 
-	 * @param count
-	 *            of chunks to load
+	 * @param count of chunks to load
 	 */
 	private void sendBatch(int count) {
 		// load chunks
@@ -367,7 +348,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			if (pair == null) {
 				break;
 			}
-			this.chunkQueue.enqueue(((WorldServer) this.ep.world).chunkProviderServer.getChunkAt(pair.x, pair.z));
+			this.chunkQueue.enqueue(WorldUtil.getChunk(this.player.getWorld(), pair.x, pair.z));
 		}
 		// Filter the chunk load times to prevent duplication in the examiner
 		if (NoLaggComponents.EXAMINE.isEnabled()) {
@@ -417,7 +398,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 
 	@Override
 	public boolean isNear(final int chunkx, final int chunkz, final int view) {
-		return EntityUtil.isNearChunk(this.ep, chunkx, chunkz, view + 1);
+		return EntityUtil.isNearChunk(this.player, chunkx, chunkz, view + 1);
 	}
 
 	@Override
