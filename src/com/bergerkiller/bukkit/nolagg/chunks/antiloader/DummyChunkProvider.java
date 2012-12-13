@@ -2,14 +2,20 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.List;
 
-import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkPosition;
-import net.minecraft.server.ChunkProviderServer;
-import net.minecraft.server.EnumCreatureType;
-import net.minecraft.server.IChunkProvider;
-import net.minecraft.server.IProgressUpdate;
-import net.minecraft.server.World;
-import net.minecraft.server.WorldServer;
+import org.bukkit.craftbukkit.v1_4_5.chunkio.ChunkIOExecutor;
+
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkProviderServerRef;
+
+import net.minecraft.server.v1_4_5.Chunk;
+import net.minecraft.server.v1_4_5.ChunkPosition;
+import net.minecraft.server.v1_4_5.ChunkProviderServer;
+import net.minecraft.server.v1_4_5.ChunkRegionLoader;
+import net.minecraft.server.v1_4_5.EnumCreatureType;
+import net.minecraft.server.v1_4_5.IChunkLoader;
+import net.minecraft.server.v1_4_5.IChunkProvider;
+import net.minecraft.server.v1_4_5.IProgressUpdate;
+import net.minecraft.server.v1_4_5.World;
+import net.minecraft.server.v1_4_5.WorldServer;
 
 public class DummyChunkProvider extends ChunkProviderServer {
 	private static final IllegalStateException FAIL = new IllegalStateException("Unsupported method for Dummy chunk provider (oh no!)");
@@ -21,11 +27,6 @@ public class DummyChunkProvider extends ChunkProviderServer {
 
 	@Override
 	public Chunk getChunkAt(int x, int z) {
-		return null;
-	}
-
-	@Override
-	public void a() {
 		throw FAIL;
 	}
 
@@ -62,6 +63,24 @@ public class DummyChunkProvider extends ChunkProviderServer {
 	@Override
 	public Chunk getOrCreateChunk(int arg0, int arg1) {
 		throw FAIL;
+	}
+
+	@Override
+	public Chunk getChunkAt(int x, int z, Runnable task) {
+		ChunkProviderServer cps = ((WorldServer) this.world).chunkProviderServer;
+		if (cps.isChunkLoaded(x, z)) {
+			return null; // Ignore, is already loaded
+		}
+		IChunkLoader l = ChunkProviderServerRef.chunkLoader.get(cps);
+		if (l instanceof ChunkRegionLoader) {
+			ChunkRegionLoader loader = (ChunkRegionLoader) l;
+			if (loader.chunkExists(cps.world, x, z)) {
+				// Load the chunk async
+	            ChunkIOExecutor.queueChunkLoad(cps.world, loader, cps, x, z, task);
+			}
+		}
+		// Ignore attempt to generate the chunk
+		return null;
 	}
 
 	@Override

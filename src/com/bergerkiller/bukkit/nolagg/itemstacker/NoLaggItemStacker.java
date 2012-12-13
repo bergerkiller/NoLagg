@@ -62,10 +62,6 @@ public class NoLaggItemStacker extends NoLaggComponent {
 		}
 	}
 
-	public static boolean isIgnoredItem(net.minecraft.server.Entity itementity) {
-		return isIgnoredItem(itementity.getBukkitEntity());
-	}
-
 	public static boolean isIgnoredItem(Entity itementity) {
 		if (EntityUtil.isIgnored(itementity))
 			return true;

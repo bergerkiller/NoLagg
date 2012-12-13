@@ -9,7 +9,7 @@ import java.util.Set;
 import com.bergerkiller.bukkit.common.ActiveState;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
-import net.minecraft.server.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
 
 /**
  * Only contains the empty-faking and double-mapping of contained elements
@@ -29,7 +29,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	public void sort() {
 		for (Iterator<ChunkCoordIntPair> iter = sentChunks.iterator(); iter.hasNext();) {
-			if (!this.isNear(iter.next(), CommonUtil.view)) {
+			if (!this.isNear(iter.next(), CommonUtil.VIEW)) {
 				iter.remove();
 			}
 		}
@@ -84,7 +84,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	protected boolean add(ChunkCoordIntPair pair) {
-		if (this.isNear(pair, CommonUtil.view)) {
+		if (this.isNear(pair, CommonUtil.VIEW)) {
 			synchronized (this) {
 				// Add to sending queue if not contained, or a re-send is
 				// requested
@@ -109,7 +109,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			if (isNearDynamic(pair.x, pair.z)) {
 				iter.remove();
 				return pair;
-			} else if (!this.isNear(pair, CommonUtil.view)) {
+			} else if (!this.isNear(pair, CommonUtil.VIEW)) {
 				iter.remove();
 				this.contained.remove(pair);
 			}

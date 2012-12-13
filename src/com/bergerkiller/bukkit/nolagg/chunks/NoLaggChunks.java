@@ -162,9 +162,9 @@ public class NoLaggChunks extends NoLaggComponent {
 					msg.green(" chunks each tick (");
 					msg.yellow(avgrate).yellow(" avg").green(")").newLine();
 					msg.green("You have received ");
-					int sent = CommonUtil.chunkArea - queue.getPendingSize();
-					double per = MathUtil.round((double) sent / (double) CommonUtil.chunkArea * 100.0, 2);
-					msg.yellow(sent).white("/").yellow(CommonUtil.chunkArea).green(" chunks (");
+					int sent = CommonUtil.CHUNKAREA - queue.getPendingSize();
+					double per = MathUtil.round((double) sent / (double) CommonUtil.CHUNKAREA * 100.0, 2);
+					msg.yellow(sent).white("/").yellow(CommonUtil.CHUNKAREA).green(" chunks (");
 					msg.yellow(per, "%").green(")").newLine();
 					msg.green("Your packet buffer is ").green(queue.getBufferLoadMsg()).green(" used");
 					msg.newLine().green("Chunk compression is ");

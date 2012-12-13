@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.Packet51MapChunk;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {
@@ -121,7 +121,7 @@ public class ChunkCompressQueue {
 
 	public boolean isNear(int x, int z) {
 		synchronized (this.owner) {
-			return this.owner.isNear(x, z, CommonUtil.view);
+			return this.owner.isNear(x, z, CommonUtil.VIEW);
 		}
 	}
 

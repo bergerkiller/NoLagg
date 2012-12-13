@@ -2,21 +2,28 @@ package net.timedminecraft.server;
 
 import java.util.Random;
 
-import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.Server;
+import org.bukkit.craftbukkit.v1_4_5.chunkio.ChunkIOExecutor;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkProviderServerRef;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
-import net.minecraft.server.BlockSand;
-import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkProviderServer;
-import net.minecraft.server.IChunkProvider;
-import net.minecraft.server.WorldServer;
+import net.minecraft.server.v1_4_5.BlockSand;
+import net.minecraft.server.v1_4_5.Chunk;
+import net.minecraft.server.v1_4_5.ChunkProviderServer;
+import net.minecraft.server.v1_4_5.ChunkRegionLoader;
+import net.minecraft.server.v1_4_5.CrashReport;
+import net.minecraft.server.v1_4_5.CrashReportSystemDetails;
+import net.minecraft.server.v1_4_5.IChunkLoader;
+import net.minecraft.server.v1_4_5.IChunkProvider;
+import net.minecraft.server.v1_4_5.ReportedException;
+import net.minecraft.server.v1_4_5.WorldServer;
 
 /*
  * Please ignore the package leading to the net.minecraft.server namespace
@@ -73,51 +80,77 @@ public class TimedChunkProviderServer extends ChunkProviderServer {
 	}
 
 	@Override
-	public Chunk getChunkAt(int i, int j) {
+	public Chunk getChunkAt(int i, int j, Runnable runnable) {
 		if (isEnabled()) {
-			// CraftBukkit start
 			WorldUtil.setChunkUnloading(this.world.getWorld(), i, j, false);
 			Chunk chunk = NativeUtil.getNative(WorldUtil.getChunk(this.world.getWorld(), i, j));
-			boolean newChunk = false;
-			// CraftBukkit end
+	        boolean newChunk = false;
+	        ChunkRegionLoader loader = null;
+	        IChunkLoader l = ChunkProviderServerRef.chunkLoader.get(this);
 
-			if (chunk == null) {
-				chunk = this.loadChunk(i, j);
-				if (chunk == null) {
-					if (this.chunkProvider == null) {
-						chunk = this.emptyChunk;
-					} else {
-						prevtime = System.nanoTime();
-						chunk = this.chunkProvider.getOrCreateChunk(i, j);
-						this.genmeas.setTime(prevtime);
-					}
-					newChunk = true; // CraftBukkit
-				}
+	        if (l instanceof ChunkRegionLoader) {
+	            loader = (ChunkRegionLoader) l;
+	        }
 
-				WorldUtil.setChunk(this.world.getWorld(), i, j, NativeUtil.getChunk(chunk));
-				if (chunk != null) {
-					chunk.addEntities();
-				}
+	        // If the chunk exists but isn't loaded do it async
+	        if (chunk == null && runnable != null && loader != null && loader.chunkExists(this.world, i, j)) {
+	            ChunkIOExecutor.queueChunkLoad(this.world, loader, this, i, j, runnable);
+	            return null;
+	        }
+	        // CraftBukkit end
 
-				// CraftBukkit start
-				org.bukkit.Server server = this.world.getServer();
-				if (server != null) {
-					/*
-					 * If it's a new world, the first few chunks are generated
-					 * inside the World constructor. We can't reliably alter
-					 * that, so we have no way of creating a
-					 * CraftWorld/CraftServer at that point.
-					 */
-					server.getPluginManager().callEvent(new ChunkLoadEvent(chunk.bukkitChunk, newChunk));
-				}
-				// CraftBukkit end
+	        if (chunk == null) {
+	            chunk = this.loadChunk(i, j);
+	            if (chunk == null) {
+	                if (this.chunkProvider == null) {
+	                    chunk = this.emptyChunk;
+	                } else {
+	                    try {
+							prevtime = System.nanoTime();
+							chunk = this.chunkProvider.getOrCreateChunk(i, j);
+							this.genmeas.setTime(prevtime);
+	                    } catch (Throwable throwable) {
+	                        CrashReport crashreport = CrashReport.a(throwable, "Exception generating new chunk");
+	                        CrashReportSystemDetails crashreportsystemdetails = crashreport.a("Chunk to be generated");
 
-				chunk.a(this, this, i, j);
-			}
+	                        crashreportsystemdetails.a("Location", String.format("%d,%d", new Object[] { Integer.valueOf(i), Integer.valueOf(j)}));
+	                        crashreportsystemdetails.a("Position hash", Long.valueOf(MathUtil.longHashToLong(i, j)));
+	                        crashreportsystemdetails.a("Generator", this.chunkProvider.getName());
+	                        throw new ReportedException(crashreport);
+	                    }
+	                }
+	                newChunk = true; // CraftBukkit
+	            }
+
+	            WorldUtil.setChunk(this.world.getWorld(), i, j, NativeUtil.getChunk(chunk));
+	            if (chunk != null) {
+	                chunk.addEntities();
+	            }
+
+	            // CraftBukkit start
+	            Server server = this.world.getServer();
+	            if (server != null) {
+	                /*
+	                 * If it's a new world, the first few chunks are generated inside
+	                 * the World constructor. We can't reliably alter that, so we have
+	                 * no way of creating a CraftWorld/CraftServer at that point.
+	                 */
+	                server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(chunk.bukkitChunk, newChunk));
+	            }
+	            // CraftBukkit end
+
+	            chunk.a(this, this, i, j);
+	        }
+
+	        // CraftBukkit start - If we didn't need to load the chunk run the callback now
+	        if (runnable != null) {
+	            runnable.run();
+	        }
+	        // CraftBukkit end
 
 			return chunk;
 		} else {
-			return super.getChunkAt(i, j);
+			return super.getChunkAt(i, j, runnable);
 		}
 	}
 

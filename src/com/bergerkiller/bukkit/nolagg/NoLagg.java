@@ -16,7 +16,6 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public class NoLagg extends PluginBase {
 	public static NoLagg plugin;
-
 	private List<NoLaggComponent> components = new ArrayList<NoLaggComponent>();
 
 	public void register(NoLaggComponent component) {

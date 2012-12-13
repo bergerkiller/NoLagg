@@ -2,27 +2,26 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Collection;
 
-import org.bukkit.Chunk;
-
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.Packet;
-import net.minecraft.server.Packet51MapChunk;
-import net.minecraft.server.TileEntity;
+import net.minecraft.server.v1_4_5.Chunk;
+import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_5.Packet;
+import net.minecraft.server.v1_4_5.Packet51MapChunk;
+import net.minecraft.server.v1_4_5.TileEntity;
 
 public class ChunkSendCommand {
-	public ChunkSendCommand(final Packet51MapChunk mapPacket, final Chunk chunk) {
+	public ChunkSendCommand(final Packet51MapChunk mapPacket, final org.bukkit.Chunk chunk) {
 		this.mapPacket = mapPacket;
 		this.chunk = chunk;
 	}
 
 	private final Packet51MapChunk mapPacket;
-	public final Chunk chunk;
+	public final org.bukkit.Chunk chunk;
 
 	public boolean isValid() {
 		return this.chunk != null && this.mapPacket != null;
@@ -33,11 +32,11 @@ public class ChunkSendCommand {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void send(final ChunkSendQueue queue, final Packet51MapChunk mapPacket, final Chunk chunk) {
+	public static void send(final ChunkSendQueue queue, final Packet51MapChunk mapPacket, final org.bukkit.Chunk chunk) {
 		if (mapPacket == null) {
 			return;
 		}
-		final net.minecraft.server.Chunk nativeChunk = NativeUtil.getNative(chunk);
+		final Chunk nativeChunk = NativeUtil.getNative(chunk);
 		queue.sentChunks.add(new ChunkCoordIntPair(chunk.getX(), chunk.getZ()));
 		PacketUtil.sendPacket(queue.player, mapPacket, !NoLaggChunks.useBufferedLoading);
 		nativeChunk.seenByPlayer = true;

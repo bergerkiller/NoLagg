@@ -4,21 +4,28 @@ import java.util.Queue;
 
 import org.bukkit.World;
 
+import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.bases.DummyWorldServer;
+import com.bergerkiller.bukkit.common.bases.PlayerManagerBase;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.LongHashMap;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.WorldServer;
+import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.LongHashMap;
+import net.minecraft.server.v1_4_5.PlayerManager;
+import net.minecraft.server.v1_4_5.WorldServer;
 
-public class DummyPlayerManager extends PlayerManager {
+public class DummyPlayerManager extends PlayerManagerBase {
+	public static final DummyWorldServer DUMMYWORLD;
+	static {
+		DUMMYWORLD = new DummyWorldServer();
+		DUMMYWORLD.chunkProvider = DUMMYWORLD.chunkProviderServer = new DummyChunkProvider(DUMMYWORLD);
+	}
+
 	public static void convert(WorldServer world) {
-		if (DummyWorld.INSTANCE != null) {
-			WorldServerRef.playerManager.set(world, new DummyPlayerManager(world));
-		}
+		WorldServerRef.playerManager.set(world, new DummyPlayerManager(world));
 	}
 
 	public static void convert(World world) {
@@ -61,7 +68,7 @@ public class DummyPlayerManager extends PlayerManager {
 	}
 
 	@Override
-	public void b(EntityPlayer entityplayer) {
+	public void addChunksToSend(EntityPlayer entityplayer) {
 		int newCX = (int) entityplayer.locX >> 4;
 		int newCZ = (int) entityplayer.locZ >> 4;
 		int dx, dz;
@@ -70,7 +77,7 @@ public class DummyPlayerManager extends PlayerManager {
 				entityplayer.world.chunkProvider.getChunkAt(newCX + dx, newCZ + dz);
 			}
 		}
-		super.b(entityplayer);
+		super.addChunksToSend(entityplayer);
 	}
 
 	public void removeInstance(ChunkCoordIntPair location) {
@@ -82,14 +89,15 @@ public class DummyPlayerManager extends PlayerManager {
 	}
 
 	@Override
-	public WorldServer a() {
+	public WorldServer getWorld() {
 		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
 			if (elem.getMethodName().equals("<init>")) {
-				if (elem.getClassName().equals("net.minecraft.server.PlayerInstance")) {
-					return DummyWorld.INSTANCE;
+				if (elem.getClassName().equals(Common.NMS_ROOT + ".PlayerInstance")) {
+					DUMMYWORLD.chunkProviderServer.world = super.getWorld();
+					return DUMMYWORLD;
 				}
 			}
 		}
-		return super.a();
+		return super.getWorld();
 	}
 }

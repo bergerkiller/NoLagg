@@ -101,7 +101,7 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 				if (d > radiusSquared) {
 					continue;
 				}
-				d += distance(EntityUtil.getLocZ(this.entity), EntityUtil.getLocY(entity));
+				d += distance(EntityUtil.getLocY(this.entity), EntityUtil.getLocY(entity));
 				if (d > radiusSquared) {
 					continue;
 				}

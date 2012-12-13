@@ -4,17 +4,18 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
-import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_4_5.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.lishid.orebfuscator.internal.v1_4_5.Packet51;
 import com.lishid.orebfuscator.obfuscation.Calculations;
 
-import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkSection;
-import net.minecraft.server.Packet51MapChunk;
+import net.minecraft.server.v1_4_5.Chunk;
+import net.minecraft.server.v1_4_5.ChunkSection;
+import net.minecraft.server.v1_4_5.Packet51MapChunk;
 
 public class ChunkCompressionThread extends AsyncTask {
 	// create a cyclic player compression queue loop
@@ -244,7 +245,9 @@ public class ChunkCompressionThread extends AsyncTask {
 		// ========================================
 		if (NoLaggChunks.isOreObfEnabled) {
 			try {
-				Calculations.Obfuscate(mapchunk, (CraftPlayer) player, false);
+				Packet51 pack = new Packet51();
+				pack.setPacket(mapchunk);
+				Calculations.Obfuscate(pack, (CraftPlayer) player, false);
 			} catch (Throwable t) {
 				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured in Orebfuscator: support for this plugin had to be removed!");
 				t.printStackTrace();

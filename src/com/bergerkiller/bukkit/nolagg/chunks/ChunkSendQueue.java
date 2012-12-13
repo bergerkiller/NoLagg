@@ -26,11 +26,11 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
-import net.minecraft.server.ChunkCoordIntPair;
-import net.minecraft.server.EntityPlayer;
-import net.minecraft.server.INetworkManager;
-import net.minecraft.server.NetworkManager;
-import net.minecraft.server.Packet;
+import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_5.INetworkManager;
+import net.minecraft.server.v1_4_5.NetworkManager;
+import net.minecraft.server.v1_4_5.Packet;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -126,7 +126,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
 		this.chunkQueue = new ChunkCompressQueue(this);
 		this.addAll(ep.chunkCoordIntPairQueue);
-		this.add(new ChunkCoordIntPair(MathUtil.locToChunk(ep.locX), MathUtil.locToChunk(ep.locZ)));
+		this.add(new ChunkCoordIntPair(MathUtil.toChunk(ep.locX), MathUtil.toChunk(ep.locZ)));
 		ChunkCompressionThread.addQueue(this.chunkQueue);
 		this.enforceBufferFullSize();
 	}
@@ -320,8 +320,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 */
 	public void updatePosition(World world, double locX, double locZ, float yaw) {
 		BlockFace newDirection = FaceUtil.yawToFace(yaw - 90.0F);
-		int newx = MathUtil.locToChunk(locX);
-		int newz = MathUtil.locToChunk(locZ);
+		int newx = MathUtil.toChunk(locX);
+		int newz = MathUtil.toChunk(locZ);
 		if (world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
 			if (this.world != world) { 
 				setOldUnloaded();

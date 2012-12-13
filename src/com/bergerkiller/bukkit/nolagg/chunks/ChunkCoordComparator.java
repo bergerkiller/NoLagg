@@ -8,7 +8,7 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
-import net.minecraft.server.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
 
 /*
  * Warning: this comparator returns 0 when the coordinates match
@@ -54,13 +54,13 @@ public class ChunkCoordComparator implements Comparator<Object> {
 
 	private ChunkCoordComparator(final BlockFace direction) {
 		this.direction = direction;
-		this.indices = new int[CommonUtil.viewWidth][CommonUtil.viewWidth];
+		this.indices = new int[CommonUtil.VIEWWIDTH][CommonUtil.VIEWWIDTH];
 		this.middle = null;
 	}
 
 	private void generate(int dx, int dz) {
-		dx += CommonUtil.view;
-		dz += CommonUtil.view;
+		dx += CommonUtil.VIEW;
+		dz += CommonUtil.VIEW;
 		if (dx >= 0 && dx < this.indices.length) {
 			int[] dzaint = this.indices[dx];
 			if (dz >= 0 && dz < dzaint.length) {
@@ -108,7 +108,7 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		// main chunk
 		this.generate(0, 0);
 		// Only full layers
-		for (int layer = 1; layer <= CommonUtil.view; layer++) {
+		for (int layer = 1; layer <= CommonUtil.VIEW; layer++) {
 			this.generateLayer(layer, 4);
 		}
 	}
@@ -122,7 +122,7 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		// at this layer less than half are sent
 		final int threshold2 = 5;
 
-		for (int layer = 1; layer <= CommonUtil.view; layer++) {
+		for (int layer = 1; layer <= CommonUtil.VIEW; layer++) {
 			if (layer <= threshold1) {
 				this.generateLayer(layer, 4);
 			} else if (layer <= threshold2) {
@@ -133,7 +133,7 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		}
 
 		// end with only full layers
-		for (int layer = 1; layer <= CommonUtil.view; layer++) {
+		for (int layer = 1; layer <= CommonUtil.VIEW; layer++) {
 			this.generateLayer(layer, 4);
 		}
 	}
@@ -187,10 +187,10 @@ public class ChunkCoordComparator implements Comparator<Object> {
 	public int getIndex(int x, int z) {
 		x -= this.middle.x;
 		z -= this.middle.z;
-		if (Math.abs(x) > CommonUtil.view || Math.abs(z) > CommonUtil.view) {
+		if (Math.abs(x) > CommonUtil.VIEW || Math.abs(z) > CommonUtil.VIEW) {
 			return Integer.MAX_VALUE;
 		}
-		return this.indices[x + CommonUtil.view][z + CommonUtil.view];
+		return this.indices[x + CommonUtil.VIEW][z + CommonUtil.VIEW];
 	}
 
 	public int getIndex(Object coord) {

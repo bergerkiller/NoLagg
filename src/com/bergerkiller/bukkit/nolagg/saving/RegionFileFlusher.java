@@ -6,19 +6,17 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.minecraft.server.RegionFile;
-import net.minecraft.server.RegionFileCache;
+import net.minecraft.server.v1_4_5.RegionFile;
+import net.minecraft.server.v1_4_5.RegionFileCache;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
-import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class RegionFileFlusher {
 	private static Task flushTask;
-	public static final SafeField<File> regionFile = new SafeField<File>(RegionFile.class, "b");
 
 	public static void reload() {
 		Task.stop(flushTask);
@@ -42,7 +40,7 @@ public class RegionFileFlusher {
 									if (raf == null) {
 										continue;
 									}
-									File source = regionFile.get(region);
+									File source = RegionFileRef.file.get(region);
 									if (source == null) {
 										continue;
 									}

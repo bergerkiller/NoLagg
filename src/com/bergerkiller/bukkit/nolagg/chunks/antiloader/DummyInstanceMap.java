@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import com.bergerkiller.bukkit.common.reflection.classes.LongHashMapRef;
 
-import net.minecraft.server.LongHashMap;
+import net.minecraft.server.v1_4_5.LongHashMap;
 
 public class DummyInstanceMap extends LongHashMap {
 	public static boolean ENABLED = false;
@@ -17,10 +17,10 @@ public class DummyInstanceMap extends LongHashMap {
 	}
 
 	@Override
-	public void put(long arg0, Object arg1) {
+	public void put(long key, Object value) {
 		if (ENABLED) {
-			DummyInstancePlayerList.replace(this.manager, arg1);
+			DummyInstancePlayerList.replace(this.manager, value);
 		}
-		super.put(arg0, arg1);
+		super.put(key, value);
 	}
 }

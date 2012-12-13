@@ -22,7 +22,7 @@ public class ItemMap {
 	private static Task updateTask;
 
 	public static IntVector2 getChunkCoords(Item item) {
-		return new IntVector2(MathUtil.locToChunk(EntityUtil.getLocX(item)), MathUtil.locToChunk(EntityUtil.getLocZ(item)));
+		return new IntVector2(MathUtil.toChunk(EntityUtil.getLocX(item)), MathUtil.toChunk(EntityUtil.getLocZ(item)));
 	}
 
 	private static ChunkItems getItems(World world, IntVector2 chunkCoordinates) {

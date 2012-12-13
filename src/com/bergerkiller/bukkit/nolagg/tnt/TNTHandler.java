@@ -7,20 +7,21 @@ import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
-import net.minecraft.server.Packet60Explosion;
-import net.minecraft.server.WorldServer;
+import net.minecraft.server.v1_4_5.Packet60Explosion;
+import net.minecraft.server.v1_4_5.WorldServer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.entity.EntityExplodeEvent;
 
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.BlockSet;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
+import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -105,8 +106,7 @@ public class TNTHandler {
 	}
 
 	private static int nextRandom(World w, int n) {
-		net.minecraft.server.World world = ((CraftWorld) w).getHandle();
-		return world.random.nextInt(n);
+		return NativeUtil.getNative(w).random.nextInt(n);
 	}
 
 	private static int denyExplosionsCounter = 0; // tick countdown to deny
@@ -168,27 +168,16 @@ public class TNTHandler {
 		if (interval > 0) {
 			if (denyExplosionsCounter == 0) {
 				try {
-					WorldServer world = ((CraftWorld) at.getWorld()).getHandle();
+					WorldServer world = NativeUtil.getNative(at.getWorld());
 					int id;
-					int x, y, z;
 					for (Block b : affectedBlocks) {
 						id = b.getTypeId();
-						x = b.getX();
-						y = b.getY();
-						z = b.getZ();
 						if (id == Material.TNT.getId()) {
 							detonate(b);
 						} else {
 							if (id != Material.FIRE.getId()) {
-								net.minecraft.server.Block bb = net.minecraft.server.Block.byId[id];
-								if (bb != null && allowdrops) {
-									try {
-										bb.dropNaturally(world, x, y, z, b.getData(), yield, 0);
-									} catch (Throwable t) {
-										NoLaggTNT.plugin.log(Level.SEVERE, "Failed to spawn block drops during explosions!");
-										t.printStackTrace();
-										allowdrops = false;
-									}
+								if (allowdrops) {
+									BlockUtil.dropNaturally(b, yield);
 								}
 								b.setTypeId(0);
 							}

@@ -3,7 +3,6 @@ package com.bergerkiller.bukkit.nolagg.examine;
 import java.util.PriorityQueue;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.scheduler.CraftScheduler;
 import org.bukkit.plugin.Plugin;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
@@ -42,12 +41,10 @@ public class SchedulerWatcher extends PriorityQueue {
 	}
 
 	public static void init() {
-		CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
-		CraftSchedulerRef.pending.set(scheduler, new SchedulerWatcher(CraftSchedulerRef.pending.get(scheduler)));
+		CraftSchedulerRef.pending.set(Bukkit.getScheduler(), new SchedulerWatcher(CraftSchedulerRef.pending.get(Bukkit.getScheduler())));
 	}
 
 	public static void deinit() {
-		CraftScheduler scheduler = (CraftScheduler) Bukkit.getScheduler();
-		CraftSchedulerRef.pending.set(scheduler, new PriorityQueue(CraftSchedulerRef.pending.get(scheduler)));
+		CraftSchedulerRef.pending.set(Bukkit.getScheduler(), new PriorityQueue(CraftSchedulerRef.pending.get(Bukkit.getScheduler())));
 	}
 }

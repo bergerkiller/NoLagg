@@ -465,8 +465,8 @@ public class PerformanceMonitor extends Task {
 						// send individual sending rate
 						if (NoLaggComponents.CHUNKS.isEnabled()) {
 							ChunkSendQueue queue = ChunkSendQueue.bind(p);
-							int tosend = CommonUtil.chunkArea - queue.getPendingSize();
-							String msg = ChatColor.YELLOW + "Chunk sending: " + ChatColor.GREEN + (tosend * 100 / CommonUtil.chunkArea) + "%";
+							int tosend = CommonUtil.CHUNKAREA - queue.getPendingSize();
+							String msg = ChatColor.YELLOW + "Chunk sending: " + ChatColor.GREEN + (tosend * 100 / CommonUtil.CHUNKAREA) + "%";
 							msg += ChatColor.YELLOW + " at " + ChatColor.GREEN + MathUtil.round(queue.getRate(), 2) + " chunks/tick (" + MathUtil.round(avgrate, 2) + " avg)";
 							p.sendMessage(msg);
 							msg = ChatColor.YELLOW + "Packet buffer size: " + queue.getBufferLoadMsg();

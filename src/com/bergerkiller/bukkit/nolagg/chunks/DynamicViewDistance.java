@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -15,7 +16,7 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 
 public class DynamicViewDistance {
-	public static int viewDistance = CommonUtil.view;
+	public static int viewDistance = CommonUtil.VIEW;
 	private static int chunks = 0;
 	private static boolean chunksChanged = false;
 	private static Map<Integer, Integer> nodes = new LinkedHashMap<Integer, Integer>();
@@ -33,7 +34,7 @@ public class DynamicViewDistance {
 
 	public static void init(List<String> elements) {
 		nodes.clear();
-		viewDistance = CommonUtil.view;
+		viewDistance = CommonUtil.VIEW;
 		chunks = 0;
 		Task.stop(task);
 		task = null;
@@ -43,7 +44,7 @@ public class DynamicViewDistance {
 		}
 
 		// Alter player manager to prevent chunk loading outside range
-		for (World world : WorldUtil.getWorlds()) {
+		for (World world : Bukkit.getWorlds()) {
 			DummyPlayerManager.convert(world);
 		}
 
@@ -65,7 +66,7 @@ public class DynamicViewDistance {
 			}
 			iter.remove();
 		}
-		if (nodes.isEmpty() || lowest >= CommonUtil.view) {
+		if (nodes.isEmpty() || lowest >= CommonUtil.VIEW) {
 			return;
 		}
 		NoLaggChunks.hasDynamicView = true;
@@ -113,7 +114,7 @@ public class DynamicViewDistance {
 					double value = (double) (chunks - minChunks) / (double) (maxChunks - minChunks);
 					viewDistance = (int) (value * (double) maxView + (1.00 - value) * (double) minView);
 				}
-				viewDistance = MathUtil.clamp(viewDistance, 3, CommonUtil.view);
+				viewDistance = MathUtil.clamp(viewDistance, 3, CommonUtil.VIEW);
 
 			}
 		}.start(15, 40);

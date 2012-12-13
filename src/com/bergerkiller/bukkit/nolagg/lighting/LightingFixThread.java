@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -10,23 +11,23 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
-import org.bukkit.craftbukkit.util.LongHash;
-import org.bukkit.craftbukkit.util.LongHashSet;
+import org.bukkit.craftbukkit.v1_4_5.util.LongHash;
+import org.bukkit.craftbukkit.v1_4_5.util.LongHashSet;
 import org.bukkit.entity.Player;
 
-import net.minecraft.server.Chunk;
-import net.minecraft.server.ChunkSection;
-import net.minecraft.server.EnumSkyBlock;
-import net.minecraft.server.RegionFile;
+import net.minecraft.server.v1_4_5.ChunkSection;
+import net.minecraft.server.v1_4_5.RegionFile;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
+import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
-import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -52,7 +53,7 @@ public class LightingFixThread extends AsyncTask {
 		}
 		// get rid of current sending requests for this chunk
 		for (Player player : CommonUtil.getOnlinePlayers()) {
-			if (EntityUtil.isNearChunk(player, chunk.getX(), chunk.getZ(), CommonUtil.view)) {
+			if (EntityUtil.isNearChunk(player, chunk.getX(), chunk.getZ(), CommonUtil.VIEW)) {
 				EntityUtil.cancelChunkSend(player, chunk);
 			}
 		}
@@ -108,7 +109,11 @@ public class LightingFixThread extends AsyncTask {
 				if (reg == null) {
 					// Manually load this region file and close it (we don't use it to load chunks)
 					reg = new RegionFile(file);
-					reg.c();
+					try {
+						reg.c();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 				// Obtain all generated chunks in this region file
 				for (dx = 0; dx < 32; dx++) {
@@ -220,7 +225,7 @@ public class LightingFixThread extends AsyncTask {
 			while (haderror && maxTries-- > 0) {
 				haderror = false;
 				for (FixOperation fix : next) {
-					haderror |= fix.smooth(EnumSkyBlock.SKY);
+					haderror |= fix.smooth(true);
 					if (first && (procctr++ % 2) == 0) {
 						pending--;
 					}
@@ -235,7 +240,7 @@ public class LightingFixThread extends AsyncTask {
 			while (haderror && maxTries-- > 0) {
 				haderror = false;
 				for (FixOperation fix : next) {
-					haderror |= fix.smooth(EnumSkyBlock.BLOCK);
+					haderror |= fix.smooth(false);
 					if (first && (procctr++ % 2) == 0) {
 						pending--;
 					}
@@ -269,41 +274,47 @@ public class LightingFixThread extends AsyncTask {
 	}
 
 	private static class FixOperation {
-		private final Chunk chunk;
+		private final org.bukkit.Chunk chunk;
 		private final World world;
 		public final ChunkSection[] sections;
 
 		public FixOperation(org.bukkit.Chunk chunk) {
-			this.chunk = NativeUtil.getNative(chunk);
+			this.chunk = chunk;
 			this.world = chunk.getWorld();
-			this.sections = this.chunk.i();
+			this.sections = ChunkRef.getSections(NativeUtil.getNative(chunk));
 		}
 
-		private Chunk getChunk(final int x, final int z) {
-			return NativeUtil.getNative(WorldUtil.getChunk(this.world, x, z));
-		}
-
-		private int getLightLevel(EnumSkyBlock mode, int x, final int y, int z) {
-			if (y <= 0 || y >= this.chunk.world.getHeight())
+		private int getLightLevel(boolean skyLight, int x, final int y, int z) {
+			if (y <= 0 || y >= this.chunk.getWorld().getMaxHeight()) {
 				return 0;
-			if (x >= 0 && z >= 0 && x < 16 && z < 16) {
-				return this.chunk.getBrightness(mode, x, y, z);
 			}
-			Chunk chunk = this.getChunk(this.chunk.x + (x >> 4), this.chunk.z + (z >> 4));
-			if (chunk == null)
+			if (x >= 0 && z >= 0 && x < 16 && z < 16) {
+				return getLightLevel(this.chunk, skyLight, x, y, z);
+			}
+			org.bukkit.Chunk chunk = WorldUtil.getChunk(this.world, this.chunk.getX() + (x >> 4), this.chunk.getZ() + (z >> 4));
+			if (chunk == null) {
 				return 0;
-			x -= (chunk.x - this.chunk.x) << 4;
-			z -= (chunk.z - this.chunk.z) << 4;
-			return chunk.getBrightness(mode, x, y, z);
+			}
+			//x -= (chunk.getX() - this.chunk.getX()) << 4;
+			//z -= (chunk.getZ() - this.chunk.getX()) << 4;
+			return getLightLevel(chunk, skyLight, x, y, z);
+		}
+
+		private static int getLightLevel(org.bukkit.Chunk chunk, boolean skyLight, final int x, final int y, final int z) {
+			if (skyLight) {
+				return ChunkUtil.getSkyLight(chunk, x, y, z);
+			} else {
+				return ChunkUtil.getBlockLight(chunk, x, y, z);
+			}
 		}
 
 		/**
 		 * Performs light smoothing to fix dark glitches
 		 * 
-		 * @param mode of lighting
+		 * @param skyLight - True to do skylight, False to do blocklight
 		 * @return True if errors were fixed, False if not
 		 */
-		public boolean smooth(EnumSkyBlock mode) {
+		public boolean smooth(boolean skyLight) {
 			int x, y, z, typeid, light, factor;
 			int loops = 0;
 			boolean haserror = true;
@@ -312,10 +323,10 @@ public class LightingFixThread extends AsyncTask {
 			lasterrx = lasterry = lasterrz = 0;
 			while (haserror) {
 				if (loops > 100) {
-					lasterrx += this.chunk.x << 4;
-					lasterrz += this.chunk.z << 4;
+					lasterrx += this.chunk.getX() << 4;
+					lasterrz += this.chunk.getZ() << 4;
 					StringBuilder msg = new StringBuilder();
-					msg.append("Failed to fix all " + mode.toString().toLowerCase() + " lighting at [");
+					msg.append("Failed to fix all " + (skyLight ? "Sky" : "Block") + " lighting at [");
 					msg.append(lasterrx).append('/').append(lasterry);
 					msg.append('/').append(lasterrz).append(']');
 					NoLaggLighting.plugin.log(Level.WARNING, msg.toString());
@@ -324,42 +335,40 @@ public class LightingFixThread extends AsyncTask {
 				haserror = false;
 				loops++;
 				int inity;
+				final int maxY = this.world.getMaxHeight() - 1;
 				for (x = 0; x < 16; x++) {
 					for (z = 0; z < 16; z++) {
-						if (mode == EnumSkyBlock.SKY) {
-							inity = this.chunk.b(x, z);
-							if (inity >= this.world.getMaxHeight()) {
-								inity = this.world.getMaxHeight() - 1;
-							}
+						if (skyLight) {
+							inity = Math.min(ChunkUtil.getHeight(this.chunk, x, z), maxY);
 						} else {
-							inity = this.world.getMaxHeight() - 1;
+							inity = maxY;
 						}
 						for (y = inity; y > 0; --y) {
-							if (this.chunk.i()[y >> 4] == null) {
+							if (this.sections[y >> 4] == null) {
 								continue;
 							}
-							typeid = this.chunk.getTypeId(x, y, z);
+							typeid = ChunkUtil.getBlockTypeId(chunk, x, y, z);
 							if (!MaterialUtil.ISSOLID.get(typeid)) {
 								factor = Math.max(1, MaterialUtil.OPACITY.get(typeid));
-								light = this.chunk.getBrightness(mode, x, y, z);
+								light = getLightLevel(this.chunk, skyLight, x, y, z);
 								// actual editing here
 								int newlight = light + factor;
 								// obtain lighting from all sides
-								newlight = Math.max(newlight, getLightLevel(mode, x - 1, y, z));
-								newlight = Math.max(newlight, getLightLevel(mode, x + 1, y, z));
-								newlight = Math.max(newlight, getLightLevel(mode, x, y, z - 1));
-								newlight = Math.max(newlight, getLightLevel(mode, x, y, z + 1));
-								newlight = Math.max(newlight, getLightLevel(mode, x, y - 1, z));
-								newlight = Math.max(newlight, getLightLevel(mode, x, y + 1, z));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x - 1, y, z));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x + 1, y, z));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x, y, z - 1));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x, y, z + 1));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x, y - 1, z));
+								newlight = Math.max(newlight, getLightLevel(skyLight, x, y + 1, z));
 								newlight -= factor;
 								// pick the highest value
 								if (newlight > light) {
-									ChunkSection chunksection = this.chunk.i()[y >> 4];
+									ChunkSection chunksection = this.sections[y >> 4];
 									if (chunksection != null) {
-										if (mode == EnumSkyBlock.SKY) {
-											chunksection.c(x, y & 0xf, z, newlight);
+										if (skyLight) {
+											ChunkSectionRef.setSkyLight(chunksection, x, y, z, newlight);
 										} else {
-											chunksection.d(x, y & 0xf, z, newlight);
+											ChunkSectionRef.setBlockLight(chunksection, x, y, z, newlight);
 										}
 										lasterrx = x;
 										lasterry = y;
@@ -378,25 +387,25 @@ public class LightingFixThread extends AsyncTask {
 
 		public void prepare() {
 			int x, y, z;
-			int slicesLight = this.chunk.h();
+			int slicesLight = ChunkRef.getTopSectionY(NativeUtil.getNative(this.chunk));
 			int maxheight = this.world.getMaxHeight() - 1;
 			ChunkSection sec;
 			// initial calculation of sky light
 			for (x = 0; x < 16; x++) {
 				for (z = 0; z < 16; z++) {
-					int ll = 15;
-					int kk = slicesLight + 15;
+					int light = 15;
+					int darkLight = slicesLight + 15;
 
 					for (y = maxheight; y >= 0; y--) {
-						sec = this.sections[y >> 4];
-						if (sec == null)
+						if ((sec = this.sections[y >> 4]) == null) {
 							continue;
-
-						if (ll <= 0 || --kk <= 0 || (ll -= this.chunk.b(x, y, z)) <= 0) {
-							ll = 0;
 						}
-						sec.c(x, y & 0xf, z, ll);
-						sec.d(x, y & 0xf, z, MaterialUtil.EMISSION.get(sec.a(x, y & 0xf, z)));
+
+						if (light <= 0 || --darkLight <= 0 || (light -= MaterialUtil.OPACITY.get(this.chunk, x, y, z)) <= 0) {
+							light = 0;
+						}
+						ChunkSectionRef.setSkyLight(sec, x, y, z, light);
+						ChunkSectionRef.setBlockLight(sec, x, y, z, MaterialUtil.EMISSION.get(ChunkSectionRef.getTypeId(sec, x, y, z)));
 					}
 				}
 			}
@@ -409,16 +418,14 @@ public class LightingFixThread extends AsyncTask {
 				public void run() {
 					boolean found = false;
 					for (Player player : CommonUtil.getOnlinePlayers()) {
-						if (Math.abs(chunk.x - MathUtil.locToChunk(EntityUtil.getLocX(player))) > CommonUtil.view)
-							return;
-						if (Math.abs(chunk.z - MathUtil.locToChunk(EntityUtil.getLocZ(player))) > CommonUtil.view)
-							return;
-						EntityUtil.queueChunkSend(player, chunk.x, chunk.z);
-						found = true;
+						if (EntityUtil.isNearChunk(player, chunk.getX(), chunk.getZ(), CommonUtil.VIEW)) {
+							EntityUtil.queueChunkSend(player, chunk.getX(), chunk.getZ());
+							found = true;
+						}
 					}
 					if (!found) {
 						// unload chunk if there were no players nearby
-						WorldUtil.setChunkUnloading(world, chunk.x, chunk.z, true);
+						WorldUtil.setChunkUnloading(world, chunk.getX(), chunk.getZ(), true);
 					}
 				}
 			});
