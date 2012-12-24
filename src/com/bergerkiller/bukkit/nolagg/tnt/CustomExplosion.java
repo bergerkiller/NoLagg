@@ -82,7 +82,7 @@ public class CustomExplosion {
 		public float damagefactor;
 	}
 
-	public static double factor = 1.0;
+	public static float factor = 1.0f;
 
 	private static class ExplosionLayer {
 		public ExplosionLayer() {
@@ -163,7 +163,7 @@ public class CustomExplosion {
 		int yoff = MathUtil.floor(this.posY);
 		int zoff = MathUtil.floor(this.posZ);
 
-		root.sourcedamage = (float) factor * this.size * (0.7F + this.world.random.nextFloat() * 0.6F);
+		root.sourcedamage = 0.05f * factor * this.size * (0.7F + this.world.random.nextFloat() * 0.6F);
 
 		// recursively operate on all blocks
 		int i = 0;

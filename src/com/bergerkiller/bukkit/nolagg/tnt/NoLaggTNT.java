@@ -23,7 +23,7 @@ public class NoLaggTNT extends NoLaggComponent {
 
 		TNTHandler.interval = config.get("detonationInterval", 1);
 		TNTHandler.rate = config.get("detonationRate", 10);
-		CustomExplosion.factor = config.get("explosionRadiusFactor", 1.0);
+		CustomExplosion.factor = config.get("explosionRadiusFactor", 1.0f);
 		TNTHandler.explosionRate = config.get("explosionRate", 5);
 		TNTHandler.changeBlocks = config.get("changeBlocks", true);
 	}
