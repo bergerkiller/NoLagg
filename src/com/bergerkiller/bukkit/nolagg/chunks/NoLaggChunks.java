@@ -1,17 +1,11 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.logging.Level;
 
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
@@ -20,8 +14,6 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
@@ -32,7 +24,6 @@ import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyInstanceMap;
  * Instead the sending queue is used to load the chunks. If any of the many component fail to initialize, this is not active.
  */
 public class NoLaggChunks extends NoLaggComponent {
-	private static final int UNLOAD_INTERVAL = 200; // Tick interval between chunk unload tries
 	private static Task chunkUnloadTask;
 	public static NoLaggChunks plugin;
 	public static boolean isOreObfEnabled = false;
@@ -98,42 +89,7 @@ public class NoLaggChunks extends NoLaggComponent {
 		this.onReload(config);
 		ChunkSendQueue.init();
 		DummyInstanceMap.ENABLED = true;
-		// Start chunk unloading task
-		chunkUnloadTask = new ChunkUnloadTask(NoLagg.plugin).start(UNLOAD_INTERVAL, UNLOAD_INTERVAL);
 	}
-
-	private static class ChunkUnloadTask extends Task {
-		public ChunkUnloadTask(JavaPlugin plugin) {
-			super(plugin);
-		}
-
-		public void run() {
-			for (World world : WorldUtil.getWorlds()) {
-				ArrayList<Chunk> unloadChunks = new ArrayList<Chunk>();
-				Location spawn = world.getKeepSpawnInMemory() ? world.getSpawnLocation() : null;
-				for (Chunk chunk : WorldUtil.getChunks(world)) {
-					// Part of world spawn?
-					if (spawn != null) {
-						int centerSpawnX = chunk.getX() * 16 + 8 - spawn.getBlockX();
-						int centerSpawnZ = chunk.getZ() * 16 + 8 - spawn.getBlockZ();
-						final int short1 = 128;
-						if (centerSpawnX >= -short1 && centerSpawnX <= short1 && centerSpawnZ >= -short1 && centerSpawnZ <= short1) {
-							continue;
-						}
-					}
-					if (!chunk.getWorld().isChunkInUse(chunk.getX(), chunk.getZ())) {
-						// Event
-						if (!CommonUtil.callEvent(new ChunkUnloadEvent(chunk)).isCancelled()) {
-							unloadChunks.add(chunk);
-						}
-					}
-				}
-				for (Chunk chunk : unloadChunks) {
-					chunk.unload();
-				}
-			}
-		}
-	};
 
 	public void onDisable(ConfigurationNode config) {
 		ChunkSendQueue.deinit();
