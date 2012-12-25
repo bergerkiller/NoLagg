@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-
-import net.minecraft.server.v1_4_5.RegionFile;
-import net.minecraft.server.v1_4_5.RegionFileCache;
-
+import net.minecraft.server.v1_4_6.RegionFile;
+import net.minecraft.server.v1_4_6.RegionFileCache;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;

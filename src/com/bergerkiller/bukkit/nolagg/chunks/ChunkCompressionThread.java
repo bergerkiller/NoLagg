@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
-import org.bukkit.craftbukkit.v1_4_5.entity.CraftPlayer;
+//import org.bukkit.craftbukkit.v1_4_6.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
-import com.lishid.orebfuscator.internal.v1_4_5.Packet51;
-import com.lishid.orebfuscator.obfuscation.Calculations;
+//import com.lishid.orebfuscator.internal.v1_4_6.Packet51;
+//import com.lishid.orebfuscator.obfuscation.Calculations;
 
-import net.minecraft.server.v1_4_5.Chunk;
-import net.minecraft.server.v1_4_5.ChunkSection;
-import net.minecraft.server.v1_4_5.Packet51MapChunk;
+import net.minecraft.server.v1_4_6.Chunk;
+import net.minecraft.server.v1_4_6.ChunkSection;
+import net.minecraft.server.v1_4_6.Packet51MapChunk;
 
 public class ChunkCompressionThread extends AsyncTask {
 	// create a cyclic player compression queue loop
@@ -170,9 +170,13 @@ public class ChunkCompressionThread extends AsyncTask {
 					rawAppend(sections[i].k().a);
 				}
 			}
-			for (i = 0; i < sections.length; i++) {
-				if (!sectionsEmpty[i]) {
-					rawAppend(sections[i].l().a);
+			//fix for 1.4.6
+			if(!chunk.world.worldProvider.f)
+			{
+				for (i = 0; i < sections.length; i++) {
+					if (!sectionsEmpty[i]) {
+						rawAppend(sections[i].l().a);
+					}
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
@@ -243,7 +247,7 @@ public class ChunkCompressionThread extends AsyncTask {
 
 		// send chunk through possible plugins
 		// ========================================
-		if (NoLaggChunks.isOreObfEnabled) {
+		/*if (NoLaggChunks.isOreObfEnabled) {
 			try {
 				Packet51 pack = new Packet51();
 				pack.setPacket(mapchunk);
@@ -253,7 +257,7 @@ public class ChunkCompressionThread extends AsyncTask {
 				t.printStackTrace();
 				NoLaggChunks.isOreObfEnabled = false;
 			}
-		}
+		}*/
 		// ========================================
 
 		// compression

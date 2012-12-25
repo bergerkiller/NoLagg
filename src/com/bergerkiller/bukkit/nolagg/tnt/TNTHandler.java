@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.logging.Level;
 
-import net.minecraft.server.v1_4_5.Packet60Explosion;
-import net.minecraft.server.v1_4_5.WorldServer;
+import net.minecraft.server.v1_4_6.Packet60Explosion;
+import net.minecraft.server.v1_4_6.WorldServer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;

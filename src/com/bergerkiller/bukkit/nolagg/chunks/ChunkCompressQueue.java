@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.v1_4_5.EntityPlayer;
-import net.minecraft.server.v1_4_5.Packet51MapChunk;
+import net.minecraft.server.v1_4_6.EntityPlayer;
+import net.minecraft.server.v1_4_6.Packet51MapChunk;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {
@@ -49,7 +49,7 @@ public class ChunkCompressQueue {
 
 	public boolean isAlive() {
 		EntityPlayer ep = NativeUtil.getNative(this.owner.player);
-		return ep.netServerHandler != null && !ep.netServerHandler.disconnected;
+		return ep.playerConnection != null && !ep.playerConnection.disconnected;
 	}
 
 	public boolean canSend() {

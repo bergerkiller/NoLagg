@@ -9,7 +9,7 @@ import java.util.Set;
 import com.bergerkiller.bukkit.common.ActiveState;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 
-import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
 
 /**
  * Only contains the empty-faking and double-mapping of contained elements

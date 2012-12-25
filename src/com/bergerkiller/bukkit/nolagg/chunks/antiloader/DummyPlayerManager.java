@@ -11,11 +11,11 @@ import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_5.EntityPlayer;
-import net.minecraft.server.v1_4_5.LongHashMap;
-import net.minecraft.server.v1_4_5.PlayerManager;
-import net.minecraft.server.v1_4_5.WorldServer;
+import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_6.EntityPlayer;
+import net.minecraft.server.v1_4_6.LongHashMap;
+import net.minecraft.server.v1_4_6.PlayerChunkMap;
+import net.minecraft.server.v1_4_6.WorldServer;
 
 public class DummyPlayerManager extends PlayerManagerBase {
 	public static final DummyWorldServer DUMMYWORLD;
@@ -34,23 +34,23 @@ public class DummyPlayerManager extends PlayerManagerBase {
 
 	public static void revert() {
 		for (WorldServer world : NativeUtil.getWorlds()) {
-			PlayerManager manager = world.getPlayerManager();
+			PlayerChunkMap manager = world.getPlayerChunkMap();
 			if (manager instanceof DummyPlayerManager) {
 				WorldServerRef.playerManager.set(world, ((DummyPlayerManager) manager).base);
 			}
 		}
 	}
 
-	public final PlayerManager base;
+	public final PlayerChunkMap base;
 	public final WorldServer world;
 	private final LongHashMap instances;
 	private final Queue<?> dirtyChunkQueue;
 
 	public DummyPlayerManager(WorldServer world) {
-		this(world.getPlayerManager(), world);
+		this(world.getPlayerChunkMap(), world);
 	}
 
-	public DummyPlayerManager(final PlayerManager base, WorldServer world) {
+	public DummyPlayerManager(final PlayerChunkMap base, WorldServer world) {
 		super(world, 10);
 		this.instances = new DummyInstanceMap(PlayerManagerRef.playerInstances.get(base), this);
 		PlayerManagerRef.playerInstances.set(base, this.instances);

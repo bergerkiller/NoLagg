@@ -26,11 +26,11 @@ import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
-import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_5.EntityPlayer;
-import net.minecraft.server.v1_4_5.INetworkManager;
-import net.minecraft.server.v1_4_5.NetworkManager;
-import net.minecraft.server.v1_4_5.Packet;
+import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_6.EntityPlayer;
+import net.minecraft.server.v1_4_6.INetworkManager;
+import net.minecraft.server.v1_4_6.NetworkManager;
+import net.minecraft.server.v1_4_6.Packet;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -132,7 +132,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	private void enforceBufferFullSize() {
-		INetworkManager nm = NativeUtil.getNative(this.player).netServerHandler.networkManager;
+		INetworkManager nm = NativeUtil.getNative(this.player).playerConnection.networkManager;
 		Object lockObject = new SafeField<Object>(NetworkManager.class, "h").get(nm);
 		if (lockObject != null) {
 			List<Packet> low = new SafeField<List<Packet>>(NetworkManager.class, "lowPriorityQueue").get(nm);
@@ -220,7 +220,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private void update() {
 		// Update queue size
 		if (NetworkManagerRef.queueSize.isValid()) {
-			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(NativeUtil.getNative(this.player).netServerHandler.networkManager);
+			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(NativeUtil.getNative(this.player).playerConnection.networkManager);
 			this.packetBufferQueueSize += 9437184;
 		}
 		// Update current buffer size

@@ -3,7 +3,7 @@ package net.timedminecraft.server;
 import java.util.Random;
 
 import org.bukkit.Server;
-import org.bukkit.craftbukkit.v1_4_5.chunkio.ChunkIOExecutor;
+import org.bukkit.craftbukkit.v1_4_6.chunkio.ChunkIOExecutor;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.BlockPopulator;
 
@@ -14,16 +14,16 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
-import net.minecraft.server.v1_4_5.BlockSand;
-import net.minecraft.server.v1_4_5.Chunk;
-import net.minecraft.server.v1_4_5.ChunkProviderServer;
-import net.minecraft.server.v1_4_5.ChunkRegionLoader;
-import net.minecraft.server.v1_4_5.CrashReport;
-import net.minecraft.server.v1_4_5.CrashReportSystemDetails;
-import net.minecraft.server.v1_4_5.IChunkLoader;
-import net.minecraft.server.v1_4_5.IChunkProvider;
-import net.minecraft.server.v1_4_5.ReportedException;
-import net.minecraft.server.v1_4_5.WorldServer;
+import net.minecraft.server.v1_4_6.BlockSand;
+import net.minecraft.server.v1_4_6.Chunk;
+import net.minecraft.server.v1_4_6.ChunkProviderServer;
+import net.minecraft.server.v1_4_6.ChunkRegionLoader;
+import net.minecraft.server.v1_4_6.CrashReport;
+import net.minecraft.server.v1_4_6.CrashReportSystemDetails;
+import net.minecraft.server.v1_4_6.IChunkLoader;
+import net.minecraft.server.v1_4_6.IChunkProvider;
+import net.minecraft.server.v1_4_6.ReportedException;
+import net.minecraft.server.v1_4_6.WorldServer;
 
 /*
  * Please ignore the package leading to the net.minecraft.server namespace

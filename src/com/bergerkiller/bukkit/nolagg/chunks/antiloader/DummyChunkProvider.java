@@ -2,20 +2,20 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.List;
 
-import org.bukkit.craftbukkit.v1_4_5.chunkio.ChunkIOExecutor;
+import org.bukkit.craftbukkit.v1_4_6.chunkio.ChunkIOExecutor;
 
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkProviderServerRef;
 
-import net.minecraft.server.v1_4_5.Chunk;
-import net.minecraft.server.v1_4_5.ChunkPosition;
-import net.minecraft.server.v1_4_5.ChunkProviderServer;
-import net.minecraft.server.v1_4_5.ChunkRegionLoader;
-import net.minecraft.server.v1_4_5.EnumCreatureType;
-import net.minecraft.server.v1_4_5.IChunkLoader;
-import net.minecraft.server.v1_4_5.IChunkProvider;
-import net.minecraft.server.v1_4_5.IProgressUpdate;
-import net.minecraft.server.v1_4_5.World;
-import net.minecraft.server.v1_4_5.WorldServer;
+import net.minecraft.server.v1_4_6.Chunk;
+import net.minecraft.server.v1_4_6.ChunkPosition;
+import net.minecraft.server.v1_4_6.ChunkProviderServer;
+import net.minecraft.server.v1_4_6.ChunkRegionLoader;
+import net.minecraft.server.v1_4_6.EnumCreatureType;
+import net.minecraft.server.v1_4_6.IChunkLoader;
+import net.minecraft.server.v1_4_6.IChunkProvider;
+import net.minecraft.server.v1_4_6.IProgressUpdate;
+import net.minecraft.server.v1_4_6.World;
+import net.minecraft.server.v1_4_6.WorldServer;
 
 public class DummyChunkProvider extends ChunkProviderServer {
 	private static final IllegalStateException FAIL = new IllegalStateException("Unsupported method for Dummy chunk provider (oh no!)");

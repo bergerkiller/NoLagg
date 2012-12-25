@@ -11,13 +11,11 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
-import org.bukkit.craftbukkit.v1_4_5.util.LongHash;
-import org.bukkit.craftbukkit.v1_4_5.util.LongHashSet;
+import org.bukkit.craftbukkit.v1_4_6.util.LongHash;
+import org.bukkit.craftbukkit.v1_4_6.util.LongHashSet;
 import org.bukkit.entity.Player;
-
-import net.minecraft.server.v1_4_5.ChunkSection;
-import net.minecraft.server.v1_4_5.RegionFile;
-
+import net.minecraft.server.v1_4_6.ChunkSection;
+import net.minecraft.server.v1_4_6.RegionFile;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;

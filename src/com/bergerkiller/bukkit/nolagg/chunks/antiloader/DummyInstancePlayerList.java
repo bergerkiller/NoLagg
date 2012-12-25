@@ -8,8 +8,8 @@ import com.bergerkiller.bukkit.common.reflection.classes.PlayerInstanceRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 
-import net.minecraft.server.v1_4_5.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_5.EntityPlayer;
+import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_6.EntityPlayer;
 
 @SuppressWarnings("rawtypes")
 public class DummyInstancePlayerList extends ArrayList {
