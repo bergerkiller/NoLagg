@@ -14,6 +14,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.v1_4_6.util.LongHash;
 import org.bukkit.craftbukkit.v1_4_6.util.LongHashSet;
 import org.bukkit.entity.Player;
+
 import net.minecraft.server.v1_4_6.ChunkSection;
 import net.minecraft.server.v1_4_6.RegionFile;
 import com.bergerkiller.bukkit.common.AsyncTask;
@@ -299,11 +300,7 @@ public class LightingFixThread extends AsyncTask {
 		}
 
 		private static int getLightLevel(org.bukkit.Chunk chunk, boolean skyLight, final int x, final int y, final int z) {
-			if (skyLight) {
-				return ChunkUtil.getSkyLight(chunk, x, y, z);
-			} else {
 				return ChunkUtil.getBlockLight(chunk, x, y, z);
-			}
 		}
 
 		/**
@@ -363,11 +360,7 @@ public class LightingFixThread extends AsyncTask {
 								if (newlight > light) {
 									ChunkSection chunksection = this.sections[y >> 4];
 									if (chunksection != null) {
-										if (skyLight) {
-											ChunkSectionRef.setSkyLight(chunksection, x, y, z, newlight);
-										} else {
-											ChunkSectionRef.setBlockLight(chunksection, x, y, z, newlight);
-										}
+										ChunkSectionRef.setBlockLight(chunksection, x, y, z, newlight);
 										lasterrx = x;
 										lasterry = y;
 										lasterrz = z;
@@ -402,7 +395,6 @@ public class LightingFixThread extends AsyncTask {
 						if (light <= 0 || --darkLight <= 0 || (light -= MaterialUtil.OPACITY.get(this.chunk, x, y, z)) <= 0) {
 							light = 0;
 						}
-						ChunkSectionRef.setSkyLight(sec, x, y, z, light);
 						ChunkSectionRef.setBlockLight(sec, x, y, z, MaterialUtil.EMISSION.get(ChunkSectionRef.getTypeId(sec, x, y, z)));
 					}
 				}

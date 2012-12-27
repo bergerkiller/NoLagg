@@ -1,6 +1,6 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.89.3
+version: 1.89.4
 author: bergerkiller
 authors: [bergerkiller, lenis0012]
 load: startup
