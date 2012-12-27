@@ -4,11 +4,16 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
+import org.bukkit.craftbukkit.v1_4_6.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.lishid.orebfuscator.internal.IPacket51;
+import com.lishid.orebfuscator.internal.InternalAccessor;
+import com.lishid.orebfuscator.obfuscation.Calculations;
+
 import net.minecraft.server.v1_4_6.Chunk;
 import net.minecraft.server.v1_4_6.ChunkSection;
 import net.minecraft.server.v1_4_6.Packet51MapChunk;
@@ -244,7 +249,15 @@ public class ChunkCompressionThread extends AsyncTask {
 		// send chunk through possible plugins
 		// ========================================
 		if (NoLaggChunks.isOreObfEnabled) {
-			ObfSender.sendChunkPacket(mapchunk, player);
+			try {
+				IPacket51 pack = InternalAccessor.Instance.newPacket51();
+				pack.setPacket(mapchunk);
+				Calculations.Obfuscate(pack, (CraftPlayer) player, false);
+			} catch (Throwable t) {
+				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured in Orebfuscator: support for this plugin had to be removed!");
+				t.printStackTrace();
+				NoLaggChunks.isOreObfEnabled = false;
+			}
 		}
 		// ========================================
 
