@@ -3,6 +3,7 @@ package com.bergerkiller.bukkit.nolagg.chunks;
 import java.util.Arrays;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -98,6 +99,10 @@ public class NoLaggChunks extends NoLaggComponent {
 		DummyInstanceMap.ENABLED = false;
 		Task.stop(chunkUnloadTask);
 		chunkUnloadTask = null;
+		//send chunks to online players
+		for(Player p : Bukkit.getServer().getOnlinePlayers()) {
+			ChunkSendQueue.bind(p);
+		}
 	}
 
 	@Override
