@@ -11,12 +11,18 @@ import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
+import com.bergerkiller.bukkit.common.metrics.AddonHandler;
+import com.bergerkiller.bukkit.common.metrics.xPlotter;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.nolagg.chunks.NoLaggChunks;
+import com.bergerkiller.bukkit.nolagg.monitor.PerformanceMonitor;
 
 public class NoLagg extends PluginBase {
 	public static NoLagg plugin;
 	private List<NoLaggComponent> components = new ArrayList<NoLaggComponent>();
+	private Task task;
 
 	public void register(NoLaggComponent component) {
 		this.components.add(component);
@@ -57,6 +63,25 @@ public class NoLagg extends PluginBase {
 		}
 
 		config.save();
+		
+		//METRICS START
+		final AddonHandler ah = new AddonHandler(this);
+		ah.startMetrics();
+		
+		task = new MetricsHandler(ah).start(10 * 1200, 3000);
+	}
+	
+	public int getIntFromDouble(double value, int max) {
+		if(value == 20.0)
+			return 20;
+		int i = 1;
+		while(i <= max) {
+			if(value < i + 1 && value >= i) {
+				return i + 1;
+			}
+			i++;
+		}
+		return i;
 	}
 
 	protected List<NoLaggComponent> getComponents() {
@@ -77,6 +102,7 @@ public class NoLagg extends PluginBase {
 		for (NoLaggComponent comp : this.components) {
 			comp.disable(config);
 		}
+		task.stop();
 		config.save();
 	}
 
@@ -134,5 +160,47 @@ public class NoLagg extends PluginBase {
 		}
 		return true;
 	}
-
+	
+	private static class MetricsHandler extends Task {
+		private AddonHandler ah;
+		
+		public MetricsHandler(AddonHandler ah) {
+			super(NoLagg.plugin);
+			this.ah = ah;
+		}
+		
+		public void run() {
+			//check components
+			List<xPlotter> comps = new ArrayList<xPlotter>();
+			for (NoLaggComponent comp : NoLagg.plugin.components) {
+				if(comp.isEnabled()) {
+					xPlotter data = new xPlotter(comp.getName());
+					comps.add(data);
+				}
+			}
+			if(!comps.isEmpty()) {
+				ah.addGraphs("Enabled Components", comps);
+			}
+			//check plugins
+			List<xPlotter> plotters = new ArrayList<xPlotter>();
+			if(NoLaggChunks.isOreObfEnabled) {
+				xPlotter data = new xPlotter("Orebfuscator");
+				plotters.add(data);
+			}
+			
+			if(NoLagg.plugin.getServer().getPluginManager().getPlugin("Vault") != null) {
+				xPlotter data = new xPlotter("Vault");
+				plotters.add(data);
+			}
+			if(plotters.size() != 0){
+				ah.addGraphs("Dependencies", plotters);
+			}else {
+				ah.addGraph("Dependencies", new xPlotter("None"));
+			}
+			//check tps
+			double lag = PerformanceMonitor.tps;
+			String tps = String.valueOf(NoLagg.plugin.getIntFromDouble(lag, 20));
+			ah.addGraph("TPS (Ticks per second)", new xPlotter(tps));
+		}
+	}
 }
