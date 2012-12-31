@@ -71,18 +71,6 @@ public class NoLagg extends PluginBase {
 		task = new MetricsHandler(ah).start(10 * 1200, 3000);
 	}
 	
-	public int getIntFromDouble(double value, int max) {
-		if(value == 20.0)
-			return 20;
-		int i = 1;
-		while(i <= max) {
-			if(value < i + 1 && value >= i) {
-				return i + 1;
-			}
-			i++;
-		}
-		return i;
-	}
 
 	protected List<NoLaggComponent> getComponents() {
 		return this.components;
@@ -198,8 +186,8 @@ public class NoLagg extends PluginBase {
 				ah.addGraph("Dependencies", new xPlotter("None"));
 			}
 			//check tps
-			double lag = PerformanceMonitor.tps;
-			String tps = String.valueOf(NoLagg.plugin.getIntFromDouble(lag, 20));
+			Double lag = PerformanceMonitor.tps;
+			String tps = String.valueOf(lag.intValue());
 			ah.addGraph("TPS (Ticks per second)", new xPlotter(tps));
 		}
 	}
