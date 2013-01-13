@@ -17,8 +17,8 @@
   <repositories>
     <!-- Repo for access to BKCommonLib -->
     <repository>
-      <id>herocraft-repo</id>
-      <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
+      <id>spigot-repo</id>
+      <url>http://ci.ecocitycraft.com/plugin/repository/everything/</url>
     </repository>
     <!-- Repo for access to CraftBukkit -->
     <repository>
