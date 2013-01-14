@@ -248,23 +248,27 @@ public class PerformanceMonitor extends Task {
 	public static long elapsedtime;
 	public static long diff;
 	public static double tps = 0;
-
-	public static String replaceColors(String line) {
-		int index = 0;
-		while (true) {
-			index = line.indexOf('&', index);
-			if (index >= 0 && index < line.length() - 1) {
-				char next = line.charAt(index + 1);
-				if (next == '0' || next == '1' || next == '2' || next == '3' || next == '4' || next == '5' || next == '6' || next == '7' || next == '8' || next == '9' || next == 'a' || next == 'b'
-						|| next == 'c' || next == 'd' || next == 'e' || next == 'f') {
-					line = line.substring(0, index) + '§' + line.substring(index + 1);
-				}
-				index++;
-			} else {
-				break;
-			}
-		}
-		return line;
+	
+	public static String replaceColors(String message)
+	{
+		message = message.replaceAll("&0", ChatColor.BLACK.toString());
+		message = message.replaceAll("&1", ChatColor.DARK_BLUE.toString());
+		message = message.replaceAll("&2", ChatColor.DARK_GREEN.toString());
+		message = message.replaceAll("&3", ChatColor.DARK_AQUA.toString());
+		message = message.replaceAll("&4", ChatColor.DARK_RED.toString());
+		message = message.replaceAll("&5", ChatColor.DARK_PURPLE.toString());
+		message = message.replaceAll("&6", ChatColor.GOLD.toString());
+		message = message.replaceAll("&7", ChatColor.GRAY.toString());
+		message = message.replaceAll("&8", ChatColor.DARK_GRAY.toString());
+		message = message.replaceAll("&9", ChatColor.BLUE.toString());
+		message = message.replaceAll("&a", ChatColor.GREEN.toString());
+		message = message.replaceAll("&b", ChatColor.AQUA.toString());
+		message = message.replaceAll("&c", ChatColor.RED.toString());
+		message = message.replaceAll("&d", ChatColor.LIGHT_PURPLE.toString());
+		message = message.replaceAll("&e", ChatColor.YELLOW.toString());
+		message = message.replaceAll("&f", ChatColor.WHITE.toString());
+		message = message.replaceAll("&r", ChatColor.WHITE.toString());
+		return message;
 	}
 
 	@Override

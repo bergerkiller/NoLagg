@@ -40,7 +40,7 @@ public class NoLagg extends PluginBase {
 
 	@Override
 	public void localization() {
-		this.loadLocale("spawnlimiter.nodrop", "§e[NoLagg] §cCan not drop this item: Item spawn limit reached!");
+		this.loadLocale("spawnlimiter.nodrop", ChatColor.YELLOW+"[NoLagg] "+ChatColor.RED+"Can not drop this item: Item spawn limit reached!");
 	}
 
 	@Override
