@@ -7,8 +7,8 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
-import org.bukkit.event.painting.PaintingBreakEvent;
-import org.bukkit.event.painting.PaintingPlaceEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -25,7 +25,6 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
-@SuppressWarnings("deprecation")
 public class NLTCListener implements org.bukkit.event.Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
@@ -89,12 +88,12 @@ public class NLTCListener implements org.bukkit.event.Listener {
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	public void onPaintingBreak(PaintingBreakEvent event) {
+	public void onPaintingBreak(HangingBreakEvent event) {
 		NoLaggThreadCheck.check("PAINTING_BREAK");
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
-	public void onPaintingPlace(PaintingPlaceEvent event) {
+	public void onPaintingPlace(HangingPlaceEvent event) {
 		NoLaggThreadCheck.check("PAINTING_PLACE");
 	}
 
