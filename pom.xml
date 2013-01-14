@@ -2,13 +2,13 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>me.lenis0012.ls</groupId>
-  <artifactId>LoginSecurity</artifactId>
-  <version>1.6.9.1</version>
+  <groupId>com.bergerkiller.bukkit</groupId>
+  <artifactId>NoLagg</artifactId>
+  <version>1.89.4</version>
   <packaging>jar</packaging>
 
-  <name>LoginSecurity</name>
-  <url>http://dev.bukkit.org/server-mods/loginsecurity/</url>
+  <name>NoLagg</name>
+  <url>http://dev.bukkit.org/server-mods/nolagg/</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,7 +18,7 @@
     <!-- Repo for access to Vault -->
     <repository>
       <id>spigot-repo</id>
-      <url>http://http://ci.ecocitycraft.com//plugin/repository/everything/</url>
+      <url>http://http://ci.ecocitycraft.com/plugin/repository/everything/</url>
     </repository>
     <!-- Repo for access to CraftBukkit -->
     <repository>
