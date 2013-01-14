@@ -12,7 +12,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.craftbukkit.v1_4_6.util.LongHash;
-import org.bukkit.craftbukkit.v1_4_6.util.LongHashSet;
 import org.bukkit.entity.Player;
 
 import net.minecraft.server.v1_4_6.ChunkSection;
@@ -20,6 +19,7 @@ import net.minecraft.server.v1_4_6.RegionFile;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.bases.LongHashSet;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
@@ -77,9 +77,7 @@ public class LightingFixThread extends AsyncTask {
 	public static void fix(World world) {
 		LongHashSet chunks = new LongHashSet();
 		// Add the initial chunks that are already loaded
-		for (org.bukkit.Chunk chunk : WorldUtil.getChunks(world)) {
-			chunks.add(LongHash.toLong(chunk.getX(), chunk.getZ()));
-		}
+		chunks.addAllChunks(world);
 		// Get the region folder to look in
 		File regionFolder = getRegionFolder(world);
 		if (regionFolder.exists()) {
