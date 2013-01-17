@@ -23,11 +23,11 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
-import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_6.EntityPlayer;
-import net.minecraft.server.v1_4_6.INetworkManager;
-import net.minecraft.server.v1_4_6.NetworkManager;
-import net.minecraft.server.v1_4_6.Packet;
+import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_R1.EntityPlayer;
+import net.minecraft.server.v1_4_R1.INetworkManager;
+import net.minecraft.server.v1_4_R1.NetworkManager;
+import net.minecraft.server.v1_4_R1.Packet;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {

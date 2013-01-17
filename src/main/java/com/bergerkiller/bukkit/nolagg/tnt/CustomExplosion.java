@@ -1,13 +1,13 @@
 package com.bergerkiller.bukkit.nolagg.tnt;
 
-import net.minecraft.server.v1_4_6.AxisAlignedBB;
-import net.minecraft.server.v1_4_6.Block;
-import net.minecraft.server.v1_4_6.DamageSource;
-import net.minecraft.server.v1_4_6.Entity;
-import net.minecraft.server.v1_4_6.EntityItem;
-import net.minecraft.server.v1_4_6.EntityTNTPrimed;
-import net.minecraft.server.v1_4_6.Vec3D;
-import net.minecraft.server.v1_4_6.World;
+import net.minecraft.server.v1_4_R1.AxisAlignedBB;
+import net.minecraft.server.v1_4_R1.Block;
+import net.minecraft.server.v1_4_R1.DamageSource;
+import net.minecraft.server.v1_4_R1.Entity;
+import net.minecraft.server.v1_4_R1.EntityItem;
+import net.minecraft.server.v1_4_R1.EntityTNTPrimed;
+import net.minecraft.server.v1_4_R1.Vec3D;
+import net.minecraft.server.v1_4_R1.World;
 
 import java.util.ArrayList;
 import java.util.HashMap;

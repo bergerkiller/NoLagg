@@ -11,11 +11,11 @@ import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_6.EntityPlayer;
-import net.minecraft.server.v1_4_6.LongHashMap;
-import net.minecraft.server.v1_4_6.PlayerChunkMap;
-import net.minecraft.server.v1_4_6.WorldServer;
+import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_R1.EntityPlayer;
+import net.minecraft.server.v1_4_R1.LongHashMap;
+import net.minecraft.server.v1_4_R1.PlayerChunkMap;
+import net.minecraft.server.v1_4_R1.WorldServer;
 
 public class DummyPlayerManager extends PlayerManagerBase {
 	public static final DummyWorldServer DUMMYWORLD;

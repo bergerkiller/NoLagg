@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_4_6.scheduler.CraftScheduler;
-import org.bukkit.craftbukkit.v1_4_6.util.ServerShutdownThread;
+import org.bukkit.craftbukkit.v1_4_R1.scheduler.CraftScheduler;
+import org.bukkit.craftbukkit.v1_4_R1.util.ServerShutdownThread;
 import org.bukkit.plugin.Plugin;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 

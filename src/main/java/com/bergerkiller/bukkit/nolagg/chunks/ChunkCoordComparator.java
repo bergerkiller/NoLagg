@@ -8,7 +8,7 @@ import org.bukkit.block.BlockFace;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
-import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
 
 /*
  * Warning: this comparator returns 0 when the coordinates match

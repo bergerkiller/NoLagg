@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>NoLagg</artifactId>
-  <version>1.89.4</version>
+  <version>1.89.5</version>
   <packaging>jar</packaging>
 
   <name>NoLagg</name>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>org.bukkit</groupId>
       <artifactId>craftbukkit</artifactId>
-      <version>1.4.6-R0.3</version>
+      <version>1.4.7-R0.1</version>
     </dependency>
     <dependency>
       <groupId>com.lishid.orebfuscator</groupId>
@@ -43,7 +43,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.42</version>
+      <version>1.43</version>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>

@@ -8,11 +8,11 @@ import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
-import net.minecraft.server.v1_4_6.Chunk;
-import net.minecraft.server.v1_4_6.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_6.Packet;
-import net.minecraft.server.v1_4_6.Packet51MapChunk;
-import net.minecraft.server.v1_4_6.TileEntity;
+import net.minecraft.server.v1_4_R1.Chunk;
+import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
+import net.minecraft.server.v1_4_R1.Packet;
+import net.minecraft.server.v1_4_R1.Packet51MapChunk;
+import net.minecraft.server.v1_4_R1.TileEntity;
 
 public class ChunkSendCommand {
 	public ChunkSendCommand(final Packet51MapChunk mapPacket, final org.bukkit.Chunk chunk) {

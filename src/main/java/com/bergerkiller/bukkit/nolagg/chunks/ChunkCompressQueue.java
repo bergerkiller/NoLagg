@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
-import net.minecraft.server.v1_4_6.EntityPlayer;
-import net.minecraft.server.v1_4_6.Packet51MapChunk;
+import net.minecraft.server.v1_4_R1.EntityPlayer;
+import net.minecraft.server.v1_4_R1.Packet51MapChunk;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {

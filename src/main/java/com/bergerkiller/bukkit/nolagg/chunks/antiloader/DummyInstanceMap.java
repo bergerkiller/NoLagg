@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import com.bergerkiller.bukkit.common.reflection.classes.LongHashMapRef;
 
-import net.minecraft.server.v1_4_6.LongHashMap;
+import net.minecraft.server.v1_4_R1.LongHashMap;
 
 public class DummyInstanceMap extends LongHashMap {
 	public static boolean ENABLED = false;
