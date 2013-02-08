@@ -23,15 +23,15 @@
     <!-- Repo for access to CraftBukkit -->
     <repository>
       <id>spigot-repo</id>
-      <url>http://repo.md-5.net/content/repositories/releases/</url>
+      <url>http://repo.md-5.net/content/repositories/snapshots/</url>
     </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>org.spigotmc</groupId>
-      <artifactId>Spigot</artifactId>
-      <version>1.4.7-R0.1</version>
+      <artifactId>spigot</artifactId>
+      <version>1.4.7-R1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.lishid.orebfuscator</groupId>
