@@ -22,15 +22,15 @@
     </repository>
     <!-- Repo for access to CraftBukkit -->
     <repository>
-      <id>bukkit-repo</id>
-      <url>http://repo.bukkit.org/content/groups/public</url>
+      <id>spigot-repo</id>
+      <url>http://repo.md-5.net/content/repositories/releases/</url>
     </repository>
   </repositories>
 
   <dependencies>
     <dependency>
-      <groupId>org.bukkit</groupId>
-      <artifactId>craftbukkit</artifactId>
+      <groupId>org.spigotmc</groupId>
+      <artifactId>Spigot</artifactId>
       <version>1.4.7-R0.1</version>
     </dependency>
     <dependency>
