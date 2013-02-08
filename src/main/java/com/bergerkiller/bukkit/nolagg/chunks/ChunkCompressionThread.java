@@ -169,31 +169,23 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					if(!spigot)
-						rawAppend(sections[i].j().a);
-					else {
-						try {
-							NibbleArray nibble = sections[i].j();
-							FieldAccessor<byte[]> field = new SafeField<byte[]>(nibble, "a");
-							rawAppend(field.get(nibble));
-						} catch(Exception e) {
-							e.printStackTrace();
-						}
+					NibbleArray nibble = sections[i].j();
+					if(!spigot) {
+						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
+						rawAppend(a.get(nibble));
+					} else {
+						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
 					}
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					if(!spigot)
-						rawAppend(sections[i].k().a);
-					else {
-						try {
-							NibbleArray nibble = sections[i].k();
-							FieldAccessor<byte[]> field = new SafeField<byte[]>(nibble, "a");
-							rawAppend(field.get(nibble));
-						} catch(Exception e) {
-							e.printStackTrace();
-						}
+					NibbleArray nibble = sections[i].k();
+					if(!spigot) {
+						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
+						rawAppend(a.get(nibble));
+					} else {
+						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
 					}
 				}
 			}
@@ -202,32 +194,24 @@ public class ChunkCompressionThread extends AsyncTask {
 			{
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
-						if(!spigot)
-							rawAppend(sections[i].l().a);
-						else {
-							try {
-								NibbleArray nibble = sections[i].l();
-								FieldAccessor<byte[]> field = new SafeField<byte[]>(nibble, "a");
-								rawAppend(field.get(nibble));
-							} catch(Exception e) {
-								e.printStackTrace();
-							}
+						NibbleArray nibble = sections[i].l();
+						if(!spigot) {
+							FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
+							rawAppend(a.get(nibble));
+						} else {
+							this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
 						}
 					}
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i] && sections[i].i() != null) {
-					if(!spigot)
-						rawAppend(sections[i].i().a);
-					else {
-						try {
-							NibbleArray nibble = sections[i].i();
-							FieldAccessor<byte[]> field = new SafeField<byte[]>(nibble, "a");
-							rawAppend(field.get(nibble));
-						} catch(Exception e) {
-							e.printStackTrace();
-						}
+					NibbleArray nibble = sections[i].i();
+					if(!spigot) {
+						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
+						rawAppend(a.get(nibble));
+					} else {
+						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
 					}
 				}
 			}
