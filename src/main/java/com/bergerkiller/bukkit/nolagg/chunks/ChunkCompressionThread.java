@@ -4,13 +4,11 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
-import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.v1_4_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
-import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
-import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
 import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.lishid.orebfuscator.internal.IPacket51;
@@ -19,7 +17,6 @@ import com.lishid.orebfuscator.obfuscation.Calculations;
 
 import net.minecraft.server.v1_4_R1.Chunk;
 import net.minecraft.server.v1_4_R1.ChunkSection;
-import net.minecraft.server.v1_4_R1.NibbleArray;
 import net.minecraft.server.v1_4_R1.Packet51MapChunk;
 
 public class ChunkCompressionThread extends AsyncTask {
@@ -135,8 +132,6 @@ public class ChunkCompressionThread extends AsyncTask {
 		int chunkDataBitMap = 0;
 		int chunkBiomeBitMap = 0;
 		int i;
-		
-		boolean spigot = Bukkit.getVersion().contains("Spigot") ? true : false;
 
 		// Calculate the available chunk sections and bitmap
 		ChunkSection sections[] = chunk.i();
@@ -169,50 +164,29 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					NibbleArray nibble = sections[i].j();
-					if(!spigot) {
-						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
-						rawAppend(a.get(nibble));
-					} else {
-						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
-					}
+					this.rawLength = NibbleArrayRef.rawAppend(sections[i].j(), this.rawLength, this.rawbuffer);
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					NibbleArray nibble = sections[i].k();
-					if(!spigot) {
-						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
-						rawAppend(a.get(nibble));
-					} else {
-						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
-					}
+					this.rawLength = NibbleArrayRef.rawAppend(sections[i].k(), this.rawLength, this.rawbuffer);
 				}
 			}
-			//fix for 1.4.6
+			
+			//fix for 1.4.6 - start
 			if(!chunk.world.worldProvider.f)
 			{
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
-						NibbleArray nibble = sections[i].l();
-						if(!spigot) {
-							FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
-							rawAppend(a.get(nibble));
-						} else {
-							this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
-						}
+						this.rawLength = NibbleArrayRef.rawAppend(sections[i].l(), this.rawLength, this.rawbuffer);
 					}
 				}
 			}
+			//fix for 1.4.6 - end
+			
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i] && sections[i].i() != null) {
-					NibbleArray nibble = sections[i].i();
-					if(!spigot) {
-						FieldAccessor<byte[]> a = new SafeField<byte[]>(nibble, "a");
-						rawAppend(a.get(nibble));
-					} else {
-						this.rawLength = nibble.copyToByteArray(this.rawbuffer, this.rawLength);
-					}
+					this.rawLength = NibbleArrayRef.rawAppend(sections[i].i(), this.rawLength, this.rawbuffer);
 				}
 			}
 		}
