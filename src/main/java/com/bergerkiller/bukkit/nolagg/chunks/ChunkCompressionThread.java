@@ -8,8 +8,8 @@ import org.bukkit.craftbukkit.v1_4_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
-import com.bergerkiller.bukkit.common.reflection.classes.Packet51MapChunkRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.lishid.orebfuscator.internal.IPacket51;
 import com.lishid.orebfuscator.internal.InternalAccessor;
@@ -122,9 +122,9 @@ public class ChunkCompressionThread extends AsyncTask {
 		Chunk chunk = NativeUtil.getNative(bchunk);
 		// Version which uses the Chunkmap buffer to create the packet
 		Packet51MapChunk mapchunk = new Packet51MapChunk();
-		Packet51MapChunkRef.x.set(mapchunk, chunk.x);
-		Packet51MapChunkRef.z.set(mapchunk, chunk.z);
-		Packet51MapChunkRef.hasBiomeData.set(mapchunk, true); // yes, has biome data
+		PacketFields.MAP_CHUNK.x.set(mapchunk, chunk.x);
+		PacketFields.MAP_CHUNK.z.set(mapchunk, chunk.z);
+		PacketFields.MAP_CHUNK.hasBiomeData.set(mapchunk, true); //yes, has biome data
 
 		// =====================================
 		// =========== Fill with data ==========
@@ -164,12 +164,12 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					this.rawLength = NibbleArrayRef.rawAppend(sections[i].j(), this.rawLength, this.rawbuffer);
+					this.rawLength = NibbleArrayRef.copyTo(sections[i].j(), this.rawbuffer, this.rawLength);
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					this.rawLength = NibbleArrayRef.rawAppend(sections[i].k(), this.rawLength, this.rawbuffer);
+					this.rawLength = NibbleArrayRef.copyTo(sections[i].k(), this.rawbuffer, this.rawLength);
 				}
 			}
 			
@@ -178,7 +178,7 @@ public class ChunkCompressionThread extends AsyncTask {
 			{
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
-						this.rawLength = NibbleArrayRef.rawAppend(sections[i].l(), this.rawLength, this.rawbuffer);
+						this.rawLength = NibbleArrayRef.copyTo(sections[i].l(), this.rawbuffer, this.rawLength);
 					}
 				}
 			}
@@ -186,7 +186,7 @@ public class ChunkCompressionThread extends AsyncTask {
 			
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i] && sections[i].i() != null) {
-					this.rawLength = NibbleArrayRef.rawAppend(sections[i].i(), this.rawLength, this.rawbuffer);
+					this.rawLength = NibbleArrayRef.copyTo(sections[i].i(), this.rawbuffer, this.rawLength);
 				}
 			}
 		}
@@ -195,19 +195,19 @@ public class ChunkCompressionThread extends AsyncTask {
 		// =====================================
 
 		// Set data in packet
-		Packet51MapChunkRef.chunkDataBitMap.set(mapchunk, chunkDataBitMap);
-		Packet51MapChunkRef.chunkBiomeBitMap.set(mapchunk, chunkBiomeBitMap);
-		Packet51MapChunkRef.size.set(mapchunk, this.rawLength);
-		Packet51MapChunkRef.inflatedBuffer.set(mapchunk, this.rawbuffer);
+		PacketFields.MAP_CHUNK.chunkDataBitMap.set(mapchunk, chunkDataBitMap);
+		PacketFields.MAP_CHUNK.chunkBiomeBitMap.set(mapchunk, chunkBiomeBitMap);
+		PacketFields.MAP_CHUNK.size.set(mapchunk, this.rawLength);
+		PacketFields.MAP_CHUNK.inflatedBuffer.set(mapchunk, this.rawbuffer);
 		return mapchunk;
 	}
 
 	private void deflate(Packet51MapChunk packet) {
-		int size = Packet51MapChunkRef.size.get(packet);
+		int size = PacketFields.MAP_CHUNK.size.get(packet);
 		// Set input information
 		this.deflater.reset();
 		this.deflater.setLevel(6);
-		this.deflater.setInput(Packet51MapChunkRef.inflatedBuffer.get(packet), 0, size);
+		this.deflater.setInput(PacketFields.MAP_CHUNK.inflatedBuffer.get(packet), 0, size);
 		this.deflater.finish();
 		// Start deflating
 		size = this.deflater.deflate(this.compbuffer);
@@ -217,9 +217,9 @@ public class ChunkCompressionThread extends AsyncTask {
 		byte[] buffer = new byte[size];
 		System.arraycopy(this.compbuffer, 0, buffer, 0, size);
 		// Write to packet
-		Packet51MapChunkRef.size.set(packet, size);
-		Packet51MapChunkRef.buffer.set(packet, buffer);
-		Packet51MapChunkRef.inflatedBuffer.set(packet, null); // dereference
+		PacketFields.MAP_CHUNK.size.set(packet, size);
+		PacketFields.MAP_CHUNK.buffer.set(packet, buffer);
+		PacketFields.MAP_CHUNK.inflatedBuffer.set(packet, null); // dereference
 	}
 
 	public static double getBusyPercentage(long timescale) {
