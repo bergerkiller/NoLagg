@@ -6,11 +6,11 @@ import java.util.LinkedList;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
-
-import net.minecraft.server.v1_4_R1.EntityPlayer;
-import net.minecraft.server.v1_4_R1.Packet51MapChunk;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {
@@ -48,8 +48,9 @@ public class ChunkCompressQueue {
 	}
 
 	public boolean isAlive() {
-		EntityPlayer ep = NativeUtil.getNative(this.owner.player);
-		return ep.playerConnection != null && !ep.playerConnection.disconnected;
+		Object ep = NativeUtil.getNative(this.owner.player);
+		Object playerConnection = EntityPlayerRef.playerConnection.get(ep);
+		return playerConnection != null && !EntityPlayerRef.disconnected.get(playerConnection);
 	}
 
 	public boolean canSend() {
@@ -75,8 +76,8 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			Packet51MapChunk packet = new Packet51MapChunk(NativeUtil.getNative(chunk), true, 0xffff);
-			packet.lowPriority = true;
+			CommonPacket packet = new CommonPacket(PacketFields.MAP_CHUNK.newInstance(NativeUtil.getNative(chunk), true, 0xffff));
+			PacketFields.MAP_CHUNK.lowPriority.set(packet.getHandle(), true);
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
 	}

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.server.v1_4_R1.RegionFile;
 import net.minecraft.server.v1_4_R1.RegionFileCache;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
@@ -22,8 +21,8 @@ public class RegionFileFlusher {
 			flushTask = new Task(NoLagg.plugin) {
 				public void run() {
 					// get all the required region files to flush
-					final List<RegionFile> regions = new ArrayList<RegionFile>();
-					for (RegionFile regionfile : RegionFileCacheRef.FILES.values()) {
+					final List<Object> regions = new ArrayList<Object>();
+					for (Object regionfile : RegionFileCacheRef.FILES.values()) {
 						if (regionfile != null) {
 							regions.add(regionfile);
 						}
@@ -32,7 +31,7 @@ public class RegionFileFlusher {
 					// create an async task to write stuff to file
 					new AsyncTask("NoLagg saving data writer") {
 						public void run() {
-							for (RegionFile region : regions) {
+							for (Object region : regions) {
 								synchronized (region) {
 									RandomAccessFile raf = RegionFileRef.stream.get(region);
 									if (raf == null) {

@@ -8,16 +8,16 @@ import org.bukkit.craftbukkit.v1_4_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.lishid.orebfuscator.internal.IPacket51;
 import com.lishid.orebfuscator.internal.InternalAccessor;
 import com.lishid.orebfuscator.obfuscation.Calculations;
-
-import net.minecraft.server.v1_4_R1.Chunk;
-import net.minecraft.server.v1_4_R1.ChunkSection;
-import net.minecraft.server.v1_4_R1.Packet51MapChunk;
 
 public class ChunkCompressionThread extends AsyncTask {
 	// create a cyclic player compression queue loop
@@ -118,13 +118,16 @@ public class ChunkCompressionThread extends AsyncTask {
 		this.rawLength += data.length;
 	}
 
-	public Packet51MapChunk createPacket(org.bukkit.Chunk bchunk) {
-		Chunk chunk = NativeUtil.getNative(bchunk);
+	public CommonPacket createPacket(org.bukkit.Chunk bchunk) {
+		Object chunk = NativeUtil.getNative(bchunk);
+		Object world = ChunkRef.world.get(chunk);
+		Object worldProvider = ChunkRef.worldProvider.get(world);
+		boolean hasSkylight = !ChunkRef.hasSkyLight.get(worldProvider);
 		// Version which uses the Chunkmap buffer to create the packet
-		Packet51MapChunk mapchunk = new Packet51MapChunk();
-		PacketFields.MAP_CHUNK.x.set(mapchunk, chunk.x);
-		PacketFields.MAP_CHUNK.z.set(mapchunk, chunk.z);
-		PacketFields.MAP_CHUNK.hasBiomeData.set(mapchunk, true); //yes, has biome data
+		CommonPacket mapchunk = new CommonPacket(PacketType.MAP_CHUNK);
+		PacketFields.MAP_CHUNK.x.set(mapchunk.getHandle(), ChunkRef.x.get(chunk));
+		PacketFields.MAP_CHUNK.z.set(mapchunk.getHandle(), ChunkRef.z.get(chunk));
+		PacketFields.MAP_CHUNK.hasBiomeData.set(mapchunk.getHandle(), true); //yes, has biome data
 
 		// =====================================
 		// =========== Fill with data ==========
@@ -134,13 +137,13 @@ public class ChunkCompressionThread extends AsyncTask {
 		int i;
 
 		// Calculate the available chunk sections and bitmap
-		ChunkSection sections[] = chunk.i();
+		Object sections[] = ChunkRef.sections.invoke(chunk);
 		boolean sectionsEmpty[] = new boolean[sections.length];
 		for (i = 0; i < sections.length; i++) {
-			sectionsEmpty[i] = sections[i] == null || sections[i].a();
+			sectionsEmpty[i] = sections[i] == null || ChunkSectionRef.blockCount.invoke(sections[i]);
 			if (!sectionsEmpty[i]) {
 				chunkDataBitMap |= 1 << i;
-				if (sections[i].i() != null) {
+				if (ChunkSectionRef.extBlockIds.invoke(sections[i]) != null) {
 					chunkBiomeBitMap |= 1 << i;
 				}
 			}
@@ -159,55 +162,58 @@ public class ChunkCompressionThread extends AsyncTask {
 			this.rawLength = 0;
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					rawAppend(sections[i].g());
+					rawAppend(ChunkSectionRef.blockIds.invoke(sections[i]));
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					this.rawLength = NibbleArrayRef.copyTo(sections[i].j(), this.rawbuffer, this.rawLength);
+					Object nibble = ChunkSectionRef.blockData.invoke(sections[i]);
+					this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					this.rawLength = NibbleArrayRef.copyTo(sections[i].k(), this.rawbuffer, this.rawLength);
+					Object nibble  = ChunkSectionRef.blockLight.invoke(sections[i]);
+					this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 				}
 			}
 			
 			//fix for 1.4.6 - start
-			if(!chunk.world.worldProvider.f)
+			if(hasSkylight)
 			{
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
-						this.rawLength = NibbleArrayRef.copyTo(sections[i].l(), this.rawbuffer, this.rawLength);
+						Object nibble = ChunkSectionRef.skyLight.invoke(sections[i]);
+						this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 					}
 				}
 			}
 			//fix for 1.4.6 - end
 			
 			for (i = 0; i < sections.length; i++) {
-				if (!sectionsEmpty[i] && sections[i].i() != null) {
-					this.rawLength = NibbleArrayRef.copyTo(sections[i].i(), this.rawbuffer, this.rawLength);
+				if (!sectionsEmpty[i] && ChunkSectionRef.extBlockIds.invoke(sections[i]) != null) {
+					this.rawLength = NibbleArrayRef.copyTo(ChunkSectionRef.extBlockIds.invoke(sections[i]), this.rawbuffer, this.rawLength);
 				}
 			}
 		}
 		// Biome information
-		rawAppend(chunk.m());
+		rawAppend(ChunkRef.biomeData.invoke(chunk));
 		// =====================================
 
 		// Set data in packet
-		PacketFields.MAP_CHUNK.chunkDataBitMap.set(mapchunk, chunkDataBitMap);
-		PacketFields.MAP_CHUNK.chunkBiomeBitMap.set(mapchunk, chunkBiomeBitMap);
-		PacketFields.MAP_CHUNK.size.set(mapchunk, this.rawLength);
-		PacketFields.MAP_CHUNK.inflatedBuffer.set(mapchunk, this.rawbuffer);
+		PacketFields.MAP_CHUNK.chunkDataBitMap.set(mapchunk.getHandle(), chunkDataBitMap);
+		PacketFields.MAP_CHUNK.chunkBiomeBitMap.set(mapchunk.getHandle(), chunkBiomeBitMap);
+		PacketFields.MAP_CHUNK.size.set(mapchunk.getHandle(), this.rawLength);
+		PacketFields.MAP_CHUNK.inflatedBuffer.set(mapchunk.getHandle(), this.rawbuffer);
 		return mapchunk;
 	}
 
-	private void deflate(Packet51MapChunk packet) {
-		int size = PacketFields.MAP_CHUNK.size.get(packet);
+	private void deflate(CommonPacket packet) {
+		int size = PacketFields.MAP_CHUNK.size.get(packet.getHandle());
 		// Set input information
 		this.deflater.reset();
 		this.deflater.setLevel(6);
-		this.deflater.setInput(PacketFields.MAP_CHUNK.inflatedBuffer.get(packet), 0, size);
+		this.deflater.setInput(PacketFields.MAP_CHUNK.inflatedBuffer.get(packet.getHandle()), 0, size);
 		this.deflater.finish();
 		// Start deflating
 		size = this.deflater.deflate(this.compbuffer);
@@ -217,9 +223,9 @@ public class ChunkCompressionThread extends AsyncTask {
 		byte[] buffer = new byte[size];
 		System.arraycopy(this.compbuffer, 0, buffer, 0, size);
 		// Write to packet
-		PacketFields.MAP_CHUNK.size.set(packet, size);
-		PacketFields.MAP_CHUNK.buffer.set(packet, buffer);
-		PacketFields.MAP_CHUNK.inflatedBuffer.set(packet, null); // dereference
+		PacketFields.MAP_CHUNK.size.set(packet.getHandle(), size);
+		PacketFields.MAP_CHUNK.buffer.set(packet.getHandle(), buffer);
+		PacketFields.MAP_CHUNK.inflatedBuffer.set(packet.getHandle(), null); // dereference
 	}
 
 	public static double getBusyPercentage(long timescale) {
@@ -246,9 +252,9 @@ public class ChunkCompressionThread extends AsyncTask {
 	 * @param chunk to get the data for
 	 * @return compressed packet of which the raw data can no longer be used
 	 */
-	public Packet51MapChunk getCompressedPacket(Player player, org.bukkit.Chunk chunk) {
+	public CommonPacket getCompressedPacket(Player player, org.bukkit.Chunk chunk) {
 		this.lasttime = System.currentTimeMillis();
-		Packet51MapChunk mapchunk = createPacket(chunk);
+		CommonPacket mapchunk = createPacket(chunk);
 
 		// send chunk through possible plugins
 		// ========================================

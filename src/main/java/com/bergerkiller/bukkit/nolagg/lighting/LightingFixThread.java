@@ -1,7 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -11,18 +10,17 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
-import org.bukkit.craftbukkit.v1_4_R1.util.LongHash;
 import org.bukkit.entity.Player;
 
-import net.minecraft.server.v1_4_R1.ChunkSection;
-import net.minecraft.server.v1_4_R1.RegionFile;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.bases.LongHash;
 import com.bergerkiller.bukkit.common.bases.LongHashSet;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
+import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -102,20 +100,16 @@ public class LightingFixThread extends AsyncTask {
 					continue;
 				}
 				// Is it contained in the cache?
-				RegionFile reg = RegionFileCacheRef.FILES.get(file);
+				Object reg = RegionFileCacheRef.FILES.get(file);
 				if (reg == null) {
 					// Manually load this region file and close it (we don't use it to load chunks)
-					reg = new RegionFile(file);
-					try {
-						reg.c();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
+					reg = RegionFileRef.create();
+					RegionFileRef.close.invoke(reg);
 				}
 				// Obtain all generated chunks in this region file
 				for (dx = 0; dx < 32; dx++) {
 					for (dz = 0; dz < 32; dz++) {
-						if (reg.c(dx, dz)) {
+						if (RegionFileRef.exists.invoke(dx, dz)) {
 							// Region file exists - add it
 							chunks.add(rx + dx, rz + dz);
 						}
@@ -273,7 +267,7 @@ public class LightingFixThread extends AsyncTask {
 	private static class FixOperation {
 		private final org.bukkit.Chunk chunk;
 		private final World world;
-		public final ChunkSection[] sections;
+		public final Object[] sections;
 
 		public FixOperation(org.bukkit.Chunk chunk) {
 			this.chunk = chunk;
@@ -356,7 +350,7 @@ public class LightingFixThread extends AsyncTask {
 								newlight -= factor;
 								// pick the highest value
 								if (newlight > light) {
-									ChunkSection chunksection = this.sections[y >> 4];
+									Object chunksection = this.sections[y >> 4];
 									if (chunksection != null) {
 										ChunkSectionRef.setBlockLight(chunksection, x, y, z, newlight);
 										lasterrx = x;
@@ -378,7 +372,7 @@ public class LightingFixThread extends AsyncTask {
 			int x, y, z;
 			int slicesLight = ChunkRef.getTopSectionY(NativeUtil.getNative(this.chunk));
 			int maxheight = this.world.getMaxHeight() - 1;
-			ChunkSection sec;
+			Object sec;
 			// initial calculation of sky light
 			for (x = 0; x < 16; x++) {
 				for (z = 0; z < 16; z++) {
