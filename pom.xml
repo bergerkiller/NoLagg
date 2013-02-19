@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>NoLagg</artifactId>
-  <version>1.89.6</version>
+  <version>1.89.7</version>
   <packaging>jar</packaging>
 
   <name>NoLagg</name>
@@ -43,7 +43,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.48</version>
+      <version>1.49</version>
   	</dependency>
     <dependency>
       <groupId>junit</groupId>

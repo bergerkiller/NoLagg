@@ -1,11 +1,20 @@
 package com.bergerkiller.bukkit.nolagg.itembuffer;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bukkit.Location;
+import org.bukkit.entity.Item;
+import org.bukkit.inventory.ItemStack;
+
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemBuffer extends NoLaggComponent {
 
 	public static NoLaggItemBuffer plugin;
+	private static List<Integer> items = new ArrayList<Integer>();
+	private static boolean enabled = false;
 
 	public static int maxItemsPerChunk = 80;
 
@@ -15,6 +24,7 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 		this.register(NLIListener.class);
 		this.onReload(config);
 		ItemMap.init();
+		enabled = true;
 	}
 
 	@Override
@@ -26,5 +36,32 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 	@Override
 	public void onDisable(ConfigurationNode config) {
 		ItemMap.deinit();
+		enabled = true;
+	}
+	
+	public static Item dropIgnoredItem(Location loc, ItemStack type) {
+		Item item = loc.getWorld().dropItem(loc, type);
+		
+		if(enabled)
+			items.add(item.getEntityId());
+		
+		return item;
+	}
+	
+	public static Item dropIgnoredItemRandomly(Location loc, ItemStack type) {
+		Item item = loc.getWorld().dropItemNaturally(loc, type);
+		
+		if(enabled)
+			items.add(item.getEntityId());
+		
+		return item;
+	}
+	
+	public static boolean shouldIgnore(int entityId) {
+		return items.contains(entityId);
+	}
+	
+	public static void remove(int entityId) {
+		items.remove(entityId);
 	}
 }
