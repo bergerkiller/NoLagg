@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemBuffer extends NoLaggComponent {
@@ -57,11 +59,12 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 		return item;
 	}
 	
-	public static boolean shouldIgnore(int entityId) {
-		return items.contains(entityId);
+	public static boolean shouldIgnore(Entity entity) {
+		return CommonPlugin.getInstance().isEntityIgnored(entity) || items.contains(entity.getEntityId());
 	}
 	
-	public static void remove(int entityId) {
-		items.remove(entityId);
+	public static void remove(Entity entity) {
+		if(items.contains(entity.getEntityId()))
+			items.remove(entity.getEntityId());
 	}
 }

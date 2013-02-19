@@ -16,7 +16,7 @@ public class NLIListener implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
 		if (event.getEntityType() == EntityType.DROPPED_ITEM) {
-			if(NoLaggItemBuffer.shouldIgnore(event.getEntity().getEntityId()))
+			if(NoLaggItemBuffer.shouldIgnore(event.getEntity()))
 				return;
 			
 			if (!ItemMap.addItem(event.getEntity())) {
@@ -27,8 +27,8 @@ public class NLIListener implements Listener {
 
 	public void onItemDespawn(Item item) {
 		if (item.getType() == EntityType.DROPPED_ITEM) {
-			if(NoLaggItemBuffer.shouldIgnore(item.getEntityId()))
-				NoLaggItemBuffer.remove(item.getEntityId());
+			if(NoLaggItemBuffer.shouldIgnore(item))
+				NoLaggItemBuffer.remove(item);
 			else
 				ItemMap.removeItem(item);
 		}
