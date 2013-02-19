@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.zip.Deflater;
 
-import org.bukkit.craftbukkit.v1_4_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
@@ -261,8 +260,8 @@ public class ChunkCompressionThread extends AsyncTask {
 		if (NoLaggChunks.isOreObfEnabled) {
 			try {
 				IPacket51 pack = InternalAccessor.Instance.newPacket51();
-				pack.setPacket(mapchunk);
-				Calculations.Obfuscate(pack, (CraftPlayer) player, false);
+				pack.setPacket(mapchunk.getHandle());
+				Calculations.Obfuscate(pack, player, false);
 			} catch (Throwable t) {
 				NoLaggChunks.plugin.log(Level.SEVERE, "An error occured in Orebfuscator: support for this plugin had to be removed!");
 				t.printStackTrace();
