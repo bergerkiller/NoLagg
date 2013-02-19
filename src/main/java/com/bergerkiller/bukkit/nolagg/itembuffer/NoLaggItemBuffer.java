@@ -9,15 +9,13 @@ import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.internal.CommonPlugin;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggItemBuffer extends NoLaggComponent {
-
 	public static NoLaggItemBuffer plugin;
 	private static List<Integer> items = new ArrayList<Integer>();
 	private static boolean enabled = false;
-
 	public static int maxItemsPerChunk = 80;
 
 	@Override
@@ -40,31 +38,28 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 		ItemMap.deinit();
 		enabled = true;
 	}
-	
+
 	public static Item dropIgnoredItem(Location loc, ItemStack type) {
 		Item item = loc.getWorld().dropItem(loc, type);
-		
-		if(enabled)
+		if(enabled) {
 			items.add(item.getEntityId());
-		
+		}
 		return item;
 	}
-	
+
 	public static Item dropIgnoredItemRandomly(Location loc, ItemStack type) {
 		Item item = loc.getWorld().dropItemNaturally(loc, type);
-		
-		if(enabled)
+		if (enabled) {
 			items.add(item.getEntityId());
-		
+		}
 		return item;
 	}
-	
+
 	public static boolean shouldIgnore(Entity entity) {
-		return CommonPlugin.getInstance().isEntityIgnored(entity) || items.contains(entity.getEntityId());
+		return EntityUtil.isIgnored(entity) || items.contains(entity.getEntityId());
 	}
-	
+
 	public static void remove(Entity entity) {
-		if(items.contains(entity.getEntityId()))
-			items.remove(entity.getEntityId());
+		items.remove(entity.getEntityId());
 	}
 }

@@ -2,11 +2,13 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.Queue;
 
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.bases.DummyWorldServer;
-import com.bergerkiller.bukkit.common.bases.PlayerManagerBase;
+import com.bergerkiller.bukkit.common.bases.PlayerChunkMapBase;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.NativeUtil;
@@ -17,19 +19,24 @@ import net.minecraft.server.v1_4_R1.LongHashMap;
 import net.minecraft.server.v1_4_R1.PlayerChunkMap;
 import net.minecraft.server.v1_4_R1.WorldServer;
 
-public class DummyPlayerManager extends PlayerManagerBase {
+public class DummyPlayerManager extends PlayerChunkMapBase {
 	public static final DummyWorldServer DUMMYWORLD;
+	public static final DummyChunkProvider DUMMYCPS;
 	static {
 		DUMMYWORLD = new DummyWorldServer();
-		DUMMYWORLD.chunkProvider = DUMMYWORLD.chunkProviderServer = new DummyChunkProvider(DUMMYWORLD);
+		DUMMYCPS = new DummyChunkProvider(DUMMYWORLD);
+		WorldServerRef.chunkProviderServer.set(DUMMYWORLD, DUMMYCPS);
 	}
 
-	public static void convert(WorldServer world) {
-		WorldServerRef.playerManager.set(world, new DummyPlayerManager(world));
+	public static void convertAll() {
+		// Alter player manager to prevent chunk loading outside range
+		for (World world : Bukkit.getWorlds()) {
+			DummyPlayerManager.convert(world);
+		}
 	}
 
 	public static void convert(World world) {
-		convert(NativeUtil.getNative(world));
+		WorldServerRef.playerManager.set(Conversion.toWorldHandle.convert(world), new DummyPlayerManager(world));
 	}
 
 	public static void revert() {
@@ -41,22 +48,22 @@ public class DummyPlayerManager extends PlayerManagerBase {
 		}
 	}
 
-	public final PlayerChunkMap base;
-	public final WorldServer world;
+	public final Object base;
 	private final LongHashMap instances;
 	private final Queue<?> dirtyChunkQueue;
+	public final World world;
 
-	public DummyPlayerManager(WorldServer world) {
-		this(world.getPlayerChunkMap(), world);
+	public DummyPlayerManager(World world) {
+		this(WorldServerRef.playerManager.get(Conversion.toWorldHandle.convert(world)), world);
 	}
 
-	public DummyPlayerManager(final PlayerChunkMap base, WorldServer world) {
+	public DummyPlayerManager(final Object base, World world) {
 		super(world, 10);
+		this.world = world;
 		this.instances = new DummyInstanceMap(PlayerManagerRef.playerInstances.get(base), this);
 		PlayerManagerRef.playerInstances.set(base, this.instances);
 		PlayerManagerRef.TEMPLATE.transfer(base, this);
 		this.base = base;
-		this.world = world;
 		this.dirtyChunkQueue = PlayerManagerRef.dirtyBlockChunks.get(base);
 	}
 
@@ -89,12 +96,12 @@ public class DummyPlayerManager extends PlayerManagerBase {
 	}
 
 	@Override
-	public WorldServer getWorld() {
+	public World getWorld() {
 		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
 			if (elem.getMethodName().equals("<init>")) {
 				if (elem.getClassName().equals(Common.NMS_ROOT + ".PlayerInstance")) {
-					DUMMYWORLD.chunkProviderServer.world = super.getWorld();
-					return DUMMYWORLD;
+					DUMMYCPS.setBase(super.getWorld());
+					return DUMMYWORLD.getWorld();
 				}
 			}
 		}

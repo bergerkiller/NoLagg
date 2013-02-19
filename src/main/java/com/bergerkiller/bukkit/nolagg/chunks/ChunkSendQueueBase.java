@@ -7,9 +7,9 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import com.bergerkiller.bukkit.common.ActiveState;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-
-import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
 
 /**
  * Only contains the empty-faking and double-mapping of contained elements
@@ -18,8 +18,8 @@ import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
 public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
 	protected final ActiveState<Boolean> updating = new ActiveState<Boolean>(false);
-	private final Set<ChunkCoordIntPair> contained = new HashSet<ChunkCoordIntPair>();
-	protected final Set<ChunkCoordIntPair> sentChunks = new HashSet<ChunkCoordIntPair>();
+	private final Set<IntVector2> contained = new HashSet<IntVector2>();
+	protected final Set<IntVector2> sentChunks = new HashSet<IntVector2>();
 	private boolean isSentChunksVerified = true;
 
 	/**
@@ -28,7 +28,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * change movement)
 	 */
 	public void sort() {
-		for (Iterator<ChunkCoordIntPair> iter = sentChunks.iterator(); iter.hasNext();) {
+		for (Iterator<IntVector2> iter = sentChunks.iterator(); iter.hasNext();) {
 			if (!this.isNear(iter.next(), CommonUtil.VIEW)) {
 				iter.remove();
 			}
@@ -48,7 +48,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * @param chunkCoord of the chunk to unload
 	 * @return True if an unload packet is required, False if not
 	 */
-	public boolean preUnloadChunk(ChunkCoordIntPair chunkCoord) {
+	public boolean preUnloadChunk(IntVector2 chunkCoord) {
 		this.remove(chunkCoord);
 		return this.sentChunks.remove(chunkCoord);
 	}
@@ -65,10 +65,10 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			int cx, cz;
 			int x = this.getCenterX();
 			int z = this.getCenterZ();
-			ChunkCoordIntPair pair;
+			IntVector2 pair;
 			for (cx = x - view; cx <= x + view; cx++) {
 				for (cz = z - view; cz <= z + view; cz++) {
-					pair = new ChunkCoordIntPair(cx, cz);
+					pair = new IntVector2(cx, cz);
 					if (!this.sentChunks.contains(pair)) {
 						this.add(pair);
 					}
@@ -77,13 +77,13 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		}
 	}
 
-	protected boolean remove(ChunkCoordIntPair pair) {
+	protected boolean remove(IntVector2 pair) {
 		synchronized (this) {
 			return this.contained.remove(pair) && super.remove(pair);
 		}
 	}
 
-	protected boolean add(ChunkCoordIntPair pair) {
+	protected boolean add(IntVector2 pair) {
 		if (this.isNear(pair, CommonUtil.VIEW)) {
 			synchronized (this) {
 				// Add to sending queue if not contained, or a re-send is
@@ -102,10 +102,10 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * 
 	 * @return next Chunk coordinate
 	 */
-	protected synchronized ChunkCoordIntPair pollNextChunk() {
-		Iterator<ChunkCoordIntPair> iter = super.iterator();
+	protected synchronized IntVector2 pollNextChunk() {
+		Iterator<Object> iter = super.iterator();
 		while (iter.hasNext()) {
-			ChunkCoordIntPair pair = iter.next();
+			IntVector2 pair = Conversion.toIntVector2.convert(iter.next());
 			if (isNearDynamic(pair.x, pair.z)) {
 				iter.remove();
 				return pair;
@@ -120,13 +120,11 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	/**
 	 * Removes a chunk coordinate from the contained set
 	 * 
-	 * @param x
-	 *            coordinate of the chunk
-	 * @param z
-	 *            coordinate of the chunk
+	 * @param x- coordinate of the chunk
+	 * @param z- coordinate of the chunk
 	 */
 	public void removeContained(int x, int z) {
-		this.contained.remove(new ChunkCoordIntPair(x, z));
+		this.contained.remove(new IntVector2(x, z));
 	}
 
 	/**
@@ -250,29 +248,27 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 *            distance
 	 * @return True is it is near, False if not
 	 */
-	public boolean isNear(ChunkCoordIntPair coord, final int view) {
+	public boolean isNear(IntVector2 coord, final int view) {
 		return this.isNear(coord.x, coord.z, view);
 	}
 
 	/**
 	 * Checks if the chunk is near this queue and can be contained
 	 * 
-	 * @param chunkx
-	 *            of the chunk
-	 * @param chunkz
-	 *            of the chunk
-	 * @param view
-	 *            distance
+	 * @param chunkx of the chunk
+	 * @param chunkz of the chunk
+	 * @param view distance
 	 * @return True is it is near, False if not
 	 */
 	public abstract boolean isNear(final int chunkx, final int chunkz, final int view);
 
 	@Override
 	public boolean remove(Object object) {
-		if (object == null || !(object instanceof ChunkCoordIntPair)) {
+		IntVector2 value = Conversion.toIntVector2.convert(object);
+		if (value == null) {
 			return false;
 		}
-		return remove((ChunkCoordIntPair) object);
+		return remove(value);
 	}
 
 	/**
@@ -284,10 +280,11 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		if (this.updating.get()) {
 			return super.add(object);
 		}
-		if (object == null || !(object instanceof ChunkCoordIntPair)) {
+		IntVector2 value = Conversion.toIntVector2.convert(object);
+		if (value == null) {
 			return false;
 		}
-		return this.add((ChunkCoordIntPair) object);
+		return this.add(value);
 	}
 
 	@Override
@@ -296,10 +293,12 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			super.add(index, object);
 			return;
 		}
-		if (object == null)
+		IntVector2 value = Conversion.toIntVector2.convert(object);
+		if (value == null) {
 			return;
-		if (this.add((ChunkCoordIntPair) object)) {
-			super.add(index, object);
+		}
+		if (this.add(value)) {
+			super.add(index, value);
 		}
 	}
 }

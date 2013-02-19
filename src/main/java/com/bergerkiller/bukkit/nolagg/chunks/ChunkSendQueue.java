@@ -10,10 +10,14 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.IntRemainder;
-import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NetworkManagerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerConnectionRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
@@ -23,11 +27,6 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
-import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_R1.EntityPlayer;
-import net.minecraft.server.v1_4_R1.INetworkManager;
-import net.minecraft.server.v1_4_R1.NetworkManager;
-import net.minecraft.server.v1_4_R1.Packet;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -87,13 +86,16 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	public static ChunkSendQueue bind(Player with) {
-		EntityPlayer ep = NativeUtil.getNative(with);
-		if (!(ep.chunkCoordIntPairQueue instanceof ChunkSendQueue)) {
+		Object ep = Conversion.toEntityHandle.convert(with);
+		List<?> currqueue = EntityPlayerRef.chunkQueue.get(ep);
+		if (currqueue instanceof ChunkSendQueue) {
+			return (ChunkSendQueue) currqueue;
+		} else {
 			ChunkSendQueue queue = new ChunkSendQueue(with);
-			ep.chunkCoordIntPairQueue.clear();
+			currqueue.clear();
 			EntityPlayerRef.chunkQueue.set(ep, queue);
+			return queue;
 		}
-		return (ChunkSendQueue) ep.chunkCoordIntPairQueue;
 	}
 
 	public final Player player;
@@ -118,29 +120,33 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		this.player = player;
 		this.world = player.getWorld();
 		this.sendDirection = null; // Force a sorting operation the next tick
-		EntityPlayer ep = NativeUtil.getNative(player);
-		this.x = (int) (ep.locX + ep.motX * 16) >> 4;
-		this.z = (int) (ep.locZ + ep.motZ * 16) >> 4;
+		Object playerHandle = Conversion.toEntityHandle.convert(player);
+		this.x = (int) (EntityRef.locX.get(playerHandle) + EntityRef.motX.get(playerHandle) * 16) >> 4;
+		this.z = (int) (EntityRef.locZ.get(playerHandle) + EntityRef.motZ.get(playerHandle) * 16) >> 4;
 		this.chunkQueue = new ChunkCompressQueue(this);
-		this.addAll(ep.chunkCoordIntPairQueue);
-		this.add(new ChunkCoordIntPair(MathUtil.toChunk(ep.locX), MathUtil.toChunk(ep.locZ)));
+		this.addAll(EntityPlayerRef.chunkQueue.get(playerHandle));
+		this.add(new IntVector2(EntityRef.chunkX.get(playerHandle), EntityRef.chunkZ.get(playerHandle)));
 		ChunkCompressionThread.addQueue(this.chunkQueue);
 		this.enforceBufferFullSize();
 	}
 
 	private void enforceBufferFullSize() {
-		INetworkManager nm = NativeUtil.getNative(this.player).playerConnection.networkManager;
-		Object lockObject = new SafeField<Object>(NetworkManager.class, "h").get(nm);
+		final Object playerHandle = Conversion.toEntityHandle.convert(player);
+		final Object playerConnection = EntityPlayerRef.playerConnection.get(playerHandle);
+		final Object nm = PlayerConnectionRef.networkManager.get(playerConnection);
+		Object lockObject = NetworkManagerRef.lockObject.get(nm);
 		if (lockObject != null) {
-			List<Packet> low = new SafeField<List<Packet>>(NetworkManager.class, "lowPriorityQueue").get(nm);
-			List<Packet> high = new SafeField<List<Packet>>(NetworkManager.class, "highPriorityQueue").get(nm);
+			List<Object> low = NetworkManagerRef.lowPriorityQueue.get(nm);
+			List<Object> high = NetworkManagerRef.highPriorityQueue.get(nm);
 			if (low != null && high != null) {
 				int queuedsize = 0;
 				synchronized (lockObject) {
-					for (Packet p : low)
-						queuedsize += p.a() + 1;
-					for (Packet p : high)
-						queuedsize += p.a() + 1;
+					for (Object p : low) {
+						queuedsize += PacketFields.DEFAULT.getPacketSize(p) + 1;
+					}
+					for (Object p : high) {
+						queuedsize += PacketFields.DEFAULT.getPacketSize(p) + 1;
+					}
 					NetworkManagerRef.queueSize.set(nm, queuedsize - 9437184);
 				}
 			}
@@ -197,7 +203,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (elements.isEmpty()) {
 			return;
 		}
-		ChunkCoordIntPair middle = new ChunkCoordIntPair(this.x, this.z);
+		IntVector2 middle = new IntVector2(this.x, this.z);
 		try {
 			Collections.sort(elements, ChunkCoordComparator.get(this.sendDirection, middle));
 		} catch (ConcurrentModificationException ex) {
@@ -278,19 +284,18 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 * Performs sorting and batch sending at the interval and rate settings
 	 * specified
 	 * 
-	 * @param interval
-	 *            to send at
-	 * @param rate
-	 *            to send at
+	 * @param interval to send at
+	 * @param rate to send at
 	 */
 	private void update(int interval, int rate) {
-		if (interval == 0)
+		if (interval == 0) {
 			interval = 1;
-		if (rate == 0)
+		}
+		if (rate == 0) {
 			return;
+		}
 		if (this.intervalcounter >= interval) {
-			EntityPlayer ep = NativeUtil.getNative(this.player);
-			updatePosition(this.player.getWorld(), ep.locX + ep.motX * 16, ep.locZ + ep.motZ * 16, ep.yaw);
+			updatePosition(player.getLocation());
 			this.sendBatch(rate);
 			this.intervalcounter = 1;
 		} else {
@@ -341,7 +346,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		// load chunks
 		long start = System.nanoTime();
 		for (int i = 0; i < count; i++) {
-			ChunkCoordIntPair pair = this.pollNextChunk();
+			IntVector2 pair = this.pollNextChunk();
 			if (pair == null) {
 				break;
 			}
@@ -389,7 +394,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	@Override
-	public boolean remove(ChunkCoordIntPair pair) {
+	public boolean remove(IntVector2 pair) {
 		return super.remove(pair) || this.chunkQueue.remove(pair.x, pair.z);
 	}
 
@@ -399,7 +404,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	@Override
-	protected boolean add(ChunkCoordIntPair pair) {
+	protected boolean add(IntVector2 pair) {
 		if (super.add(pair)) {
 			this.chunkQueue.remove(pair.x, pair.z);
 			this.sendDirection = null; // invalidate
@@ -408,5 +413,4 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			return false;
 		}
 	}
-
 }

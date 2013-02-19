@@ -1,9 +1,7 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
 version: 1.89.7
-author: bergerkiller
-authors: [lenis0012]
-load: startup
+authors: [bergerkiller, lenis0012]
 depend: [BKCommonLib]
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam
 commands:

@@ -5,10 +5,10 @@ import java.util.Comparator;
 import org.bukkit.Chunk;
 import org.bukkit.block.BlockFace;
 
+import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
-
-import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
 
 /*
  * Warning: this comparator returns 0 when the coordinates match
@@ -37,16 +37,16 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		}
 	}
 
-	public static ChunkCoordComparator get(final BlockFace direction, final ChunkCoordIntPair middle) {
+	public static ChunkCoordComparator get(final BlockFace direction, final IntVector2 middle) {
 		return new ChunkCoordComparator(comparators[FaceUtil.faceToNotch(direction)], middle);
 	}
 
 	private int index = 0;
 	private final BlockFace direction;
 	private final int[][] indices;
-	private final ChunkCoordIntPair middle;
+	private final IntVector2 middle;
 
-	private ChunkCoordComparator(ChunkCoordComparator source, final ChunkCoordIntPair middle) {
+	private ChunkCoordComparator(ChunkCoordComparator source, final IntVector2 middle) {
 		this.indices = source.indices;
 		this.direction = source.direction;
 		this.middle = middle;
@@ -194,17 +194,19 @@ public class ChunkCoordComparator implements Comparator<Object> {
 	}
 
 	public int getIndex(Object coord) {
-		if (coord instanceof ChunkCoordIntPair) {
-			ChunkCoordIntPair pair = (ChunkCoordIntPair) coord;
-			return getIndex(pair.x, pair.z);
-		} else if (coord instanceof Chunk) {
+		if (coord instanceof Chunk) {
 			Chunk chunk = (Chunk) coord;
 			return getIndex(chunk.getX(), chunk.getZ());
 		} else if (coord instanceof ChunkSendCommand) {
 			ChunkSendCommand cmd = (ChunkSendCommand) coord;
 			return getIndex(cmd.chunk.getX(), cmd.chunk.getZ());
 		} else {
-			return Integer.MAX_VALUE;
+			final IntVector2 i2coord = Conversion.toIntVector2.convert(coord);
+			if (coord != null) {
+				return getIndex(i2coord.x, i2coord.z);
+			} else {
+				return Integer.MAX_VALUE;
+			}
 		}
 	}
 

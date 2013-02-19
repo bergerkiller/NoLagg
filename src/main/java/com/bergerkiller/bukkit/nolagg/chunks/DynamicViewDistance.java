@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Task;
@@ -43,10 +42,8 @@ public class DynamicViewDistance {
 			return;
 		}
 
-		// Alter player manager to prevent chunk loading outside range
-		for (World world : Bukkit.getWorlds()) {
-			DummyPlayerManager.convert(world);
-		}
+		// Convert all worlds to use the new player manager
+		DummyPlayerManager.convertAll();
 
 		int lowest = Integer.MAX_VALUE;
 		Iterator<String> iter = elements.iterator();
