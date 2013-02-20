@@ -24,7 +24,7 @@ public class AutoSaveChanger {
 	public static void init() {
 		autoSaveTask = new Task(NoLagg.plugin) {
 			public void run() {
-				CommonUtil.getServerConfig().savePlayers();
+				CommonUtil.savePlayers();
 				if (!isSaving()) {
 					// Obtain a list of all the chunks to save
 					final Queue<org.bukkit.Chunk> chunks = new LinkedList<org.bukkit.Chunk>();
