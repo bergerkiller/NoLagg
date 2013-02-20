@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>NoLagg</artifactId>
-  <version>1.89.7</version>
+  <version>1.89.8</version>
   <packaging>jar</packaging>
 
   <name>NoLagg</name>
