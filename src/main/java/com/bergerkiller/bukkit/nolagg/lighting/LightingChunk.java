@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
 public class LightingChunk {
 	public static final int SECTION_COUNT = 16;
 	public static final int OB = ~0xf; // Outside blocks
+	public static final int OC = ~0xff; // Outside chunk
 	public final LightingChunkSection[] sections = new LightingChunkSection[SECTION_COUNT];
 	public final LightingChunkNeighboring neighbors = new LightingChunkNeighboring();
 	public final byte[] heightmap = new byte[256];
@@ -157,7 +158,15 @@ public class LightingChunk {
 		}
 	}
 
+	public static final int A = ~0xff;
+	public static final int B = -1;
+	public static final int C = B & A;
+
 	private int getLightLevel(boolean skyLight, int x, int y, int z) {
+		// In range?
+		if ((y & OC) != 0) {
+			return 0;
+		}
 		// Outside the blocks space of this chunk?
 		final LightingChunk chunk = (x & OB | z & OB) == 0 ? this : neighbors.get(x >> 4, z >> 4);
 		final LightingChunkSection section = chunk.sections[y >> 4];
@@ -219,7 +228,7 @@ public class LightingChunk {
 			// Go through all blocks, using the heightmap for sky light to skip a few
 			for (x = startX; x <= endX; x++) {
 				for (z = startZ; z <= endZ; z++) {
-					startY = maxY; //skyLight ? getHeight(x, z) : maxY;
+					startY = skyLight ? getHeight(x, z) : maxY;
 					for (y = startY; y > 0; y--) {
 						if ((chunksection = this.sections[y >> 4]) == null) {
 							continue;

@@ -2,30 +2,31 @@ package com.bergerkiller.bukkit.nolagg.lighting;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
-import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
-import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingService extends AsyncTask {
 	private static AsyncTask fixThread = null;
 	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
+	private static final LinkedList<LightingTaskRegion> regions = new LinkedList<LightingTaskRegion>();
+	private static final Set<String> recipientsForDone = new HashSet<String>();
 	private static int taskChunkCount = 0;
 	private static LightingTask currentTask;
-	private static final List<Task> runningTasks = new ArrayList<Task>();
 
 	public static void scheduleWorld(final World world) {
 		// Obtain the folder where regions of the world are stored
@@ -39,61 +40,27 @@ public class LightingService extends AsyncTask {
 		// Final region folder appending
 		final File regionFolder = new File(regionFolderTmp, "region");
 		if (regionFolder.exists()) {
-			final List<IntVector2> coords = new ArrayList<IntVector2>(1024);
-			final Iterator<String> regionsIter = Arrays.asList(regionFolder.list()).iterator();
-			runningTasks.add(new Task(NoLagg.plugin) {
-				@Override
-				public void run() {
-					if (!regionsIter.hasNext()) {
-						this.stop();
-						runningTasks.remove(this);
-						return;
-					}
-					String regionFileName = regionsIter.next();
-
-					// Validate file
-					File file = new File(regionFolder, regionFileName);
-					if (!file.isFile() || !file.exists()) {
-						run();
-					}
-					String[] parts = regionFileName.split("\\.");
-					if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
-						run();
-					}
-					// Obtain the chunk offset of this region file
-					int rx = 0;
-					int rz = 0;
-					try {
-						rx = Integer.parseInt(parts[1]) << 5;
-						rz = Integer.parseInt(parts[2]) << 5;
-					} catch (Exception ex) {
-						run();
-					}
-					// Is it contained in the cache?
-					Object reg = RegionFileCacheRef.FILES.get(file);
-					if (reg == null) {
-						// Manually load this region file and close it (we don't use it to load chunks)
-						reg = RegionFileRef.create(file);
-						RegionFileRef.close.invoke(reg);
-					}
-					// Obtain all generated chunks in this region file
-					int dx, dz;
-					for (dx = 0; dx < 32; dx++) {
-						for (dz = 0; dz < 32; dz++) {
-							if (RegionFileRef.exists.invoke(reg, dx, dz)) {
-								// Region file exists - add it
-								coords.add(new IntVector2(rx + dx, rz + dz));
-							}
-						}
-					}
-					reg = null;
-					// Schedule
-					schedule(world, coords);
-					// Reset
-					coords.clear();
-					
+			synchronized (regions) {
+				for (String regionFileName : regionFolder.list()) {
+					regions.add(new LightingTaskRegion(world, regionFolder, regionFileName));
+					taskChunkCount += 1024;
 				}
-			}.start(0, 300));
+			}
+		}
+		// Start the fixing thread
+		if (fixThread == null) {
+			fixThread = new LightingService().start(true);
+		}
+	}
+
+	/**
+	 * Adds a player who will be notified of the lighting operations being completed
+	 * 
+	 * @param player to add, null for console
+	 */
+	public static void addRecipient(CommandSender sender) {
+		synchronized (recipientsForDone) {
+			recipientsForDone.add((sender instanceof Player) ? sender.getName() : null);
 		}
 	}
 
@@ -135,7 +102,7 @@ public class LightingService extends AsyncTask {
 	 * @return True if processing, False if not
 	 */
 	public static boolean isProcessing() {
-		return currentTask != null;
+		return fixThread != null;
 	}
 
 	/**
@@ -158,11 +125,10 @@ public class LightingService extends AsyncTask {
 	 * orderly fashion.
 	 */
 	public static void abort() {
-		// Clear (world loading) tasks
-		for (Task task : runningTasks) {
-			task.stop();
+		// Clear regions
+		synchronized (regions) {
+			regions.clear();
 		}
-		runningTasks.clear();
 		// Clear lighting tasks
 		synchronized (tasks) {
 			tasks.clear();
@@ -197,12 +163,36 @@ public class LightingService extends AsyncTask {
 		synchronized (tasks) {
 			currentTask = tasks.poll();
 		}
+		// No task, maybe a region?
 		if (currentTask == null) {
+			LightingTaskRegion reg;
+			synchronized (regions) {
+				reg = regions.poll();
+			}
+			if (reg != null) {
+				currentTask = reg.createTask();
+				taskChunkCount -= 1024;
+			}
+		} else {
+			taskChunkCount -= currentTask.getChunkCount();
+		}
+		if (currentTask == null) {
+			// Messages
+			final String message = ChatColor.GREEN + "All lighting operations are completed.";
+			synchronized (recipientsForDone) {
+				for (String player : recipientsForDone) {
+					CommandSender recip = player == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(player);
+					if (recip != null) {
+						recip.sendMessage(message);
+					}
+				}
+				recipientsForDone.clear();
+			}
+			// Stop task and abort
 			this.stop();
 			fixThread = null;
 			return;
 		}
-		taskChunkCount -= currentTask.getChunkCount();
 		// Operate on the task
 		// Load
 		currentTask.startLoading();
@@ -212,6 +202,5 @@ public class LightingService extends AsyncTask {
 		// Apply
 		currentTask.startApplying();
 		currentTask.waitForCompletion();
-		currentTask = null;
 	}
 }
