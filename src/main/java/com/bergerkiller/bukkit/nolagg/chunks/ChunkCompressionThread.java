@@ -139,10 +139,10 @@ public class ChunkCompressionThread extends AsyncTask {
 		Object sections[] = ChunkRef.sections.invoke(chunk);
 		boolean sectionsEmpty[] = new boolean[sections.length];
 		for (i = 0; i < sections.length; i++) {
-			sectionsEmpty[i] = sections[i] == null || ChunkSectionRef.blockCount.invoke(sections[i]);
+			sectionsEmpty[i] = sections[i] == null || ChunkSectionRef.isEmpty.invoke(sections[i]);
 			if (!sectionsEmpty[i]) {
 				chunkDataBitMap |= 1 << i;
-				if (ChunkSectionRef.extBlockIds.invoke(sections[i]) != null) {
+				if (ChunkSectionRef.getExtBlockIds.invoke(sections[i]) != null) {
 					chunkBiomeBitMap |= 1 << i;
 				}
 			}
@@ -161,18 +161,18 @@ public class ChunkCompressionThread extends AsyncTask {
 			this.rawLength = 0;
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					rawAppend(ChunkSectionRef.blockIds.invoke(sections[i]));
+					rawAppend(ChunkSectionRef.getBlockIds.invoke(sections[i]));
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					Object nibble = ChunkSectionRef.blockData.invoke(sections[i]);
+					Object nibble = ChunkSectionRef.getBlockData.invoke(sections[i]);
 					this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 				}
 			}
 			for (i = 0; i < sections.length; i++) {
 				if (!sectionsEmpty[i]) {
-					Object nibble  = ChunkSectionRef.blockLight.invoke(sections[i]);
+					Object nibble  = ChunkSectionRef.getBlockLightNibble.invoke(sections[i]);
 					this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 				}
 			}
@@ -182,7 +182,7 @@ public class ChunkCompressionThread extends AsyncTask {
 			{
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
-						Object nibble = ChunkSectionRef.skyLight.invoke(sections[i]);
+						Object nibble = ChunkSectionRef.getSkyLightNibble.invoke(sections[i]);
 						this.rawLength = NibbleArrayRef.copyTo(nibble, this.rawbuffer, this.rawLength);
 					}
 				}
@@ -190,8 +190,8 @@ public class ChunkCompressionThread extends AsyncTask {
 			//fix for 1.4.6 - end
 			
 			for (i = 0; i < sections.length; i++) {
-				if (!sectionsEmpty[i] && ChunkSectionRef.extBlockIds.invoke(sections[i]) != null) {
-					this.rawLength = NibbleArrayRef.copyTo(ChunkSectionRef.extBlockIds.invoke(sections[i]), this.rawbuffer, this.rawLength);
+				if (!sectionsEmpty[i] && ChunkSectionRef.getExtBlockIds.invoke(sections[i]) != null) {
+					this.rawLength = NibbleArrayRef.copyTo(ChunkSectionRef.getExtBlockIds.invoke(sections[i]), this.rawbuffer, this.rawLength);
 				}
 			}
 		}

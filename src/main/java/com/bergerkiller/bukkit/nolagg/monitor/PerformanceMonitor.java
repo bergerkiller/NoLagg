@@ -30,7 +30,7 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
-import com.bergerkiller.bukkit.nolagg.lighting.LightingFixThread;
+import com.bergerkiller.bukkit.nolagg.lighting.LightingService;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class PerformanceMonitor extends Task {
@@ -322,8 +322,10 @@ public class PerformanceMonitor extends Task {
 				}
 			}
 			int lighting;
+			boolean isLightingActive = false;
 			if (NoLaggComponents.LIGHTING.isEnabled()) {
-				lighting = LightingFixThread.getPendingSize();
+				isLightingActive = LightingService.isProcessing();
+				lighting = LightingService.getChunkFaults();
 			} else {
 				lighting = 0;
 			}
@@ -432,7 +434,7 @@ public class PerformanceMonitor extends Task {
 				mem += ChatColor.GREEN + " [+" + NLMListener.loadedChunks + "]";
 				mem += ChatColor.YELLOW + " [+" + NLMListener.generatedChunks + "]";
 				mem += ChatColor.RED + " [-" + NLMListener.unloadedChunks + "]";
-				mem += ChatColor.GOLD + " [" + lighting + " lighting]";
+				mem += (isLightingActive ? ChatColor.RED : ChatColor.GOLD) + " [" + lighting + " lighting]";
 				messages.add(mem);
 				// Buffering
 				// entities
