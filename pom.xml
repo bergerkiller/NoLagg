@@ -15,9 +15,9 @@
   </properties>
 
   <repositories>
-    <!-- Repo for access to Vault -->
+    <!-- Repo for access to Vault and BKCommonLib -->
     <repository>
-      <id>vault-repo</id>
+      <id>herocraft-repo</id>
       <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
     </repository>
     <!-- Repo for access to CraftBukkit -->
@@ -43,8 +43,9 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.50</version>
-  	</dependency>
+      <version>1.50-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
