@@ -15,13 +15,10 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggLighting extends NoLaggComponent {
-	public static boolean auto = true;
 	public static NoLaggLighting plugin;
 
 	@Override
 	public void onReload(ConfigurationNode config) {
-		config.setHeader("auto", "Whether or not lighting is automatically fixed when a new chunk is generated");
-		auto = config.get("auto", auto);
 	}
 
 	@Override
