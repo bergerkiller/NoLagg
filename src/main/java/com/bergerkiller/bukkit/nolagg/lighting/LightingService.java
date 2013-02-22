@@ -166,14 +166,24 @@ public class LightingService extends AsyncTask {
 		// No task, maybe a region?
 		if (currentTask == null) {
 			LightingTaskRegion reg;
-			synchronized (regions) {
-				reg = regions.poll();
-			}
-			if (reg != null) {
-				currentTask = reg.createTask();
-				taskChunkCount -= 1024;
+			while (true) {
+				synchronized (regions) {
+					reg = regions.poll();
+				}
+				if (reg == null) {
+					// No region tasks, abort
+					break;
+				} else {
+					currentTask = reg.createTask();
+					taskChunkCount -= 1024;
+					if (currentTask != null) {
+						// We have a task, start working on it
+						break;
+					}
+				}
 			}
 		} else {
+			// New task polled - decrement chunk count
 			taskChunkCount -= currentTask.getChunkCount();
 		}
 		if (currentTask == null) {
