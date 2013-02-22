@@ -2,6 +2,8 @@ package com.bergerkiller.bukkit.nolagg.lighting;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -11,71 +13,87 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingService extends AsyncTask {
 	private static AsyncTask fixThread = null;
 	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
 	private static int taskChunkCount = 0;
 	private static LightingTask currentTask;
+	private static final List<Task> runningTasks = new ArrayList<Task>();
 
-	public static void scheduleWorld(World world) {
+	public static void scheduleWorld(final World world) {
 		// Obtain the folder where regions of the world are stored
-		File regionFolder = WorldUtil.getWorldFolder(world);
+		File regionFolderTmp = WorldUtil.getWorldFolder(world);
 		// Special dim folder for nether and the_end
 		if (world.getEnvironment() == Environment.NETHER) {
-			regionFolder = new File(regionFolder, "DIM-1");
+			regionFolderTmp = new File(regionFolderTmp, "DIM-1");
 		} else if (world.getEnvironment() == Environment.THE_END) {
-			regionFolder = new File(regionFolder, "DIM1");
+			regionFolderTmp = new File(regionFolderTmp, "DIM1");
 		}
 		// Final region folder appending
-		regionFolder = new File(regionFolder, "region");
+		final File regionFolder = new File(regionFolderTmp, "region");
 		if (regionFolder.exists()) {
-			List<IntVector2> coords = new ArrayList<IntVector2>(1024);
-			// Loop through all region files of the world
-			int dx, dz;
-			int rx, rz;
-			for (String regionFileName : regionFolder.list()) {
-				// Validate file
-				File file = new File(regionFolder, regionFileName);
-				if (!file.isFile() || !file.exists()) {
-					continue;
-				}
-				String[] parts = regionFileName.split("\\.");
-				if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
-					continue;
-				}
-				// Obtain the chunk offset of this region file
-				try {
-					rx = Integer.parseInt(parts[1]) << 5;
-					rz = Integer.parseInt(parts[2]) << 5;
-				} catch (Exception ex) {
-					continue;
-				}
-				// Is it contained in the cache?
-				Object reg = RegionFileCacheRef.FILES.get(file);
-				if (reg == null) {
-					// Manually load this region file and close it (we don't use it to load chunks)
-					reg = RegionFileRef.create(file);
-					RegionFileRef.close.invoke(reg);
-				}
-				// Obtain all generated chunks in this region file
-				for (dx = 0; dx < 32; dx++) {
-					for (dz = 0; dz < 32; dz++) {
-						if (RegionFileRef.exists.invoke(reg, dx, dz)) {
-							// Region file exists - add it
-							coords.add(new IntVector2(rx + dx, rz + dz));
+			final List<IntVector2> coords = new ArrayList<IntVector2>(1024);
+			final Iterator<String> regionsIter = Arrays.asList(regionFolder.list()).iterator();
+			runningTasks.add(new Task(NoLagg.plugin) {
+				@Override
+				public void run() {
+					if (!regionsIter.hasNext()) {
+						this.stop();
+						runningTasks.remove(this);
+						return;
+					}
+					String regionFileName = regionsIter.next();
+
+					// Validate file
+					File file = new File(regionFolder, regionFileName);
+					if (!file.isFile() || !file.exists()) {
+						run();
+					}
+					String[] parts = regionFileName.split("\\.");
+					if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
+						run();
+					}
+					// Obtain the chunk offset of this region file
+					int rx = 0;
+					int rz = 0;
+					try {
+						rx = Integer.parseInt(parts[1]) << 5;
+						rz = Integer.parseInt(parts[2]) << 5;
+					} catch (Exception ex) {
+						run();
+					}
+					// Is it contained in the cache?
+					Object reg = RegionFileCacheRef.FILES.get(file);
+					if (reg == null) {
+						// Manually load this region file and close it (we don't use it to load chunks)
+						reg = RegionFileRef.create(file);
+						RegionFileRef.close.invoke(reg);
+					}
+					// Obtain all generated chunks in this region file
+					int dx, dz;
+					for (dx = 0; dx < 32; dx++) {
+						for (dz = 0; dz < 32; dz++) {
+							if (RegionFileRef.exists.invoke(reg, dx, dz)) {
+								// Region file exists - add it
+								coords.add(new IntVector2(rx + dx, rz + dz));
+							}
 						}
 					}
+					reg = null;
+					// Schedule
+					schedule(world, coords);
+					// Reset
+					coords.clear();
+					
 				}
-				// Schedule
-				schedule(world, coords);
-				// Reset
-				coords.clear();
-			}
+			}.start(0, 300));
 		}
 	}
 
@@ -140,10 +158,17 @@ public class LightingService extends AsyncTask {
 	 * orderly fashion.
 	 */
 	public static void abort() {
+		// Clear (world loading) tasks
+		for (Task task : runningTasks) {
+			task.stop();
+		}
+		runningTasks.clear();
+		// Clear lighting tasks
 		synchronized (tasks) {
 			tasks.clear();
 			taskChunkCount = 0;
 		}
+		// Finish the current lighting task if available
 		final LightingTask current = currentTask;
 		if (fixThread != null && current != null) {
 			NoLaggLighting.plugin.log(Level.INFO, "Processing lighting in the remaining " + current.getFaults() + " chunks...");
