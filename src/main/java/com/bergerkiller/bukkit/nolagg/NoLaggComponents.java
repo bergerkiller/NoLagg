@@ -17,7 +17,8 @@ public enum NoLaggComponents {
 	SAVING("Saving", "Alters the way worlds are saved to reduce disk usage and to force proper saves"), 
 	COMMON("Common", "Common features such as the clear and garbage collect commands"), 
 	THREADLOCKNOTIFIER("ThreadLockNotifier", "Notifies the current stack trace of the main thread when the server freezes"),
-	THREADCHECK("ThreadCheck", "Notifies when a main-thread only event is called from another thread to detect instabilities it may cause");
+	THREADCHECK("ThreadCheck", "Notifies when a main-thread only event is called from another thread to detect instabilities it may cause"),
+	PATCHES("Patches", "Patches certain classes and functions from CraftBukkt");
 
 	private boolean enabled;
 	private final boolean enabledByDefault;
