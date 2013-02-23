@@ -2,11 +2,9 @@ package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
 import java.util.ArrayList;
 
-import org.bukkit.entity.Player;
-
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.reflection.classes.PlayerInstanceRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkRef;
 import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 
@@ -16,9 +14,9 @@ public class DummyInstancePlayerList extends ArrayList {
 	public static void replace(DummyPlayerManager playerManager, Object playerInstance) {
 		DummyInstancePlayerList list = new DummyInstancePlayerList();
 		list.playerManager = playerManager;
-		list.location = Conversion.toIntVector2.convert(PlayerInstanceRef.location.get(playerInstance));
-		list.addAll(PlayerInstanceRef.players.get(playerInstance));
-		PlayerInstanceRef.players.set(playerInstance, list);
+		list.location = Conversion.toIntVector2.convert(PlayerChunkRef.location.get(playerInstance));
+		list.addAll(PlayerChunkRef.players.get(playerInstance));
+		PlayerChunkRef.players.set(playerInstance, list);
 	}
 
 	private static final long serialVersionUID = -1878411514739243453L;
@@ -29,7 +27,7 @@ public class DummyInstancePlayerList extends ArrayList {
 	@Override
 	public boolean contains(Object o) {
 		if (super.contains(o)) {
-			if (!FILTER || ChunkSendQueue.bind(Conversion.convert(o, Player.class)).preUnloadChunk(this.location)) {
+			if (!FILTER || ChunkSendQueue.bind(Conversion.toPlayer.convert(o)).preUnloadChunk(this.location)) {
 				return true;
 			}
 

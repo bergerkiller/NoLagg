@@ -1,14 +1,5 @@
 package com.bergerkiller.bukkit.nolagg.tnt;
 
-import net.minecraft.server.v1_4_R1.AxisAlignedBB;
-import net.minecraft.server.v1_4_R1.Block;
-import net.minecraft.server.v1_4_R1.DamageSource;
-import net.minecraft.server.v1_4_R1.Entity;
-import net.minecraft.server.v1_4_R1.EntityItem;
-import net.minecraft.server.v1_4_R1.EntityTNTPrimed;
-import net.minecraft.server.v1_4_R1.Vec3D;
-import net.minecraft.server.v1_4_R1.World;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,28 +9,33 @@ import java.util.Random;
 import java.util.Set;
 
 // CraftBukkit start
-import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.entity.EntityDamageByBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.Location;
 // CraftBukkit end
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class CustomExplosion {
 	public boolean fire;
 	private Random h = new Random();
+	private final Random worldRandom;
 	private World world;
-	public double posX;
-	public double posY;
-	public double posZ;
+	public final Location pos;
 	public Entity source;
 	public float size;
 	private static List<IntVector3> blocks = new ArrayList<IntVector3>(100);
@@ -47,13 +43,12 @@ public class CustomExplosion {
 	public boolean wasCanceled = false; // CraftBukkit
 
 	public CustomExplosion(org.bukkit.entity.Entity entity, Location location, float size, boolean fire) {
-		this.world = NativeUtil.getNative(location.getWorld());
-		this.posX = location.getX();
-		this.posY = location.getY();
-		this.posZ = location.getZ();
-		this.source = NativeUtil.getNative(entity);
+		this.world = location.getWorld();
+		this.pos = location;
+		this.source = entity;
 		this.size = size;
 		this.fire = fire;
+		this.worldRandom = WorldUtil.getRandom(this.world);
 	}
 
 	public void doAll() {
@@ -157,13 +152,12 @@ public class CustomExplosion {
 
 	public static boolean useQuickDamageMode = false;
 
-	@SuppressWarnings("unchecked")
 	public void prepare() {
-		int xoff = MathUtil.floor(this.posX);
-		int yoff = MathUtil.floor(this.posY);
-		int zoff = MathUtil.floor(this.posZ);
+		int xoff = pos.getBlockX();
+		int yoff = pos.getBlockY();
+		int zoff = pos.getBlockZ();
 
-		root.sourcedamage = 0.05f * factor * this.size * (0.7F + this.world.random.nextFloat() * 0.6F);
+		root.sourcedamage = 0.05f * factor * this.size * (0.7F + worldRandom.nextFloat() * 0.6F);
 
 		// recursively operate on all blocks
 		int i = 0;
@@ -178,10 +172,10 @@ public class CustomExplosion {
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
-					slot.block.type = world.getTypeId(x, y, z);
+					slot.block.type = world.getBlockTypeIdAt(x, y, z);
 					if (slot.block.type > 0) {
-						slot.block.damagefactor = (Block.byId[slot.block.type].a(source) + 0.3F) * 0.3F;
-						slot.block.damagefactor *= (2.0F + this.world.random.nextFloat()) / 3.0F;
+						slot.block.damagefactor = (MaterialUtil.getDamageResilience(slot.block.type, source) + 0.3F) * 0.3F;
+						slot.block.damagefactor *= (2.0F + worldRandom.nextFloat()) / 3.0F;
 					} else {
 						slot.block.destroy = true; // prevent air getting
 													// destroyed
@@ -237,26 +231,26 @@ public class CustomExplosion {
 
 		// =====================generate entities===================
 		double tmpsize = (double) this.size * 2.0;
-		double xmin = this.posX - tmpsize - 1.0;
-		double ymin = this.posY - tmpsize - 1.0;
-		double zmin = this.posZ - tmpsize - 1.0;
+		double xmin = this.pos.getX() - tmpsize - 1.0;
+		double ymin = this.pos.getY() - tmpsize - 1.0;
+		double zmin = this.pos.getZ() - tmpsize - 1.0;
 
-		double xmax = this.posX + tmpsize + 1.0;
-		double ymax = this.posY + tmpsize + 1.0;
-		double zmax = this.posZ + tmpsize + 1.0;
+		double xmax = this.pos.getX() + tmpsize + 1.0;
+		double ymax = this.pos.getY() + tmpsize + 1.0;
+		double zmax = this.pos.getZ() + tmpsize + 1.0;
 
-		List<Entity> list = this.world.getEntities(this.source, AxisAlignedBB.a(xmin, ymin, zmin, xmax, ymax, zmax));
+		List<Entity> list = WorldUtil.getEntities(this.world, this.source, xmin, ymin, zmin, xmax, ymax, zmax);
 		// ==========================================================
 
-		Vec3D vec3d = Vec3D.a(this.posX, this.posY, this.posZ);
-
-		for (i = 0; i < list.size(); i++) {
-			Entity entity = list.get(i);
-			if (entity == null || entity.dead)
+		//Vec3D vec3d = Vec3D.a(this.posX, this.posY, this.posZ);
+		
+		for (Entity entity : list) {
+			if (entity == null || entity.isDead()) {
 				continue;
-			tmpX = entity.locX - this.posX;
-			tmpY = entity.locY - this.posY;
-			tmpZ = entity.locZ - this.posZ;
+			}
+			tmpX = EntityUtil.getLocX(entity) - this.pos.getX();
+			tmpY = EntityUtil.getLocY(entity) - this.pos.getY();
+			tmpZ = EntityUtil.getLocZ(entity) - this.pos.getZ();
 
 			double length = MathUtil.lengthSquared(tmpX, tmpY, tmpZ);
 			if (length >= (tmpsize * tmpsize))
@@ -272,55 +266,34 @@ public class CustomExplosion {
 
 			if (useQuickDamageMode) {
 				// damage factor
-				if (entity instanceof EntityItem) {
+				if (entity instanceof Item) {
 					damageFactor = 1.0F;
-				} else if (entity instanceof EntityTNTPrimed) {
+				} else if (entity instanceof TNTPrimed) {
 					damageFactor = 8.0F / 9.0F;
 				} else {
-					damageFactor = this.world.a(vec3d, entity.boundingBox);
+					damageFactor = WorldUtil.getExplosionDamageFactor(pos, entity);
 				}
 			} else {
-				damageFactor = this.world.a(vec3d, entity.boundingBox);
+				damageFactor = WorldUtil.getExplosionDamageFactor(pos, entity);
 			}
 			double force = (1.0 - distanceFactor) * (double) damageFactor;
+			int damageDone = (int) (force * (force + 1.0) * 4.0 * tmpsize + 1.0);
 
-			// CraftBukkit start - explosion damage hook
-			org.bukkit.entity.Entity damagee = NativeUtil.getEntity(entity);
-			int damageDone = (int) (force * (force + 1.0) * 4.0D * tmpsize + 1.0D);
-
-			if (this.source == null) { // Block explosion
-				// TODO: get the x/y/z of the tnt block?
-				// does this even get called ever? @see EntityTNTPrimed - not
-				// BlockTNT or whatever
-				EntityDamageByBlockEvent event = new EntityDamageByBlockEvent(null, damagee, EntityDamageEvent.DamageCause.BLOCK_EXPLOSION, damageDone);
-				Bukkit.getPluginManager().callEvent(event);
-
-				if (!event.isCancelled()) {
-					entity.damageEntity(DamageSource.EXPLOSION, event.getDamage());
-					entity.motX += tmpX * force;
-					entity.motY += tmpY * force;
-					entity.motZ += tmpZ * force;
-				}
+			// Send a damage event to Bukkit and deal the damage if not cancelled
+			final EntityDamageEvent event;
+			if (source == null) {
+				event = new EntityDamageByBlockEvent(null, entity, DamageCause.BLOCK_EXPLOSION, damageDone);
+			} else if (source instanceof TNTPrimed) {
+				event = new EntityDamageByEntityEvent(source, entity, DamageCause.BLOCK_EXPLOSION, damageDone);
 			} else {
-				final org.bukkit.entity.Entity damager = NativeUtil.getEntity(this.source);
-				final EntityDamageEvent.DamageCause damageCause;
-				if (damager instanceof TNTPrimed) {
-					damageCause = EntityDamageEvent.DamageCause.BLOCK_EXPLOSION;
-				} else {
-					damageCause = EntityDamageEvent.DamageCause.ENTITY_EXPLOSION;
-				}
-				EntityDamageByEntityEvent event = new EntityDamageByEntityEvent(damager, damagee, damageCause, damageDone);
-				Bukkit.getPluginManager().callEvent(event);
-
-				if (!event.isCancelled()) {
-					entity.damageEntity(DamageSource.EXPLOSION, event.getDamage());
-
-					entity.motX += tmpX * force;
-					entity.motY += tmpY * force;
-					entity.motZ += tmpZ * force;
-				}
+				event = new EntityDamageByEntityEvent(source, entity, DamageCause.ENTITY_EXPLOSION, damageDone);
 			}
-			// CraftBukkit end
+			if (!CommonUtil.callEvent(event).isCancelled()) {
+				EntityUtil.damage(entity, DamageCause.BLOCK_EXPLOSION, event.getDamage());
+				EntityUtil.setMotX(entity, EntityUtil.getMotX(entity) + tmpX * force);
+				EntityUtil.setMotY(entity, EntityUtil.getMotY(entity) + tmpY * force);
+				EntityUtil.setMotZ(entity, EntityUtil.getMotZ(entity) + tmpZ * force);
+			}
 		}
 
 		// Restore blocks to old state
@@ -333,18 +306,16 @@ public class CustomExplosion {
 
 	public void doBlocks() {
 		// CraftBukkit start
-		org.bukkit.World bworld = this.world.getWorld();
-		org.bukkit.entity.Entity explode = this.source == null ? null : NativeUtil.getEntity(this.source);
-		Location location = new Location(bworld, this.posX, this.posY, this.posZ);
+		Location location = pos.clone();
 
 		// generate org.bukkit Block array
 		List<org.bukkit.block.Block> blockList = new ArrayList<org.bukkit.block.Block>(blocks.size());
 		for (int i = blocks.size() - 1; i >= 0; i--) {
 			IntVector3 cpos = blocks.get(i);
-			blockList.add(bworld.getBlockAt(cpos.x, cpos.y, cpos.z));
+			blockList.add(this.world.getBlockAt(cpos.x, cpos.y, cpos.z));
 		}
 
-		EntityExplodeEvent event = new EntityExplodeEvent(explode, location, blockList, 0.3F);
+		EntityExplodeEvent event = new EntityExplodeEvent(this.source, location, blockList, 0.3F);
 		CommonUtil.callEvent(event);
 
 		blocks.clear();
@@ -357,32 +328,25 @@ public class CustomExplosion {
 			return;
 		}
 
-		for (org.bukkit.block.Block block : event.blockList()) {
-			IntVector3 coords = new IntVector3(block.getX(), block.getY(), block.getZ());
-			blocks.add(coords);
-		}
-
 		// CraftBukkit end
-
-		IntVector3 chunkposition;
 		int x;
 		int y;
 		int z;
 		int type;
-
+		List<org.bukkit.block.Block> blocks = event.blockList();
 		for (int i = blocks.size() - 1; i >= 0; --i) {
-			chunkposition = blocks.get(i);
-			x = chunkposition.x;
-			y = chunkposition.y;
-			z = chunkposition.z;
-			type = this.world.getTypeId(x, y, z);
+			org.bukkit.block.Block block = blocks.get(i);
+			x = block.getX();
+			y = block.getY();
+			z = block.getZ();
+			type = block.getTypeId();
 
-			double d0 = (double) ((float) x + this.world.random.nextFloat());
-			double d1 = (double) ((float) y + this.world.random.nextFloat());
-			double d2 = (double) ((float) z + this.world.random.nextFloat());
-			double d3 = d0 - this.posX;
-			double d4 = d1 - this.posY;
-			double d5 = d2 - this.posZ;
+			double d0 = (double) ((float) x + worldRandom.nextFloat());
+			double d1 = (double) ((float) y + worldRandom.nextFloat());
+			double d2 = (double) ((float) z + worldRandom.nextFloat());
+			double d3 = d0 - this.pos.getX();
+			double d4 = d1 - this.pos.getY();
+			double d5 = d2 - this.pos.getZ();
 			double d6 = Math.sqrt(d3 * d3 + d4 * d4 + d5 * d5);
 
 			d3 /= d6;
@@ -390,22 +354,22 @@ public class CustomExplosion {
 			d5 /= d6;
 			double d7 = 0.5D / (d6 / (double) this.size + 0.1D);
 
-			d7 *= (double) (this.world.random.nextFloat() * this.world.random.nextFloat() + 0.3F);
+			d7 *= (double) (worldRandom.nextFloat() * worldRandom.nextFloat() + 0.3F);
 			d3 *= d7;
 			d4 *= d7;
 			d5 *= d7;
 
 			// CraftBukkit - stop explosions from putting out fire
-			if (type > 0 && type != org.bukkit.Material.FIRE.getId()) {
+			if (type > 0 && type != Material.FIRE.getId()) {
 				// CraftBukkit
-				Block.byId[type].dropNaturally(this.world, x, y, z, this.world.getData(x, y, z), event.getYield(), 0);
-				this.world.setTypeId(x, y, z, 0);
-				Block.byId[type].wasExploded(this.world, x, y, z);
+				BlockUtil.dropNaturally(block, event.getYield());
+				block.setTypeId(0);
+				BlockUtil.ignite(block);
 			}
 			if (this.fire) {
-				int typeBelow = this.world.getTypeId(x, y - 1, z);
+				int typeBelow = this.world.getBlockTypeIdAt(x, y - 1, z);
 				if (type == 0 && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
-					this.world.setTypeId(x, y, z, Block.FIRE.id);
+					block.setType(org.bukkit.Material.FIRE);
 				}
 			}
 		}

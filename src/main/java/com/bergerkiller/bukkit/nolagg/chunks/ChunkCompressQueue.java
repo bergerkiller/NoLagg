@@ -6,11 +6,11 @@ import java.util.LinkedList;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {
@@ -48,7 +48,7 @@ public class ChunkCompressQueue {
 	}
 
 	public boolean isAlive() {
-		Object ep = NativeUtil.getNative(this.owner.player);
+		Object ep = Conversion.toEntityHandle.convert(this.owner.player);
 		Object playerConnection = EntityPlayerRef.playerConnection.get(ep);
 		return playerConnection != null && !EntityPlayerRef.disconnected.get(playerConnection);
 	}
@@ -76,7 +76,7 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			CommonPacket packet = new CommonPacket(PacketFields.MAP_CHUNK.newInstance(NativeUtil.getNative(chunk), true, 0xffff));
+			CommonPacket packet = new CommonPacket(PacketFields.MAP_CHUNK.newInstance(Conversion.toChunkHandle.convert(chunk), true, 0xffff));
 			PacketFields.MAP_CHUNK.lowPriority.set(packet.getHandle(), true);
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}

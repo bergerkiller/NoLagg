@@ -6,8 +6,8 @@ import java.util.Queue;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.ChunkUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
@@ -30,7 +30,7 @@ public class AutoSaveChanger {
 					final Queue<org.bukkit.Chunk> chunks = new LinkedList<org.bukkit.Chunk>();
 					for (World world : WorldUtil.getWorlds()) {
 						for (org.bukkit.Chunk chunk : WorldUtil.getChunks(world)) {
-							if (NativeUtil.getNative(chunk).a(false)) {
+							if (ChunkUtil.needsSaving(chunk)) {
 								chunks.offer(chunk);
 							}
 						}

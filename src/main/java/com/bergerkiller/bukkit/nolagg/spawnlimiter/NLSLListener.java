@@ -18,7 +18,6 @@ import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 
@@ -74,7 +73,7 @@ public class NLSLListener implements Listener {
 		// If any of them are dead, revoke the dead status and force-add on the limit
 		for (Entity e : event.getChunk().getEntities()) {
 			if (e.isDead() && !ExistingRemovalMap.isRemovable(EntityUtil.getName(e))) {
-				NativeUtil.getNative(e).dead = false;
+				EntityUtil.setDead(e, false);
 				EntitySpawnHandler.forceSpawn(e);
 			}
 		}

@@ -22,7 +22,6 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
@@ -80,7 +79,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		for (Player player : CommonUtil.getOnlinePlayers()) {
 			ChunkSendQueue queue = bind(player);
 			if (queue != null) {
-				EntityPlayerRef.chunkQueue.set(NativeUtil.getNative(player), queue.toLinkedList());
+				EntityPlayerRef.chunkQueue.set(Conversion.toEntityHandle.convert(player), queue.toLinkedList());
 			}
 		}
 	}
@@ -223,8 +222,10 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private void update() {
 		// Update queue size
 		if (NetworkManagerRef.queueSize.isValid()) {
-			this.packetBufferQueueSize = (Integer) NetworkManagerRef.queueSize.get(NativeUtil.getNative(this.player).playerConnection.networkManager);
-			this.packetBufferQueueSize += 9437184;
+			final Object playerHandle = Conversion.toEntityHandle.convert(this.player);
+			final Object playerConnection = EntityPlayerRef.playerConnection.get(playerHandle);
+			final Object networkManager = PlayerConnectionRef.networkManager.get(playerConnection);
+			this.packetBufferQueueSize = NetworkManagerRef.queueSize.get(networkManager) + 9437184;
 		}
 		// Update current buffer size
 		if (this.buffersizeavg == 0) {

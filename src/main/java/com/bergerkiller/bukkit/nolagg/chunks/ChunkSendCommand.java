@@ -4,7 +4,6 @@ import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityTrackerRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
@@ -47,7 +46,7 @@ public class ChunkSendCommand {
 		// Spawn messages
 		CommonUtil.nextTick(new Runnable() {
 			public void run() {
-				EntityTrackerRef.updatePlayer(WorldUtil.getTracker(queue.player.getWorld()), queue.player, chunk);
+				WorldUtil.getTracker(queue.player.getWorld()).spawnEntities(queue.player, chunk);
 			}
 		});
 	}

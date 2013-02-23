@@ -4,20 +4,17 @@ import java.util.Queue;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.bases.DummyWorldServer;
+import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.PlayerChunkMapBase;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.reflection.classes.PlayerManagerRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkMapRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
-
-import net.minecraft.server.v1_4_R1.ChunkCoordIntPair;
-import net.minecraft.server.v1_4_R1.EntityPlayer;
-import net.minecraft.server.v1_4_R1.LongHashMap;
-import net.minecraft.server.v1_4_R1.PlayerChunkMap;
-import net.minecraft.server.v1_4_R1.WorldServer;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class DummyPlayerManager extends PlayerChunkMapBase {
 	public static final DummyWorldServer DUMMYWORLD;
@@ -36,58 +33,59 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 	}
 
 	public static void convert(World world) {
-		WorldServerRef.playerManager.set(Conversion.toWorldHandle.convert(world), new DummyPlayerManager(world));
+		WorldServerRef.playerChunkMap.set(Conversion.toWorldHandle.convert(world), new DummyPlayerManager(world));
 	}
 
 	public static void revert() {
-		for (WorldServer world : NativeUtil.getWorlds()) {
-			PlayerChunkMap manager = world.getPlayerChunkMap();
-			if (manager instanceof DummyPlayerManager) {
-				WorldServerRef.playerManager.set(world, ((DummyPlayerManager) manager).base);
+		for (World world : WorldUtil.getWorlds()) {
+			final Object worldHandle = Conversion.toWorldHandle.convert(world);
+			Object playerChunkMap = WorldServerRef.playerChunkMap.get(worldHandle);
+			if (playerChunkMap instanceof DummyPlayerManager) {
+				WorldServerRef.playerChunkMap.set(worldHandle, ((DummyPlayerManager) playerChunkMap).base);
 			}
 		}
 	}
 
 	public final Object base;
-	private final LongHashMap instances;
+	private final DummyInstanceMap instances;
 	private final Queue<?> dirtyChunkQueue;
 	public final World world;
 
 	public DummyPlayerManager(World world) {
-		this(WorldServerRef.playerManager.get(Conversion.toWorldHandle.convert(world)), world);
+		this(WorldServerRef.playerChunkMap.get(Conversion.toWorldHandle.convert(world)), world);
 	}
 
 	public DummyPlayerManager(final Object base, World world) {
 		super(world, 10);
 		this.world = world;
-		this.instances = new DummyInstanceMap(PlayerManagerRef.playerInstances.get(base), this);
-		PlayerManagerRef.playerInstances.set(base, this.instances);
-		PlayerManagerRef.TEMPLATE.transfer(base, this);
+		this.instances = new DummyInstanceMap(PlayerChunkMapRef.playerInstances.get(base), this);
+		PlayerChunkMapRef.playerInstances.set(base, this.instances);
+		PlayerChunkMapRef.TEMPLATE.transfer(base, this);
 		this.base = base;
-		this.dirtyChunkQueue = PlayerManagerRef.dirtyBlockChunks.get(base);
+		this.dirtyChunkQueue = PlayerChunkMapRef.dirtyBlockChunks.get(base);
 	}
 
 	@Override
-	public void movePlayer(EntityPlayer arg0) {
+	public void movePlayer(Player player) {
 		DummyInstancePlayerList.FILTER = true;
-		super.movePlayer(arg0);
+		super.movePlayer(player);
 		DummyInstancePlayerList.FILTER = false;
 	}
 
 	@Override
-	public void addChunksToSend(EntityPlayer entityplayer) {
-		int newCX = (int) entityplayer.locX >> 4;
-		int newCZ = (int) entityplayer.locZ >> 4;
+	public void addChunksToSend(Player player) {
+		int newCX = (int) EntityUtil.getLocX(player) >> 4;
+		int newCZ = (int) EntityUtil.getLocX(player) >> 4;
 		int dx, dz;
 		for (dx = -2; dx <= 2; dx++) {
 			for (dz = -2; dz <= 2; dz++) {
-				entityplayer.world.chunkProvider.getChunkAt(newCX + dx, newCZ + dz);
+				player.getWorld().getChunkAt(newCX + dx, newCZ + dz);
 			}
 		}
-		super.addChunksToSend(entityplayer);
+		super.addChunksToSend(player);
 	}
 
-	public void removeInstance(ChunkCoordIntPair location) {
+	public void removeInstance(IntVector2 location) {
 		long key = (long) location.x + 0x7fffffffL | (long) location.z + 0x7fffffffL << 32;
 		Object instance = instances.remove(key);
 		if (instance != null) {

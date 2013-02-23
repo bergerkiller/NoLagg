@@ -1,17 +1,15 @@
 package com.bergerkiller.bukkit.nolagg.tnt;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Random;
 import java.util.logging.Level;
-
-import net.minecraft.server.v1_4_R1.Packet60Explosion;
-import net.minecraft.server.v1_4_R1.WorldServer;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.TNTPrimed;
@@ -20,8 +18,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
+import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -106,7 +104,7 @@ public class TNTHandler {
 	}
 
 	private static int nextRandom(World w, int n) {
-		return NativeUtil.getNative(w).random.nextInt(n);
+		return WorldUtil.getRandom(w).nextInt(n);
 	}
 
 	private static int denyExplosionsCounter = 0; // tick countdown to deny
@@ -138,27 +136,17 @@ public class TNTHandler {
 		return added.contains(block);
 	}
 
-	/*
+	/**
 	 * Detonates TNT and creates explosions Returns false if it was not possible
 	 * to do in any way (Including if the feature is disabled)
 	 */
 	public static boolean detonate(Block tntBlock) {
-		if (added == null)
+		if (added == null || todo == null || interval <= 0 || tntBlock == null || !added.add(tntBlock)) {
 			return false;
-		if (todo == null)
-			return false;
-		if (interval <= 0)
-			return false;
-		if (tntBlock != null) { // && tntBlock.getType() == Material.TNT) {
-			if (added.add(tntBlock)) {
-				todo.offer(tntBlock);
-				return true;
-			}
 		}
-		return false;
+		todo.offer(tntBlock);
+		return true;
 	}
-
-	private static boolean allowdrops = true;
 
 	public static boolean createExplosion(EntityExplodeEvent event) {
 		return createExplosion(event.getLocation(), event.blockList(), event.getYield());
@@ -168,26 +156,27 @@ public class TNTHandler {
 		if (interval > 0) {
 			if (denyExplosionsCounter == 0) {
 				try {
-					WorldServer world = NativeUtil.getNative(at.getWorld());
 					int id;
 					for (Block b : affectedBlocks) {
 						id = b.getTypeId();
 						if (id == Material.TNT.getId()) {
 							detonate(b);
-						} else {
-							if (id != Material.FIRE.getId()) {
-								if (allowdrops) {
-									BlockUtil.dropNaturally(b, yield);
-								}
-								b.setTypeId(0);
-							}
+						} else if (id != Material.FIRE.getId()) {
+							BlockUtil.dropNaturally(b, yield);
+							b.setTypeId(0);
 						}
 					}
 					if (sentExplosions < explosionRate) {
-						++sentExplosions;
-						Packet60Explosion packet = new Packet60Explosion(at.getX(), at.getY(), at.getZ(), yield, Collections.EMPTY_LIST, null);
-						PacketUtil.broadcastPacketNearby(at, 64.0, packet);
-						world.makeSound(at.getX(), at.getY(), at.getZ(), "random.explode", 4.0f, (1.0f + (world.random.nextFloat() - world.random.nextFloat()) * 0.2f) * 0.7f);
+						sentExplosions++;
+
+						// Explosion effect
+						Object explosionPacket = PacketFields.EXPLOSION.newInstance(at.getX(), at.getY(), at.getZ(), yield);
+						PacketUtil.broadcastPacketNearby(at, 64.0, explosionPacket);
+
+						// Sound (with random pitch)
+						final Random random = WorldUtil.getRandom(at.getWorld());
+						final float pitch = (1.0f + (random.nextFloat() - random.nextFloat()) * 0.2f) * 0.7f;
+						at.getWorld().playSound(at, Sound.EXPLODE, 4.0f, pitch);
 					}
 				} catch (Throwable t) {
 					NoLaggTNT.plugin.log(Level.WARNING, "Explosion did not go as planned!");
@@ -199,5 +188,4 @@ public class TNTHandler {
 			return false;
 		}
 	}
-
 }

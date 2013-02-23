@@ -7,13 +7,13 @@ import java.util.zip.Deflater;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
-import com.bergerkiller.bukkit.common.utils.NativeUtil;
 import com.lishid.orebfuscator.internal.IPacket51;
 import com.lishid.orebfuscator.internal.InternalAccessor;
 import com.lishid.orebfuscator.obfuscation.Calculations;
@@ -118,7 +118,7 @@ public class ChunkCompressionThread extends AsyncTask {
 	}
 
 	public CommonPacket createPacket(org.bukkit.Chunk bchunk) {
-		Object chunk = NativeUtil.getNative(bchunk);
+		Object chunk = Conversion.toChunkHandle.convert(bchunk);
 		Object world = ChunkRef.world.get(chunk);
 		Object worldProvider = ChunkRef.worldProvider.get(world);
 		boolean hasSkylight = !ChunkRef.hasSkyLight.get(worldProvider);
