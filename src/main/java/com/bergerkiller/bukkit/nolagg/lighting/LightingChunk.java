@@ -158,10 +158,6 @@ public class LightingChunk {
 		}
 	}
 
-	public static final int A = ~0xff;
-	public static final int B = -1;
-	public static final int C = B & A;
-
 	private int getLightLevel(boolean skyLight, int x, int y, int z) {
 		// In range?
 		if ((y & OC) != 0) {
