@@ -1,13 +1,12 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.collections.InterpolatedMap;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -18,7 +17,7 @@ public class DynamicViewDistance {
 	public static int viewDistance = CommonUtil.VIEW;
 	private static int chunks = 0;
 	private static boolean chunksChanged = false;
-	private static Map<Integer, Integer> nodes = new LinkedHashMap<Integer, Integer>();
+	private static InterpolatedMap nodes = new InterpolatedMap();
 	private static Task task;
 
 	public static void addChunk() {
@@ -80,38 +79,7 @@ public class DynamicViewDistance {
 				} else {
 					return;
 				}
-				// Get the new view distance
-				int minChunks = 0, maxChunks = Integer.MAX_VALUE;
-				int minView = 0, maxView = Integer.MAX_VALUE;
-
-				// Get min and max chunks and view around current chunks value
-				for (Map.Entry<Integer, Integer> entry : nodes.entrySet()) {
-					if (entry.getKey() <= chunks) {
-						if (entry.getKey() >= minChunks) {
-							minChunks = entry.getKey();
-							minView = entry.getValue();
-						}
-					}
-					if (entry.getKey() >= chunks) {
-						if (entry.getKey() <= maxChunks) {
-							maxChunks = entry.getKey();
-							maxView = entry.getValue();
-						}
-					}
-				}
-				if (minView == 0) {
-					minView = maxView;
-				}
-				if (maxView == Integer.MAX_VALUE) {
-					maxView = minView;
-				}
-				if (minChunks == maxChunks) {
-					viewDistance = minView;
-				} else {
-					double value = (double) (chunks - minChunks) / (double) (maxChunks - minChunks);
-					viewDistance = (int) (value * (double) maxView + (1.00 - value) * (double) minView);
-				}
-				viewDistance = MathUtil.clamp(viewDistance, 3, CommonUtil.VIEW);
+				viewDistance = MathUtil.clamp((int) nodes.get(chunks), 3, CommonUtil.VIEW);
 
 			}
 		}.start(15, 40);
