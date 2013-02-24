@@ -59,7 +59,7 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 		super(world, 10);
 		this.world = world;
 		this.instances = new DummyInstanceMap(PlayerChunkMapRef.playerInstances.get(base), this);
-		PlayerChunkMapRef.playerInstances.set(base, this.instances);
+		PlayerChunkMapRef.playerInstances.setInternal(base, this.instances);
 		PlayerChunkMapRef.TEMPLATE.transfer(base, this);
 		this.base = base;
 		this.dirtyChunkQueue = PlayerChunkMapRef.dirtyBlockChunks.get(base);

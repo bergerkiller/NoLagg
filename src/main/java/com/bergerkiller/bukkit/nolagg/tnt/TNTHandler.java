@@ -19,9 +19,9 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class TNTHandler {
@@ -162,8 +162,7 @@ public class TNTHandler {
 						if (id == Material.TNT.getId()) {
 							detonate(b);
 						} else if (id != Material.FIRE.getId()) {
-							BlockUtil.dropNaturally(b, yield);
-							b.setTypeId(0);
+							BlockInfo.get(b).destroy(b, yield);
 						}
 					}
 					if (sentExplosions < explosionRate) {

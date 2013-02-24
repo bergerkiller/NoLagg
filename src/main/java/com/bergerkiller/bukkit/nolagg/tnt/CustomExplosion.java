@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-// CraftBukkit start
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -20,15 +19,14 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.Location;
-// CraftBukkit end
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
-import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 
 public class CustomExplosion {
 	public boolean fire;
@@ -361,10 +359,9 @@ public class CustomExplosion {
 
 			// CraftBukkit - stop explosions from putting out fire
 			if (type > 0 && type != Material.FIRE.getId()) {
-				// CraftBukkit
-				BlockUtil.dropNaturally(block, event.getYield());
-				block.setTypeId(0);
-				BlockUtil.ignite(block);
+				final BlockInfo info = BlockInfo.get(block);
+				info.destroy(block, event.getYield());
+				info.ignite(block);
 			}
 			if (this.fire) {
 				int typeBelow = this.world.getBlockTypeIdAt(x, y - 1, z);

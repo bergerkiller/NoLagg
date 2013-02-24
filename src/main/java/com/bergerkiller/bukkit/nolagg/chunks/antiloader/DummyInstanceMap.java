@@ -1,18 +1,19 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
-import com.bergerkiller.bukkit.common.bases.LongHashMap;
+import com.bergerkiller.bukkit.common.bases.LongHashMapBase;
 import com.bergerkiller.bukkit.common.reflection.classes.LongHashMapRef;
+import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 
-public class DummyInstanceMap extends LongHashMap {
+public class DummyInstanceMap extends LongHashMapBase {
 	public static boolean ENABLED = false;
 	private final DummyPlayerManager manager;
 
-	public DummyInstanceMap(Object oldMap, DummyPlayerManager playerManager) {
+	public DummyInstanceMap(LongHashMap<Object> oldMap, DummyPlayerManager playerManager) {
 		this.manager = playerManager;
-		for (Object value : LongHashMapRef.getValues(oldMap)) {
+		for (Object value : oldMap.getValues()) {
 			DummyInstancePlayerList.replace(this.manager, value);
 		}
-		LongHashMapRef.setEntries(this, LongHashMapRef.getEntries(oldMap));
+		LongHashMapRef.entriesField.transfer(oldMap.getHandle(), this);
 	}
 
 	@Override
