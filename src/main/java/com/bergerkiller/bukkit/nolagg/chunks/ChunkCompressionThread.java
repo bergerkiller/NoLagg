@@ -178,8 +178,7 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 			
 			//fix for 1.4.6 - start
-			if(hasSkylight)
-			{
+			if(hasSkylight) {
 				for (i = 0; i < sections.length; i++) {
 					if (!sectionsEmpty[i]) {
 						Object nibble = ChunkSectionRef.getSkyLightNibble.invoke(sections[i]);
