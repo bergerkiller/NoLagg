@@ -17,6 +17,11 @@
   <repositories>
     <!-- Repo for access to Vault and BKCommonLib -->
     <repository>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
       <id>herocraft-repo</id>
       <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
     </repository>
