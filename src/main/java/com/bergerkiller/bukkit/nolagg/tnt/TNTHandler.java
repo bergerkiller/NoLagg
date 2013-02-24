@@ -34,20 +34,32 @@ public class TNTHandler {
 	private static long sentExplosions = 0;
 	private static long intervalCounter = 0;
 	public static boolean changeBlocks = true;
+	private static int denyExplosionsCounter = 0; // tick countdown to deny explosions
+	private static boolean isInitialized = false;
 
+	/**
+	 * Gets the amount of TNT currently buffered for detonation
+	 * 
+	 * @return tnt block count
+	 */
 	public static int getBufferCount() {
 		return todo.size();
 	}
 
+	/**
+	 * Initializes the TNT buffering and starts the detonation task
+	 */
 	public static void init() {
+		added = new BlockSet();
+		todo = new LinkedList<Block>();
+		isInitialized = true;
 		// start the task
 		if (interval > 0) {
 			task = new Task(NoLagg.plugin) {
 				public void run() {
-					if (added == null)
+					if (!isInitialized) {
 						return;
-					if (todo == null)
-						return;
+					}
 					if (denyExplosionsCounter > 0) {
 						--denyExplosionsCounter;
 					}
@@ -60,8 +72,9 @@ public class TNTHandler {
 						}
 						for (int i = 0; i < rate; i++) {
 							Block next = todo.poll();
-							if (next == null)
+							if (next == null) {
 								break;
+							}
 							added.remove(next);
 							int x = next.getX();
 							int y = next.getY();
@@ -84,7 +97,7 @@ public class TNTHandler {
 
 									TNTPrimed tnt = next.getWorld().spawn(next.getLocation().add(0.5, 0.5, 0.5), TNTPrimed.class);
 									int fuse = tnt.getFuseTicks();
-									fuse = nextRandom(tnt.getWorld(), fuse >> 2) + fuse >> 3;
+									fuse = WorldUtil.getRandom(tnt.getWorld()).nextInt(fuse >> 2) + fuse >> 3;
 									tnt.setFuseTicks(fuse);
 								}
 							}
@@ -97,20 +110,26 @@ public class TNTHandler {
 		}
 	}
 
+	/**
+	 * De-initializes the TNT buffering, disabling the entire Class
+	 */
 	public static void deinit() {
 		Task.stop(task);
+		isInitialized = false;
+		task = null;
 		added = null;
 		todo = null;
 	}
 
-	private static int nextRandom(World w, int n) {
-		return WorldUtil.getRandom(w).nextInt(n);
-	}
-
-	private static int denyExplosionsCounter = 0; // tick countdown to deny
-													// explosions
-
+	/**
+	 * Clears all scheduled TNT detonations for a world
+	 * 
+	 * @param world to clear for
+	 */
 	public static void clear(World world) {
+		if (!isInitialized) {
+			return;
+		}
 		Iterator<BlockLocation> iter = added.iterator();
 		while (iter.hasNext()) {
 			if (iter.next().world.equals(world.getName())) {
@@ -126,13 +145,27 @@ public class TNTHandler {
 		denyExplosionsCounter = 5;
 	}
 
+	/**
+	 * Clears all scheduled TNT detonations on the server
+	 */
 	public static void clear() {
-		todo.clear();
-		added.clear();
-		denyExplosionsCounter = 5;
+		if (isInitialized) {
+			todo.clear();
+			added.clear();
+			denyExplosionsCounter = 5;
+		}
 	}
 
+	/**
+	 * Checks whether a certain TNT block is scheduled for detonation
+	 * 
+	 * @param block to check
+	 * @return True if scheduled for detonation, False if not
+	 */
 	public static boolean isScheduledForDetonation(Block block) {
+		if (!isInitialized) {
+			return false;
+		}
 		return added.contains(block);
 	}
 
@@ -141,7 +174,7 @@ public class TNTHandler {
 	 * to do in any way (Including if the feature is disabled)
 	 */
 	public static boolean detonate(Block tntBlock) {
-		if (added == null || todo == null || interval <= 0 || tntBlock == null || !added.add(tntBlock)) {
+		if (!isInitialized || interval <= 0 || tntBlock == null || !added.add(tntBlock)) {
 			return false;
 		}
 		todo.offer(tntBlock);

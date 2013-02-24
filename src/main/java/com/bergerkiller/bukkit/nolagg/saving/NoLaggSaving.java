@@ -12,6 +12,7 @@ public class NoLaggSaving extends NoLaggComponent {
 	public static int autoSaveBatch;
 	public static int writeDataInterval;
 	public static boolean writeDataEnabled;
+	public static boolean savePlayers;
 
 	@Override
 	public void onDisable(ConfigurationNode config) {
@@ -35,6 +36,11 @@ public class NoLaggSaving extends NoLaggComponent {
 			config.set("autoSaveInterval", 400);
 			NoLaggSaving.plugin.log(Level.WARNING, "Save interval is set too low and has been limited to a 400 tick (20 second) interval");
 		}
+
+		config.setHeader("savePlayers", "Whether player data of all players is routinely saved next to the chunks");
+		config.addHeader("savePlayers", "This may result in performance issues or even thread locking on some servers");
+		config.addHeader("savePlayers", "Enabling it should not be a problem for small-player-count servers");
+		savePlayers = config.get("savePlayers", false);
 
 		config.setHeader("autoSaveBatchSize", "The amount of chunks saved every tick when autosaving");
 		config.addHeader("autoSaveBatchSize", "If saving causes severe tick lag, lower it, if it takes too long, increase it");

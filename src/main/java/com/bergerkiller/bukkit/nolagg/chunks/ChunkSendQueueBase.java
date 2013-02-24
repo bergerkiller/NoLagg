@@ -136,6 +136,15 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		return new LinkedList(this.contained);
 	}
 
+	/**
+	 * Gets the remaining chunks that need sending
+	 * 
+	 * @return to send size
+	 */
+	public int getPendingSize() {
+		return super.size();
+	}
+
 	/*
 	 * Prevent Spout and CB from using this queue...seriously!
 	 */

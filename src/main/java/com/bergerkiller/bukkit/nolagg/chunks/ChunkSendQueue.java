@@ -133,6 +133,10 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		final Object playerHandle = Conversion.toEntityHandle.convert(player);
 		final Object playerConnection = EntityPlayerRef.playerConnection.get(playerHandle);
 		final Object nm = PlayerConnectionRef.networkManager.get(playerConnection);
+		// We can only work on Network manager implementations, INetworkManager implementations are unknown to us
+		if (!NetworkManagerRef.TEMPLATE.isInstance(nm)) {
+			return;
+		}
 		Object lockObject = NetworkManagerRef.lockObject.get(nm);
 		if (lockObject != null) {
 			List<Object> low = NetworkManagerRef.lowPriorityQueue.get(nm);
@@ -225,7 +229,15 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			final Object playerHandle = Conversion.toEntityHandle.convert(this.player);
 			final Object playerConnection = EntityPlayerRef.playerConnection.get(playerHandle);
 			final Object networkManager = PlayerConnectionRef.networkManager.get(playerConnection);
-			this.packetBufferQueueSize = NetworkManagerRef.queueSize.get(networkManager) + 9437184;
+			if (NetworkManagerRef.TEMPLATE.isInstance(networkManager)) {
+				this.packetBufferQueueSize = NetworkManagerRef.queueSize.get(networkManager) + 9437184;
+			} else {
+				// We can not properly find out what the size queued is
+				// This section occurs in Spigot, and therefore needs to be handled
+				// As fallback we can only assume that there is no buffer related issue...
+				this.packetBufferQueueSize = 0;
+				//TODO: Find out a way to add support for Spigot so the queued size can be read.
+			}
 		}
 		// Update current buffer size
 		if (this.buffersizeavg == 0) {
@@ -374,8 +386,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	/**
 	 * Waits the amount of ticks specified, doing nothing
 	 * 
-	 * @param ticks
-	 *            to wait
+	 * @param ticks to wait
 	 */
 	public void idle(int ticks) {
 		this.idleTicks += ticks;
@@ -385,13 +396,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		return 10485760;
 	}
 
-	/**
-	 * Gets the remaining chunks that need sending
-	 * 
-	 * @return to send size
-	 */
+	@Override
 	public int getPendingSize() {
-		return super.size() + this.chunkQueue.getPendingSize();
+		return super.getPendingSize() + this.chunkQueue.getPendingSize();
 	}
 
 	@Override
