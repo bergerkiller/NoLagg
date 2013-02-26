@@ -9,10 +9,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
@@ -38,7 +35,7 @@ public class NoLaggLighting extends NoLaggComponent {
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length == 0)
 			return false;
-		if (args[0].equalsIgnoreCase("fixworld")) {
+		if (args[0].equalsIgnoreCase("fixworld") || args[0].equalsIgnoreCase("fixall")) {
 			Permission.LIGHTING_FIX.handle(sender);
 			final World world;
 			if (args.length >= 2) {
@@ -60,33 +57,6 @@ public class NoLaggLighting extends NoLaggComponent {
 			// Get an iterator for all the chunks to fix
 			LightingService.scheduleWorld(world);
 			return true;
-		}
-		if (args[0].equalsIgnoreCase("resend")) {
-			Permission.LIGHTING_RESEND.handle(sender);
-			if (sender instanceof Player) {
-				Player p = (Player) sender;
-				int radius = Bukkit.getServer().getViewDistance();
-				if (args.length == 2) {
-					try {
-						radius = Integer.parseInt(args[1]);
-					} catch (Exception ex) {
-					}
-				}
-				int cx = p.getLocation().getBlockX() >> 4;
-				int cz = p.getLocation().getBlockZ() >> 4;
-				for (int a = -radius; a <= radius; a++) {
-					for (int b = -radius; b <= radius; b++) {
-						for (Player player : WorldUtil.getPlayers(p.getWorld())) {
-							if (EntityUtil.isNearChunk(player, cx + a, cz + b, CommonUtil.VIEW)) {
-								EntityUtil.queueChunkSend(player, cx + a, cz + b);
-							}
-						}
-					}
-				}
-				LightingService.addRecipient(p);
-				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is being resent...");
-				return true;
-			}
 		}
 		if (args[0].equalsIgnoreCase("fix")) {
 			if (sender instanceof Player) {

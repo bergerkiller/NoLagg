@@ -20,11 +20,14 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.itembuffer.ItemMap;
+import com.bergerkiller.bukkit.nolagg.lighting.LightingService;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
@@ -188,6 +191,32 @@ public class NoLaggCommon extends NoLaggComponent {
 					sender.sendMessage(ChatColor.YELLOW + "All worlds have been cleared: " + remcount + " entities removed!");
 				} else {
 					sender.sendMessage(ChatColor.YELLOW + "This world has been cleared: " + remcount + " entities removed!");
+				}
+			} else if (args[0].equalsIgnoreCase("resend")) {
+				Permission.COMMON_RESEND.handle(sender);
+				if (sender instanceof Player) {
+					Player p = (Player) sender;
+					int radius = Bukkit.getServer().getViewDistance();
+					if (args.length == 2) {
+						try {
+							radius = Math.min(radius, Integer.parseInt(args[1]));
+						} catch (Exception ex) {
+						}
+					}
+					int cx = p.getLocation().getBlockX() >> 4;
+					int cz = p.getLocation().getBlockZ() >> 4;
+					for (int a = -radius; a <= radius; a++) {
+						for (int b = -radius; b <= radius; b++) {
+							for (Player player : WorldUtil.getPlayers(p.getWorld())) {
+								if (EntityUtil.isNearChunk(player, cx + a, cz + b, CommonUtil.VIEW)) {
+									EntityUtil.queueChunkSend(player, cx + a, cz + b);
+								}
+							}
+						}
+					}
+					LightingService.addRecipient(p);
+					p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is being resent...");
+					return true;
 				}
 			} else if (args[0].equalsIgnoreCase("gc")) {
 				Permission.COMMON_GC.handle(sender);

@@ -9,3 +9,60 @@ commands:
         description: The general command of NoLagg
         aliases: [lag, nl]
         usage: /lag [args...]
+    nolagg sending:
+        description: Shows sending information to the user
+        usage: /lag sending
+    nolagg clear:
+        description: Clears entities from the server
+        aliases: [nolagg clearall]
+        usage: |
+          /lag clear(all) [entitytypes]
+          /lag clear creeper tnt
+          /lag clearall tnt items
+    nolagg gc:
+        description: Garbage collects the server memory
+        usage: /lag gc
+    nolagg resend:
+        description: Resends all nearby chunks to the player
+        usage: |
+          /lag resend ([chunkRadius])
+          /lag resend 5
+    nolagg examine:
+        description: Starts examining server tick rate performance
+        usage: |
+          /lag examine ([time])
+          /lag examine 500
+    nolagg fix:
+        description: Fixes the lighting of a world
+        aliases: [nolagg fixall, nolagg fixworld]
+        usage: |
+          /lag fix ([chunkRadius])
+          /lag fixall
+          /lag fixworld
+          /lag fixworld world2
+    nolagg monitor:
+        description: Regularly sends server performance statistics
+        usage: /lag monitor
+    nolagg stat:
+        description: Sends a single performance statistics snapshot
+        aliases: [nolagg stats]
+        usage: /lag stat
+    nolagg log:
+        description: Starts or stops NoLagg writing statistics to file
+        usage: /lag log
+    nolagg clearlog:
+        description: Clears the NoLagg log file
+        usage: /lag clearlog
+    nolagg memory:
+        description: Shows server memory
+        aliases: [nolagg mem]
+        usage: /lag mem
+    nolagg lagmem:
+        description: Shows both server memory and tick rate
+        aliases: [nolagg memlag]
+        usage: /lag lagmem
+    nolagg tnt:
+        description: Shows TNT statistics or stops TNT detonation
+        usage: |
+          /lag tnt
+          /lag tnt clear
