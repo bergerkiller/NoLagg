@@ -1,6 +1,5 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -12,44 +11,58 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingService extends AsyncTask {
 	private static AsyncTask fixThread = null;
-	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
-	private static final LinkedList<LightingTaskRegion> regions = new LinkedList<LightingTaskRegion>();
+	private static Task tickTask = null;
 	private static final Set<String> recipientsForDone = new HashSet<String>();
+	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
 	private static int taskChunkCount = 0;
 	private static LightingTask currentTask;
 
-	public static void scheduleWorld(final World world) {
-		// Obtain the folder where regions of the world are stored
-		File regionFolderTmp = WorldUtil.getWorldFolder(world);
-		// Special dim folder for nether and the_end
-		if (world.getEnvironment() == Environment.NETHER) {
-			regionFolderTmp = new File(regionFolderTmp, "DIM-1");
-		} else if (world.getEnvironment() == Environment.THE_END) {
-			regionFolderTmp = new File(regionFolderTmp, "DIM1");
+	/**
+	 * Gets whether this service is currently processing something
+	 * 
+	 * @return True if processing, False if not
+	 */
+	public static boolean isProcessing() {
+		return fixThread != null;
+	}
+
+	/**
+	 * Starts or stops the processing service.
+	 * Stopping the service does not instantly abort, the current task is continued.
+	 * 
+	 * @param process to abort
+	 */
+	public static void setProcessing(boolean process) {
+		if (process == isProcessing()) {
+			return;
 		}
-		// Final region folder appending
-		final File regionFolder = new File(regionFolderTmp, "region");
-		if (regionFolder.exists()) {
-			synchronized (regions) {
-				for (String regionFileName : regionFolder.list()) {
-					regions.add(new LightingTaskRegion(world, regionFolder, regionFileName));
-					taskChunkCount += 1024;
-				}
-			}
-		}
-		// Start the fixing thread
-		if (fixThread == null) {
+		if (process) {
 			fixThread = new LightingService().start(true);
+			tickTask = new Task(NoLagg.plugin) {
+				@Override
+				public void run() {
+					final LightingTask current = currentTask;
+					if (current != null) {
+						current.syncTick();
+					}
+				}
+			}.start(1, 1);
+		} else {
+			// Fix thread is running, abort
+			Task.stop(tickTask);
+			AsyncTask.stop(fixThread);
+			tickTask = null;
+			fixThread = null;
 		}
 	}
 
@@ -62,6 +75,10 @@ public class LightingService extends AsyncTask {
 		synchronized (recipientsForDone) {
 			recipientsForDone.add((sender instanceof Player) ? sender.getName() : null);
 		}
+	}
+
+	public static void scheduleWorld(final World world) {
+		schedule(new LightingTaskWorld(world));
 	}
 
 	/**
@@ -83,7 +100,7 @@ public class LightingService extends AsyncTask {
 	}
 
 	public static void schedule(World world, List<IntVector2> chunks) {
-		schedule(new LightingTask(world, chunks));
+		schedule(new LightingTaskBatch(world, chunks));
 	}
 
 	public static void schedule(LightingTask task) {
@@ -91,22 +108,11 @@ public class LightingService extends AsyncTask {
 			tasks.offer(task);
 			taskChunkCount += task.getChunkCount();
 		}
-		if (fixThread == null) {
-			fixThread = new LightingService().start(true);
-		}
+		setProcessing(true);
 	}
 
 	/**
-	 * Gets whether this service si currently processing something
-	 * 
-	 * @return True if processing, False if not
-	 */
-	public static boolean isProcessing() {
-		return fixThread != null;
-	}
-
-	/**
-	 * Checks whether the chunk specified is being processed on
+	 * Checks whether the chunk specified is currently being processed on
 	 * 
 	 * @param chunk to check
 	 * @return True if the chunk is being processed, False if not
@@ -116,19 +122,15 @@ public class LightingService extends AsyncTask {
 		if (current == null) {
 			return false;
 		} else {
-			return current.world == chunk.getWorld() && current.containsChunk(chunk.getX(), chunk.getZ());
+			return current.getWorld() == chunk.getWorld() && current.containsChunk(chunk.getX(), chunk.getZ());
 		}
 	}
 
 	/**
-	 * Orders this service to abort all tasks, finishing the current task in an
-	 * orderly fashion.
+	 * Orders this service to abort all tasks, finishing the current task in an orderly fashion.
+	 * This method can only be called from the main Thread.
 	 */
 	public static void abort() {
-		// Clear regions
-		synchronized (regions) {
-			regions.clear();
-		}
 		// Clear lighting tasks
 		synchronized (tasks) {
 			tasks.clear();
@@ -136,15 +138,16 @@ public class LightingService extends AsyncTask {
 		}
 		// Finish the current lighting task if available
 		final LightingTask current = currentTask;
-		if (fixThread != null && current != null) {
-			NoLaggLighting.plugin.log(Level.INFO, "Processing lighting in the remaining " + current.getFaults() + " chunks...");
-			fixThread.stop();
-			// Sync tasks no longer execute: make sure that we tick them
-			while (fixThread.isRunning()) {
-				current.tickTask();
+		final AsyncTask service = fixThread;
+		if (service != null && current != null) {
+			setProcessing(false);
+			NoLaggLighting.plugin.log(Level.INFO, "Processing lighting in the remaining " + current.getChunkCount() + " chunks...");
+
+			// Sync task no longer executes: make sure that we tick the tasks
+			while (service.isRunning()) {
+				current.syncTick();
 				sleep(20);
 			}
-			fixThread = null;
 		}
 	}
 
@@ -155,7 +158,7 @@ public class LightingService extends AsyncTask {
 	 */
 	public static int getChunkFaults() {
 		final LightingTask current = currentTask;
-		return taskChunkCount + (current == null ? 0 : current.getFaults());
+		return taskChunkCount + (current == null ? 0 : current.getChunkCount());
 	}
 
 	@Override
@@ -163,30 +166,8 @@ public class LightingService extends AsyncTask {
 		synchronized (tasks) {
 			currentTask = tasks.poll();
 		}
-		// No task, maybe a region?
 		if (currentTask == null) {
-			LightingTaskRegion reg;
-			while (true) {
-				synchronized (regions) {
-					reg = regions.poll();
-				}
-				if (reg == null) {
-					// No region tasks, abort
-					break;
-				} else {
-					currentTask = reg.createTask();
-					taskChunkCount -= 1024;
-					if (currentTask != null) {
-						// We have a task, start working on it
-						break;
-					}
-				}
-			}
-		} else {
-			// New task polled - decrement chunk count
-			taskChunkCount -= currentTask.getChunkCount();
-		}
-		if (currentTask == null) {
+			// No more tasks, end this thread
 			// Messages
 			final String message = ChatColor.GREEN + "All lighting operations are completed.";
 			synchronized (recipientsForDone) {
@@ -199,18 +180,13 @@ public class LightingService extends AsyncTask {
 				recipientsForDone.clear();
 			}
 			// Stop task and abort
-			this.stop();
-			fixThread = null;
+			setProcessing(false);
 			return;
+		} else {
+			// Subtract task from the task count
+			taskChunkCount -= currentTask.getChunkCount();
+			// Process the task
+			currentTask.process();
 		}
-		// Operate on the task
-		// Load
-		currentTask.startLoading();
-		currentTask.waitForCompletion();
-		// Fix
-		currentTask.fix();
-		// Apply
-		currentTask.startApplying();
-		currentTask.waitForCompletion();
 	}
 }

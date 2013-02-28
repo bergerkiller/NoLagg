@@ -25,11 +25,7 @@ public class LightingChunkSection {
 				withinBounds = x >= owner.startX && x <= owner.endX && z >= owner.startZ && z <= owner.endZ;
 				for (y = 0; y < 16; y++) {
 					typeId = readBlockId(blockIds, x, y, z);
-					if (MaterialUtil.ISSOLID.get(typeId)) {
-						opacity = 15;
-					} else {
-						opacity = MaterialUtil.OPACITY.get(typeId);
-					}
+					opacity = MaterialUtil.OPACITY.get(typeId) & 0xf;
 					blockEmission = MaterialUtil.EMISSION.get(typeId);
 					if (withinBounds) {
 						// Within bounds: Regenerate (skylight is regenerated elsewhere)
