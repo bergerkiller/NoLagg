@@ -22,6 +22,7 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
@@ -208,8 +209,8 @@ public class NoLaggCommon extends NoLaggComponent {
 					for (int a = -radius; a <= radius; a++) {
 						for (int b = -radius; b <= radius; b++) {
 							for (Player player : WorldUtil.getPlayers(p.getWorld())) {
-								if (EntityUtil.isNearChunk(player, cx + a, cz + b, CommonUtil.VIEW)) {
-									EntityUtil.queueChunkSend(player, cx + a, cz + b);
+								if (PlayerUtil.isNearChunk(player, cx + a, cz + b, CommonUtil.VIEW)) {
+									PlayerUtil.queueChunkSend(player, cx + a, cz + b);
 								}
 							}
 						}
