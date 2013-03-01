@@ -69,7 +69,7 @@ public class ThreadLockChecker extends AsyncTask {
 				if (head.getMethodName().equals("sleep") && head.getClassName().equals(Thread.class.getName())) {
 					head = elems.get(1);
 				}
-				Plugin[] plugins = NoLaggUtil.findPlugins(previous);
+				Plugin[] plugins = CommonUtil.findPlugins(previous);
 				Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread is still stuck, current loop line is:");
 				Bukkit.getLogger().log(Level.WARNING, "[Server]    at " + head.toString());
 				if (plugins.length > 0) {
@@ -79,7 +79,7 @@ public class ThreadLockChecker extends AsyncTask {
 		} else {
 			previous = CommonUtil.MAIN_THREAD.getStackTrace();
 			maxidx = Integer.MAX_VALUE;
-			Plugin[] plugins = NoLaggUtil.findPlugins(previous);
+			Plugin[] plugins = CommonUtil.findPlugins(previous);
 			Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread failed to respond after 10 seconds");
 			if (plugins.length > 0) {
 				if (plugins.length == 1) {

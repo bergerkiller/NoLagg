@@ -124,7 +124,7 @@ public class NoLaggThreadCheck extends NoLaggComponent {
 				Bukkit.getLogger().log(Level.INFO, "Potential failures may occur in other plugins handling this Event.");
 				// get the plugin that caused this
 				try {
-					Plugin[] plugins = NoLaggUtil.findPlugins(elements);
+					Plugin[] plugins = CommonUtil.findPlugins(elements);
 					if (plugins.length == 0) {
 						StackTraceElement cause = NoLaggUtil.findExternal(elements);
 						Bukkit.getLogger().log(Level.INFO, "Appears to be caused by: " + cause.toString());
