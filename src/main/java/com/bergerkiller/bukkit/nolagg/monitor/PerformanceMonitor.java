@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.StopWatch;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -248,28 +249,6 @@ public class PerformanceMonitor extends Task {
 	public static long elapsedtime;
 	public static long diff;
 	public static double tps = 0;
-	
-	public static String replaceColors(String message)
-	{
-		message = message.replaceAll("&0", ChatColor.BLACK.toString());
-		message = message.replaceAll("&1", ChatColor.DARK_BLUE.toString());
-		message = message.replaceAll("&2", ChatColor.DARK_GREEN.toString());
-		message = message.replaceAll("&3", ChatColor.DARK_AQUA.toString());
-		message = message.replaceAll("&4", ChatColor.DARK_RED.toString());
-		message = message.replaceAll("&5", ChatColor.DARK_PURPLE.toString());
-		message = message.replaceAll("&6", ChatColor.GOLD.toString());
-		message = message.replaceAll("&7", ChatColor.GRAY.toString());
-		message = message.replaceAll("&8", ChatColor.DARK_GRAY.toString());
-		message = message.replaceAll("&9", ChatColor.BLUE.toString());
-		message = message.replaceAll("&a", ChatColor.GREEN.toString());
-		message = message.replaceAll("&b", ChatColor.AQUA.toString());
-		message = message.replaceAll("&c", ChatColor.RED.toString());
-		message = message.replaceAll("&d", ChatColor.LIGHT_PURPLE.toString());
-		message = message.replaceAll("&e", ChatColor.YELLOW.toString());
-		message = message.replaceAll("&f", ChatColor.WHITE.toString());
-		message = message.replaceAll("&r", ChatColor.WHITE.toString());
-		return message;
-	}
 
 	@Override
 	public void run() {
@@ -286,7 +265,7 @@ public class PerformanceMonitor extends Task {
 		if (tps < broadcastThreshold && broadcastLagging) {
 			if (System.currentTimeMillis() > (prevlaggingmsg + broadcastInterval)) {
 				prevlaggingmsg = System.currentTimeMillis();
-				String msg = replaceColors(broadcastMessage);
+				String msg = StringUtil.ampToColor(broadcastMessage);
 				for (Player player : Bukkit.getServer().getOnlinePlayers()) {
 					if (Permission.MONITOR_NOTIFYLAGGING.has(player)) {
 						player.sendMessage(msg);

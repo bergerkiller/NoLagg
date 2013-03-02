@@ -20,7 +20,7 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
  * It is literally a batch of chunks being processed.
  */
 public class LightingTaskBatch implements LightingTask {
-	public static final int MAX_PROCESSING_TICK_TIME = 70; // max ms per tick processing
+	public static final int MAX_PROCESSING_TICK_TIME = 30; // max ms per tick processing
 	public final World world;
 	private final List<LightingChunk> chunks;
 	private final LongHashSet chunksCoords = new LongHashSet();

@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingService extends AsyncTask {
@@ -187,6 +188,23 @@ public class LightingService extends AsyncTask {
 			taskChunkCount -= currentTask.getChunkCount();
 			// Process the task
 			currentTask.process();
+			// Protection against 'out of memory' issues
+			final Runtime runtime = Runtime.getRuntime();
+			if (runtime.freeMemory() >= NoLaggLighting.minFreeMemory) {
+				return;
+			}
+			runtime.gc();
+			if (runtime.freeMemory() >= NoLaggLighting.minFreeMemory) {
+				return;
+			}
+			// Save all worlds: memory after garbage collecting is still too high
+			NoLaggLighting.plugin.log(Level.WARNING, "Saving all worlds to free some memory...");
+			for (World world : WorldUtil.getWorlds()) {
+				WorldUtil.saveToDisk(world);
+			}
+			runtime.gc();
+			final long freemb = runtime.freeMemory() / (1024 * 1024);
+			NoLaggLighting.plugin.log(Level.WARNING, "All worlds saved. Free memory: " + freemb + "MB. Continueing...");
 		}
 	}
 }

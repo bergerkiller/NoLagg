@@ -15,9 +15,14 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 
 public class NoLaggLighting extends NoLaggComponent {
 	public static NoLaggLighting plugin;
+	public static long minFreeMemory = 100 * 1024 * 1024;
 
 	@Override
 	public void onReload(ConfigurationNode config) {
+		config.setHeader("minFreeMemory", "The minimum amount of memory (in MB) allowed while processing");
+		config.addHeader("minFreeMemory", "If the remaining free memory drops below this value, measures are taken to reduce it");
+		config.addHeader("minFreeMemory", "Memory will be Garbage Collected and all worlds will be saved to free memory");
+		minFreeMemory = 1024 * 1024 * config.get("minFreeMemory", 100);
 	}
 
 	@Override

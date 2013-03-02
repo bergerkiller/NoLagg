@@ -102,16 +102,7 @@
               <Main-Class>com.bergerkiller.bukkit.nolagg.examine.reader.ExamReader</Main-Class>
               <Implementation-Title>${project.name}</Implementation-Title>
               <Implementation-Version>${project.version}</Implementation-Version>
-              <Sealed>true</Sealed>
             </manifestEntries>
-            <manifestSections>
-              <manifestSection>
-                <name>com/bergerkiller/bukkit/</name>
-                <manifestEntries>
-                  <Sealed>true</Sealed>
-                </manifestEntries>
-              </manifestSection>
-            </manifestSections>
           </archive>
         </configuration>
       </plugin>

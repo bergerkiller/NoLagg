@@ -72,24 +72,20 @@ public class TimedChunkProviderServer extends ChunkProviderServerBase {
 			Chunk chunk = WorldUtil.getChunk(world, x, z);
 			boolean newChunk = false;
 
-			Object l = ChunkProviderServerRef.chunkLoader.get(this);
-			Object chunkRegionLoader = CommonUtil.tryCast(l, ChunkRegionLoaderRef.TEMPLATE.getType());
-
-			// If the chunk exists but isn't loaded do it async
-			if (chunk == null && taskWhenFinished != null && chunkRegionLoader != null) {
-				if (ChunkRegionLoaderRef.chunkExists(chunkRegionLoader, world, x, z)) {
-					ChunkRegionLoaderRef.queueChunkLoad(chunkRegionLoader, world, this, x, z, taskWhenFinished);
-					return null;
-				}
-			}
-			// CraftBukkit end
-
 			if (chunk == null) {
+				// If the chunk exists but isn't loaded do it async
+				if (taskWhenFinished != null) {
+					final Object chunkRegionLoader = CommonUtil.tryCast(ChunkProviderServerRef.chunkLoader.get(this), ChunkRegionLoaderRef.TEMPLATE.getType());
+					if (chunkRegionLoader != null && ChunkRegionLoaderRef.chunkExists(chunkRegionLoader, world, x, z)) {
+						ChunkRegionLoaderRef.queueChunkLoad(chunkRegionLoader, world, this, x, z, taskWhenFinished);
+						return null;
+					}
+				}
+				// CraftBukkit end
+
 				chunk = this.loadBukkitChunk(x, z);
 				if (chunk == null) {
-					if (this.chunkProvider == null) {
-						chunk = this.emptyChunk;
-					} else {
+					if (this.hasGenerator()) {
 						try {
 							prevtime = System.nanoTime();
 							chunk = this.generateChunk(x, z);
@@ -97,28 +93,33 @@ public class TimedChunkProviderServer extends ChunkProviderServerBase {
 						} catch (Throwable throwable) {
 							handleGeneratorError(throwable, x, z);
 						}
+					} else {
+						chunk = this.emptyChunk;
 					}
 					newChunk = true; // CraftBukkit
 				}
-				final Object chunkHandle = Conversion.toChunkHandle.convert(chunk);
-				WorldUtil.setChunk(world, x, z, chunk);
-				if (chunk != null) {
-					ChunkRef.addEntities(chunkHandle);
-				}
+				// Empty chunks should not be stored, only returned
+				if (chunk != this.emptyChunk) {
+					final Object chunkHandle = Conversion.toChunkHandle.convert(chunk);
+					WorldUtil.setChunk(world, x, z, chunk);
+					if (chunk != null) {
+						ChunkRef.addEntities(chunkHandle);
+					}
 
-				// CraftBukkit start
-				Server server = WorldUtil.getServer(world);
-				if (server != null) {
-					/*
-					 * If it's a new world, the first few chunks are generated
-					 * inside the World constructor. We can't reliably alter
-					 * that, so we have no way of creating a
-					 * CraftWorld/CraftServer at that point.
-					 */
-					server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(chunk, newChunk));
+					// CraftBukkit start
+					Server server = WorldUtil.getServer(world);
+					if (server != null) {
+						/*
+						 * If it's a new world, the first few chunks are generated
+						 * inside the World constructor. We can't reliably alter
+						 * that, so we have no way of creating a
+						 * CraftWorld/CraftServer at that point.
+						 */
+						server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(chunk, newChunk));
+					}
+					// CraftBukkit end
+					ChunkRef.loadNeighbours(chunkHandle, this, this, x, z);
 				}
-				// CraftBukkit end
-				ChunkRef.loadNeighbours(chunkHandle, this, this, x, z);
 			}
 
 			// CraftBukkit start - If we didn't need to load the chunk run the
