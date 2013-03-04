@@ -11,18 +11,16 @@ import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
-import com.bergerkiller.bukkit.common.metrics.AddonHandler;
-import com.bergerkiller.bukkit.common.metrics.xPlotter;
+import com.bergerkiller.bukkit.common.metrics.Graph;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.NoLaggChunks;
 import com.bergerkiller.bukkit.nolagg.monitor.PerformanceMonitor;
 
 public class NoLagg extends PluginBase {
 	public static NoLagg plugin;
 	private List<NoLaggComponent> components = new ArrayList<NoLaggComponent>();
-	private Task task;
 
 	public void register(NoLaggComponent component) {
 		this.components.add(component);
@@ -63,14 +61,49 @@ public class NoLagg extends PluginBase {
 		}
 
 		config.save();
-		
-		//METRICS START
-		final AddonHandler ah = new AddonHandler(this);
-		ah.startMetrics();
-		
-		task = new MetricsHandler(ah).start(10 * 1200, 3000);
+
+		// Initialize Metrics
+		if (hasMetrics()) {
+			// NoLagg enabled components
+			getMetrics().addGraph(new Graph("Enabled Components") {
+				@Override
+				public void onUpdate() {
+					clearPlotters();
+					for (NoLaggComponent comp : NoLagg.plugin.components) {
+						if(comp.isEnabled()) {
+							addPlotter(comp.getName());
+						}
+					}
+				}
+			});
+
+			// Dependencies
+			getMetrics().addGraph(new Graph("Dependencies") {
+				@Override
+				public void onUpdate() {
+					clearPlotters();
+					if (NoLaggChunks.isOreObfEnabled) {
+						addPlotter("Orebfuscator");
+					}
+					if (CommonUtil.getPlugin("Vault") != null) {
+						addPlotter("Vault");
+					}
+				}
+			});
+
+			// Performance
+			getMetrics().addGraph(new Graph("Performance") {
+				@Override
+				public void onUpdate() {
+					clearPlotters();
+					if (NoLaggComponents.MONITOR.isEnabled()) {
+						addPlotter("TPS (Ticks per second", (int) PerformanceMonitor.tps);
+						addPlotter("Memory (MB)", (int) (PerformanceMonitor.usedmem / (1024 * 1024)));
+					}
+				}
+			});
+		}
 	}
-	
 
 	protected List<NoLaggComponent> getComponents() {
 		return this.components;
@@ -90,7 +123,6 @@ public class NoLagg extends PluginBase {
 		for (NoLaggComponent comp : this.components) {
 			comp.disable(config);
 		}
-		task.stop();
 		config.save();
 	}
 
@@ -147,48 +179,5 @@ public class NoLagg extends PluginBase {
 			}
 		}
 		return true;
-	}
-	
-	private static class MetricsHandler extends Task {
-		private AddonHandler ah;
-		
-		public MetricsHandler(AddonHandler ah) {
-			super(NoLagg.plugin);
-			this.ah = ah;
-		}
-		
-		public void run() {
-			//check components
-			List<xPlotter> comps = new ArrayList<xPlotter>();
-			for (NoLaggComponent comp : NoLagg.plugin.components) {
-				if(comp.isEnabled()) {
-					xPlotter data = new xPlotter(comp.getName());
-					comps.add(data);
-				}
-			}
-			if(!comps.isEmpty()) {
-				ah.addGraphs("Enabled Components", comps);
-			}
-			//check plugins
-			List<xPlotter> plotters = new ArrayList<xPlotter>();
-			if(NoLaggChunks.isOreObfEnabled) {
-				xPlotter data = new xPlotter("Orebfuscator");
-				plotters.add(data);
-			}
-			
-			if(NoLagg.plugin.getServer().getPluginManager().getPlugin("Vault") != null) {
-				xPlotter data = new xPlotter("Vault");
-				plotters.add(data);
-			}
-			if(plotters.size() != 0){
-				ah.addGraphs("Dependencies", plotters);
-			}else {
-				ah.addGraph("Dependencies", new xPlotter("None"));
-			}
-			//check tps
-			Double lag = PerformanceMonitor.tps;
-			String tps = String.valueOf(lag.intValue());
-			ah.addGraph("TPS (Ticks per second)", new xPlotter(tps));
-		}
 	}
 }
