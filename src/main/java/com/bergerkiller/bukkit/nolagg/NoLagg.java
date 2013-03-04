@@ -13,10 +13,8 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.metrics.Graph;
+import com.bergerkiller.bukkit.common.metrics.SoftDependenciesGraph;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
-import com.bergerkiller.bukkit.nolagg.chunks.NoLaggChunks;
-import com.bergerkiller.bukkit.nolagg.monitor.PerformanceMonitor;
 
 public class NoLagg extends PluginBase {
 	public static NoLagg plugin;
@@ -64,47 +62,52 @@ public class NoLagg extends PluginBase {
 
 		// Initialize Metrics
 		if (hasMetrics()) {
+			// NoLagg soft dependencies
+			getMetrics().addGraph(new SoftDependenciesGraph());
+
 			// NoLagg enabled components
 			getMetrics().addGraph(new Graph("Enabled Components") {
 				@Override
-				public void onUpdate() {
-					clearPlotters();
+				public void onUpdate(Plugin plugin) {
 					for (NoLaggComponent comp : NoLagg.plugin.components) {
-						if(comp.isEnabled()) {
-							addPlotter(comp.getName());
-						}
+						togglePlotter(comp.getName(), comp.isEnabled());
 					}
 				}
 			});
 
-			// Dependencies
-			getMetrics().addGraph(new Graph("Dependencies") {
+			// Total server memory
+			getMetrics().addGraph(new Graph("Total server memory") {
 				@Override
-				public void onUpdate() {
+				public void onUpdate(Plugin plugin) {
 					clearPlotters();
-					if (NoLaggChunks.isOreObfEnabled) {
-						addPlotter("Orebfuscator");
+					// Get server total memory in MB (>> 20 = / (1024 * 1024))
+					final long mem = Runtime.getRuntime().totalMemory() >> 20;
+					final String key;
+					if (mem <= 512) {
+						key = "0-512 MB";
+					} else if (mem <= 1024) {
+						key = "512-1024 MB";
+					} else if (mem <= 2048) {
+						key = "1024-2048 MB";
+					} else if (mem <= 4096) {
+						key = "2048-4096 MB";
+					} else if (mem <= 8192) {
+						key = "4096-8192 MB";
+					} else if (mem <= 16384) {
+						key = "8-16 GB";
+					} else {
+						key = "16+ GB";
 					}
-					if (CommonUtil.getPlugin("Vault") != null) {
-						addPlotter("Vault");
-					}
-				}
-			});
-
-			// Performance
-			getMetrics().addGraph(new Graph("Performance") {
-				@Override
-				public void onUpdate() {
-					clearPlotters();
-					if (NoLaggComponents.MONITOR.isEnabled()) {
-						addPlotter("TPS (Ticks per second", (int) PerformanceMonitor.tps);
-						addPlotter("Memory (MB)", (int) (PerformanceMonitor.usedmem / (1024 * 1024)));
-					}
+					togglePlotter(key, true);
 				}
 			});
 		}
 	}
 
+	public static final long D = 1 * 1023 * 1024;
+	public static final long A = D / (1024 * 1024);
+	public static final long B = D >> 20;
+	
 	protected List<NoLaggComponent> getComponents() {
 		return this.components;
 	}
