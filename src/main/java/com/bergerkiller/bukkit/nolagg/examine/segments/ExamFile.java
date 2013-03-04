@@ -113,10 +113,23 @@ public class ExamFile extends Segment {
 		return efile;
 	}
 
+	private static String readLocation(DataInputStream stream, String plugin, String name) throws IOException {
+		int loccount = stream.readInt();
+		StringBuilder location = new StringBuilder(loccount * 300);
+		if (!plugin.startsWith("#")) {
+			location.append(name);
+		}
+		for (int j = 0; j < loccount; j++) {
+			location.append('\n').append('\n').append(stream.readUTF());
+		}
+		return location.toString();
+	}
+
 	public static ExamFile read(DataInputStream stream) throws IOException {
-		int listenercount = stream.readInt();
-		int duration = stream.readInt();
+		final int listenercount = stream.readInt();
+		final int duration = stream.readInt();
 		List<DataSegment> segments = new ArrayList<DataSegment>();
+		// Read all listeners
 		for (int i = 0; i < listenercount; i++) {
 			if (stream.readBoolean()) {
 				String plugin = stream.readUTF();
@@ -128,29 +141,38 @@ public class ExamFile extends Segment {
 				segments.add(new DataSegment(name, duration, data, plugin, loc, false));
 			}
 		}
-		int taskcount = stream.readInt();
-		for (int i = 0; i < taskcount; i++) {
+		// Read all tasks
+		final int taskcount = stream.readInt();
+		for (int i = 1; i <= taskcount; i++) {
+			// Read the task location name
 			String name = stream.readUTF();
+			// Next-tick tasks append this to the name to identify themselves
+			boolean nextTick = name.startsWith("[NextTick] ");
+			if (nextTick) {
+				name = name.substring(11);
+			}
+
+			// Read plugin name and location
 			String plugin = stream.readUTF();
-			int loccount = stream.readInt();
-			StringBuilder location = new StringBuilder(loccount * 300);
-			if (!plugin.startsWith("#")) {
-				location.append(name);
-			}
-			for (int j = 0; j < loccount; j++) {
-				location.append('\n').append('\n').append(stream.readUTF());
-			}
-			String segname;
+			String location = readLocation(stream, plugin, name);
+
+			final String segname;
 			if (plugin.startsWith("#")) {
-				segname = location.toString().trim();
+				// Server operation: use location as name
+				segname = location.trim();
+			} else if (nextTick) {
+				// Next tick: append next tick to name
+				segname = "NextTick Task #" + i;
 			} else {
-				segname = "Task #" + (i + 1);
+				// Regular task
+				segname = "Task #" + i;
 			}
+
+			// Initialize the new data segment
 			SegmentData data = new SegmentData(name, duration);
 			data.readLongValues(stream);
-			segments.add(new DataSegment(segname, duration, data, plugin, location.toString(), true));
+			segments.add(new DataSegment(segname, duration, data, plugin, location, true));
 		}
 		return new ExamFile("Results", duration, segments);
 	}
-
 }

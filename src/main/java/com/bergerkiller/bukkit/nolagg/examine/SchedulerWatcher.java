@@ -4,7 +4,6 @@ import java.util.PriorityQueue;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.reflection.classes.CraftSchedulerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.CraftTaskRef;
@@ -28,12 +27,10 @@ public class SchedulerWatcher extends PriorityQueue {
 		}
 		if (CraftTaskRef.TEMPLATE.isType(o)) {
 			Runnable run = CraftTaskRef.task.get(o);
-			if (run != null) {
-				if (!(run instanceof TimedWrapper)) {
-					Plugin plugin = CraftTaskRef.plugin.get(o);
-					if (plugin != null && plugin.isEnabled()) {
-						CraftTaskRef.task.set(o, PluginLogger.getWrapper(run, plugin));
-					}
+			if (run != null && !PluginLogger.isIgnoredTask(run)) {
+				Plugin plugin = CraftTaskRef.plugin.get(o);
+				if (plugin != null && plugin.isEnabled()) {
+					CraftTaskRef.task.set(o, PluginLogger.getWrapper(run, plugin));
 				}
 			}
 		}

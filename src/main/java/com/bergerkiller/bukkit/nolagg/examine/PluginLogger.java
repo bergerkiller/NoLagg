@@ -2,7 +2,6 @@ package com.bergerkiller.bukkit.nolagg.examine;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.DeflaterOutputStream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -28,22 +26,42 @@ import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.TimedRegisteredListener;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
+import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
+import com.bergerkiller.bukkit.common.internal.NextTickListener;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class PluginLogger {
-
+	private static SafeField<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
 	public static Set<String> recipients = new HashSet<String>();
 	private static Task measuretask;
 	private static TimedRegisteredListener[] listeners;
 	private static float[][] eventtimes;
-
+	public static int duration = 500;
+	public static int position;
 	public static Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
 
 	public static TimedWrapper getWrapper(Runnable task, Plugin plugin) {
 		return getTask(task, plugin).getWrapper(task);
+	}
+
+	public static TaskMeasurement getNextTickTask(Runnable task) {
+		final String name = "[NextTick] " + task.getClass().getName();
+		TaskMeasurement tm = tasks.get(name);
+		if (tm == null) {
+			Plugin plugin = CommonUtil.getPluginByClass(task.getClass());
+			if (plugin == null) {
+				plugin = CommonPlugin.getInstance();
+			}
+			tm = new TaskMeasurement(name, plugin);
+			tasks.put(name, tm);
+		}
+		return tm;
 	}
 
 	public static TaskMeasurement getTask(Runnable task, Plugin plugin) {
@@ -72,25 +90,37 @@ public class PluginLogger {
 		return tm;
 	}
 
-	public static void stopTask() {
-		Task.stop(measuretask);
-		measuretask = null;
-		position = Integer.MAX_VALUE;
+	public static boolean isIgnoredTask(Runnable runnable) {
+		if (runnable instanceof TimedWrapper) {
+			return true;
+		}
+		final String name = runnable.getClass().getName();
+		if (name.startsWith(Common.COMMON_ROOT + ".internal.CommonPlugin$NextTickHandler")) {
+			return true;
+		}
+		return false;
 	}
 
 	public static double getDurPer() {
 		return MathUtil.round((double) position / (double) duration * 100.0, 2);
 	}
 
-	public static int duration = 500;
-	public static int position;
-	private static SafeField<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
-
 	public static boolean isRunning() {
 		return measuretask != null && PluginLogger.position < PluginLogger.duration;
 	}
 
+	public static void stopTask() {
+		Task.stop(measuretask);
+		measuretask = null;
+		position = Integer.MAX_VALUE;
+		CommonPlugin.getInstance().removeNextTickListener(nextTickListener);
+	}
+
 	public static void start() {
+		// Register next-tick listener
+		CommonPlugin.getInstance().addNextTickListener(nextTickListener);
+
+		// Initialize event listeners
 		List<TimedRegisteredListener> rval = new ArrayList<TimedRegisteredListener>();
 		RegisteredListener[] a;
 		for (HandlerList handler : HandlerList.getHandlerLists()) {
@@ -153,9 +183,11 @@ public class PluginLogger {
 		filename.append(".exam");
 		File file = new File(filename.toString());
 		file.getAbsoluteFile().getParentFile().mkdirs();
-		try {
-			DataOutputStream stream = new DataOutputStream(new DeflaterOutputStream(new FileOutputStream(file)));
-			try {
+
+		// Start a new compressed (deflater, ZIP) data writer
+		new CompressedDataWriter(file) {
+			@Override
+			public void write(DataOutputStream stream) throws IOException {
 				stream.writeInt(listeners.length);
 				stream.writeInt(duration);
 				for (int i = 0; i < listeners.length; i++) {
@@ -186,14 +218,8 @@ public class PluginLogger {
 						stream.writeLong(value);
 					}
 				}
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			} finally {
-				stream.close();
 			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		}
+		}.write();
 		for (String rec : recipients) {
 			if (rec == null) {
 				System.out.println("The examination log has been generated in " + file.toString());
@@ -207,4 +233,12 @@ public class PluginLogger {
 		recipients.clear();
 	}
 
+	private static final BKCNextTickListener nextTickListener = new BKCNextTickListener();
+
+	private static class BKCNextTickListener implements NextTickListener {
+		@Override
+		public void onNextTicked(Runnable runnable, long executionTime) {
+			getNextTickTask(runnable).addDelta(executionTime);
+		}
+	}
 }

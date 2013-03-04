@@ -23,6 +23,10 @@ public class TaskMeasurement {
 	public long[] times;
 	public final String plugin;
 
+	public void addDelta(long deltaTime) {
+		this.times[PluginLogger.position] += deltaTime;
+	}
+
 	public void subtractTime(long time) {
 		this.times[PluginLogger.position] -= System.nanoTime() - time;
 	}
