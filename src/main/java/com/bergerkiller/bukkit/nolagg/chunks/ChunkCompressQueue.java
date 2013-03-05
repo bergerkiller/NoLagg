@@ -77,16 +77,14 @@ public class ChunkCompressQueue {
 		} else {
 			// Let the server itself deal with it
 			CommonPacket packet = new CommonPacket(PacketFields.MAP_CHUNK.newInstance(Conversion.toChunkHandle.convert(chunk), true, 0xffff));
-			PacketFields.MAP_CHUNK.lowPriority.set(packet.getHandle(), true);
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
 	}
 
 	public void enqueue(ChunkSendCommand sendCommand) {
-		if (sendCommand == null)
+		if (sendCommand == null || !sendCommand.isValid()) {
 			return;
-		if (!sendCommand.isValid())
-			return;
+		}
 		synchronized (this.toSend) {
 			this.toSend.offer(sendCommand);
 		}
@@ -137,19 +135,16 @@ public class ChunkCompressQueue {
 	}
 
 	public Chunk pollChunk() {
-		Chunk chunk;
 		synchronized (this.toCompress) {
-			if (this.toCompress.isEmpty())
-				return null;
-			chunk = this.toCompress.poll();
+			return this.toCompress.poll();
 		}
-		return chunk;
 	}
 
 	public ChunkSendCommand pollSendCommand() {
 		synchronized (this.toSend) {
-			if (this.toSend.isEmpty())
+			if (this.toSend.isEmpty()) {
 				return null;
+			}
 			ChunkSendCommand cmd = this.toSend.poll();
 			if (this.isNear(cmd.chunk)) {
 				// In range of dynamic view?

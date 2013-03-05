@@ -1,6 +1,9 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -12,8 +15,10 @@ import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
@@ -44,6 +49,27 @@ public class NoLaggChunks extends NoLaggComponent {
 			if (isOreObfEnabled = enabled && useBufferedLoading) {
 				log(Level.INFO, "Orebfuscation has been detected and will be used when sending chunks");
 				log(Level.INFO, "Note that this may require you to set more threads used for sending!");
+			}
+		}
+		if (enabled && useBufferedLoading) {
+			// Check that no plugin is currently listening for chunk packets
+			Collection<Plugin> plugins = PacketUtil.getListenerPlugins(PacketType.MAP_CHUNK);
+			if (!plugins.isEmpty()) {
+				List<String> names = new ArrayList<String>(plugins.size());
+				for (Plugin p : plugins) {
+					final String name = p.getName();
+					if (!name.equals("Orebfuscator")) {
+						names.add(name);
+					}
+				}
+				// Disable this entire feature to avoid needless bugs
+				if (!names.isEmpty()) {
+					log(Level.SEVERE, "Buffered (multi-threaded) packet sending disabled: Plugins are incompatible");
+					log(Level.SEVERE, "Incompatible plugin(s): " + StringUtil.combineNames(names));
+					log(Level.SEVERE, "Change 'bufferedLoading.enabled' to False in the config.yml of NoLagg to hide this error");
+					useBufferedLoading = false;
+					ChunkCompressionThread.deinit();
+				}
 			}
 		}
 	}

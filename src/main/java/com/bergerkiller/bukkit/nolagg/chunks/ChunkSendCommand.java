@@ -10,13 +10,13 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class ChunkSendCommand {
+	private final CommonPacket mapPacket;
+	public final org.bukkit.Chunk chunk;
+
 	public ChunkSendCommand(final CommonPacket mapPacket, final org.bukkit.Chunk chunk) {
 		this.mapPacket = mapPacket;
 		this.chunk = chunk;
 	}
-
-	private final CommonPacket mapPacket;
-	public final org.bukkit.Chunk chunk;
 
 	public boolean isValid() {
 		return this.chunk != null && this.mapPacket != null;
