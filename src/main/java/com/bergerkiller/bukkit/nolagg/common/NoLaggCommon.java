@@ -28,7 +28,6 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.itembuffer.ItemMap;
-import com.bergerkiller.bukkit.nolagg.lighting.LightingService;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
@@ -215,7 +214,8 @@ public class NoLaggCommon extends NoLaggComponent {
 							}
 						}
 					}
-					LightingService.addRecipient(p);
+					// Make sure all entities are re-sent as well
+					WorldUtil.getTracker(p.getWorld()).removeViewer(p);
 					p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is being resent...");
 					return true;
 				}
