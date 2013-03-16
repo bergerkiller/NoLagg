@@ -104,10 +104,6 @@ public class NoLagg extends PluginBase {
 		}
 	}
 
-	public static final long D = 1 * 1023 * 1024;
-	public static final long A = D / (1024 * 1024);
-	public static final long B = D >> 20;
-	
 	protected List<NoLaggComponent> getComponents() {
 		return this.components;
 	}
@@ -133,10 +129,7 @@ public class NoLagg extends PluginBase {
 	public boolean command(CommandSender sender, String command, String[] args) {
 		try {
 			if (args.length != 0) {
-				if (args[0].equalsIgnoreCase("ver") || args[0].equalsIgnoreCase("version")) {
-					sender.sendMessage(ChatColor.GREEN + this.getName() + " version " + this.getVersion());
-					return true;
-				} else if (args[0].equalsIgnoreCase("reload")) {
+				if (args[0].equalsIgnoreCase("reload")) {
 					Permission.RELOAD.handle(sender);
 
 					// check if all components are still enabled

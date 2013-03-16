@@ -1,6 +1,6 @@
 name: NoLagg
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.89.8
+version: 1.89.9
 authors: [bergerkiller, lenis0012]
 depend: [BKCommonLib]
 metrics: true

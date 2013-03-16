@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.server.v1_4_R1.RegionFileCache;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
@@ -51,7 +50,7 @@ public class RegionFileFlusher {
 
 									try {
 										RandomAccessFile old;
-										synchronized (RegionFileCache.class) {
+										synchronized (RegionFileCacheRef.TEMPLATE.getType()) {
 											// Replace the old instance with a new instance
 											old = RegionFileRef.stream.get(region);
 											RegionFileRef.stream.set(region, new RandomAccessFile(source, "rw"));

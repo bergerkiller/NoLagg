@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_4_R1.scheduler.CraftScheduler;
-import org.bukkit.craftbukkit.v1_4_R1.util.ServerShutdownThread;
+
 import org.bukkit.plugin.Plugin;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
@@ -61,7 +61,7 @@ public class NoLaggThreadCheck extends NoLaggComponent {
 			List<StackTraceElement> stack = Lists.newArrayList(t.getStackTrace());
 			stack.remove(0); // remove check function from stacktrace
 			stack.remove(0); // remove check function from stacktrace
-			if (t.getClass().equals(ServerShutdownThread.class))
+			if (t.getClass().getName().equals(Common.CB_ROOT + ".util.ServerShutdownThread"))
 				return true;
 			if (event != null && event.equals("")) {
 				return false; // no messages for custom events
@@ -82,7 +82,7 @@ public class NoLaggThreadCheck extends NoLaggComponent {
 			if (classCheck(stack.get(stack.size() - 1), Thread.class)) {
 				stack.remove(stack.size() - 1);
 				// bukkit task?
-				if (classCheck(stack.get(stack.size() - 1), CraftScheduler.class)) {
+				if (stack.get(stack.size() - 1).getClassName().equals(Common.CB_ROOT + ".scheduler.CraftScheduler")) {
 					classname = stack.get(stack.size() - 2).getClassName();
 				} else {
 					classname = stack.get(stack.size() - 1).getClassName();
