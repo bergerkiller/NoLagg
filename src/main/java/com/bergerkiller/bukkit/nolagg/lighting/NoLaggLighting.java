@@ -74,6 +74,7 @@ public class NoLaggLighting extends NoLaggComponent {
 				Location l = p.getLocation();
 				LightingService.scheduleArea(p.getWorld(), l.getBlockX() >> 4, l.getBlockZ() >> 4, radius);
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
+				LightingService.addRecipient(sender);
 				return true;
 			}
 		}

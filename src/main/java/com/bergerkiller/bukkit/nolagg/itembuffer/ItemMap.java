@@ -2,6 +2,7 @@ package com.bergerkiller.bukkit.nolagg.itembuffer;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -88,8 +89,15 @@ public class ItemMap {
 		updateTask = new Task(NoLagg.plugin) {
 			public void run() {
 				synchronized (items) {
-					for (ChunkItems citems : items.values()) {
-						citems.update();
+					Iterator<ChunkItems> iter = items.values().iterator();
+					while (iter.hasNext()) {
+						ChunkItems citems = iter.next();
+						if (citems.chunk.isLoaded()) {
+							citems.update();
+						} else {
+							// Chunk no longer loaded: Just remove it...
+							iter.remove();
+						}
 					}
 				}
 			}

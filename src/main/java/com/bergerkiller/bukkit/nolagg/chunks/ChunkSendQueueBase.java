@@ -49,7 +49,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * @return True if an unload packet is required, False if not
 	 */
 	public boolean preUnloadChunk(IntVector2 chunkCoord) {
-		this.remove(chunkCoord);
+		this.removePair(chunkCoord);
 		return this.sentChunks.remove(chunkCoord);
 	}
 
@@ -75,26 +75,6 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 				}
 			}
 		}
-	}
-
-	protected boolean remove(IntVector2 pair) {
-		synchronized (this) {
-			return this.contained.remove(pair) && super.remove(pair);
-		}
-	}
-
-	protected boolean add(IntVector2 pair) {
-		if (this.isNear(pair, CommonUtil.VIEW)) {
-			synchronized (this) {
-				// Add to sending queue if not contained, or a re-send is
-				// requested
-				if (this.contained.add(pair) || !super.contains(pair)) {
-					this.isSentChunksVerified = false;
-					return super.add(pair);
-				}
-			}
-		}
-		return false;	
 	}
 
 	/**
@@ -133,7 +113,11 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * @return linked list with the contents
 	 */
 	public LinkedList toLinkedList() {
-		return new LinkedList(this.contained);
+		LinkedList value = new LinkedList();
+		for (IntVector2 pair : this.contained) {
+			value.add(Conversion.toChunkCoordIntPairHandle.convert(pair));
+		}
+		return value;
 	}
 
 	/**
@@ -189,7 +173,9 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			return;
 		}
 		synchronized (this) {
-			this.contained.removeAll(this);
+			for (Object value : this) {
+				this.contained.remove(Conversion.toIntVector2.convert(value));
+			}
 			super.clear();
 		}
 	}
@@ -208,7 +194,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	@Override
 	public boolean contains(Object o) {
 		synchronized (this) {
-			return this.contained.contains(o);
+			return this.contained.contains(Conversion.toIntVector2.convert(o));
 		}
 	}
 
@@ -267,43 +253,56 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	public abstract boolean isNear(final int chunkx, final int chunkz, final int view);
 
-	@Override
-	public boolean remove(Object object) {
-		IntVector2 value = Conversion.toIntVector2.convert(object);
-		if (value == null) {
+	protected synchronized boolean removePair(IntVector2 pair) {
+		if (pair == null) {
 			return false;
 		}
-		return remove(value);
+		return this.contained.remove(pair) && super.remove(Conversion.toChunkCoordIntPairHandle.convert(pair));
+	}
+
+	protected final synchronized boolean addPair(IntVector2 pair) {
+		return addPair(super.size(), pair);
+	}
+
+	protected synchronized boolean addPair(int index, IntVector2 pair) {
+		if (pair == null) {
+			return false;
+		}
+		if (this.isNear(pair, CommonUtil.VIEW)) {
+			final Object handle = Conversion.toChunkCoordIntPairHandle.convert(pair);
+			// Add to sending queue if not contained, or a re-send is requested
+			if (this.contained.add(pair) || !super.contains(handle)) {
+				this.isSentChunksVerified = false;
+				super.add(index, handle);
+				return true;
+			}
+		}
+		return false;	
+	}
+
+	@Override
+	public boolean remove(Object object) {
+		return removePair(Conversion.toIntVector2.convert(object));
 	}
 
 	/**
-	 * Is called in PlayerInstance and PlayerManager to queue a new chunk
-	 * coordinate
+	 * Is called in PlayerInstance and PlayerManager to queue a new chunk coordinate
 	 */
 	@Override
 	public synchronized boolean add(Object object) {
 		if (this.updating.get()) {
-			return super.add(object);
+			return super.add(Conversion.toChunkCoordIntPairHandle.convert(object));
+		} else {
+			return this.addPair(Conversion.toIntVector2.convert(object));
 		}
-		IntVector2 value = Conversion.toIntVector2.convert(object);
-		if (value == null) {
-			return false;
-		}
-		return this.add(value);
 	}
 
 	@Override
 	public synchronized void add(int index, Object object) {
 		if (this.updating.get()) {
-			super.add(index, object);
-			return;
-		}
-		IntVector2 value = Conversion.toIntVector2.convert(object);
-		if (value == null) {
-			return;
-		}
-		if (this.add(value)) {
-			super.add(index, value);
+			super.add(index, Conversion.toChunkCoordIntPairHandle.convert(object));
+		} else {
+			this.addPair(index, Conversion.toIntVector2.convert(object));
 		}
 	}
 }

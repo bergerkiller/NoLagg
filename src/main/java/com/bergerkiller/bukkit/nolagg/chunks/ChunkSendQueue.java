@@ -402,8 +402,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	@Override
-	public boolean remove(IntVector2 pair) {
-		return super.remove(pair) || this.chunkQueue.remove(pair.x, pair.z);
+	public boolean removePair(IntVector2 pair) {
+		return super.removePair(pair) || this.chunkQueue.remove(pair.x, pair.z);
 	}
 
 	@Override
@@ -412,8 +412,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	@Override
-	protected boolean add(IntVector2 pair) {
-		if (super.add(pair)) {
+	protected boolean addPair(int index, IntVector2 pair) {
+		if (super.addPair(index, pair)) {
 			this.chunkQueue.remove(pair.x, pair.z);
 			this.sendDirection = null; // invalidate
 			return true;

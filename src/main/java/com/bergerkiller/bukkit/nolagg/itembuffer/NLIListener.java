@@ -27,10 +27,11 @@ public class NLIListener implements Listener {
 
 	public void onItemDespawn(Item item) {
 		if (item.getType() == EntityType.DROPPED_ITEM) {
-			if(NoLaggItemBuffer.shouldIgnore(item))
+			if(NoLaggItemBuffer.shouldIgnore(item)) {
 				NoLaggItemBuffer.remove(item);
-			else
+			} else {
 				ItemMap.removeItem(item);
+			}
 		}
 	}
 

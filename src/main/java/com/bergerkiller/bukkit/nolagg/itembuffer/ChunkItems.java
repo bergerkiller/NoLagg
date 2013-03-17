@@ -6,26 +6,26 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Item;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.chunks.NoLaggChunks;
 
 public class ChunkItems {
 	public final Set<Item> spawnedItems = new HashSet<Item>();
 	public final Queue<Item> hiddenItems = new LinkedList<Item>();
-	public final org.bukkit.Chunk chunk;
+	public final Chunk chunk;
 
-	public ChunkItems(final org.bukkit.Chunk chunk) {
+	public ChunkItems(final Chunk chunk) {
 		this.chunk = chunk;
 		for (org.bukkit.entity.Entity entity : WorldUtil.getEntities(chunk)) {
-			if (entity instanceof Item) {
-				if (entity.isDead() || EntityUtil.isIgnored(entity)) {
-					continue;
-				}
+			if (entity instanceof Item && !entity.isDead() && !EntityUtil.isIgnored(entity)) {
 				if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
 					this.spawnedItems.add((Item) entity);
 				} else {
@@ -63,15 +63,20 @@ public class ChunkItems {
 		this.hiddenItems.clear();
 	}
 
+	public synchronized boolean canSpawnItem() {
+		return spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk;
+	}
+	
 	public synchronized void spawnInChunk() {
-		while (!hiddenItems.isEmpty() && spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
+		while (!hiddenItems.isEmpty() && canSpawnItem()) {
 			EntityUtil.addEntity(hiddenItems.poll());
 		}
 	}
 
 	public synchronized void update() {
-		if (this.hiddenItems.isEmpty())
+		if (this.hiddenItems.isEmpty()) {
 			return;
+		}
 		if (!this.spawnedItems.isEmpty()) {
 			refreshSpawnedItems();
 		}
@@ -82,8 +87,8 @@ public class ChunkItems {
 		if (this.spawnedItems.contains(item)) {
 			return true;
 		}
-		boolean allowed = false;
-		if (this.spawnedItems.size() < NoLaggItemBuffer.maxItemsPerChunk) {
+		final boolean allowed;
+		if (canSpawnItem()) {
 			allowed = true;
 		} else {
 			allowed = refreshSpawnedItems();
@@ -101,18 +106,16 @@ public class ChunkItems {
 	 * 
 	 * @return True if a change occurred, False if not
 	 */
-	private boolean refreshSpawnedItems() {
+	private synchronized boolean refreshSpawnedItems() {
 		Iterator<Item> iter = this.spawnedItems.iterator();
-		Item e;
-		IntVector2 pair;
 		try {
 			while (iter.hasNext()) {
-				e = iter.next();
+				final Item e = iter.next();
 				if (e.isDead()) {
 					iter.remove();
 					return true; // Changed
 				} else {
-					pair = ItemMap.getChunkCoords(e);
+					final IntVector2 pair = ItemMap.getChunkCoords(e);
 					if (pair.x != this.chunk.getX() || pair.z != this.chunk.getZ()) {
 						// respawn in correct chunk
 						iter.remove();
@@ -122,8 +125,7 @@ public class ChunkItems {
 				}
 			}
 		} catch (ConcurrentModificationException ex) {
-			return refreshSpawnedItems(); // Retry
-		} catch (StackOverflowError ex) {
+			NoLaggChunks.plugin.log(Level.WARNING, "Spawned items changed while updating: other threads spawning items?!");
 		}
 		return false;
 	}
