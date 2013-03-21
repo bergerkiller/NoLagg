@@ -15,15 +15,15 @@
   </properties>
 
   <repositories>
-    <!-- Repo for access to Vault and BKCommonLib -->
+    <!-- Repo for access to Vault -->
     <repository>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </snapshots>
       <id>herocraft-repo</id>
       <url>http://ci.herocraftonline.com/plugin/repository/everything/</url>
+    </repository>
+    <!-- Repo for access to BKCommonLib -->
+    <repository>
+      <id>dj-tcraft-repo</id>
+      <url>http://ci.dj-tcraft.nl/plugin/repository/everything/</url>
     </repository>
     <!-- Repo for access to CraftBukkit -->
     <repository>

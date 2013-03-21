@@ -33,14 +33,14 @@ public class ChunkSendCommand {
 
 		final Object chunkHandle = Conversion.toChunkHandle.convert(chunk);
 		queue.sentChunks.add(new IntVector2(chunk.getX(), chunk.getZ()));
-		PacketUtil.sendCommonPacket(queue.player, mapPacket, !NoLaggChunks.useBufferedLoading);
+		PacketUtil.sendPacket(queue.player, mapPacket, !NoLaggChunks.useBufferedLoading);
 		ChunkRef.seenByPlayer.set(chunkHandle, true);
 
 		// Tile entities
 		CommonPacket packet;
 		for (Object tile : ChunkRef.tileEntities.get(chunkHandle).values()) {
 			if ((packet = BlockUtil.getUpdatePacket(tile)) != null) {
-				PacketUtil.sendCommonPacket(queue.player, packet);
+				PacketUtil.sendPacket(queue.player, packet);
 			}
 		}
 		// Spawn messages

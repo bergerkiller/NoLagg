@@ -57,8 +57,8 @@ public class HeadRotation implements PacketListener {
 					bodyPacket.write(PacketFields.ENTITY_LOOK.dyaw, yaw);
 					bodyPacket.write(PacketFields.ENTITY_LOOK.dpitch, pitch);
 					
-					PacketUtil.sendCommonPacket(player, headPacket);
-					PacketUtil.sendCommonPacket(player, bodyPacket);
+					PacketUtil.sendPacket(player, headPacket);
+					PacketUtil.sendPacket(player, bodyPacket);
 				}
 			});
 		}

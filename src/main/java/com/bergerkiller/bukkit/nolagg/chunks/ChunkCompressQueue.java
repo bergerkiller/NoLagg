@@ -76,7 +76,7 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			CommonPacket packet = new CommonPacket(PacketFields.MAP_CHUNK.newInstance(Conversion.toChunkHandle.convert(chunk), true, 0xffff));
+			CommonPacket packet = PacketFields.MAP_CHUNK.newInstance(Conversion.toChunkHandle.convert(chunk), true, 0xffff);
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
 	}
