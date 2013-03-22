@@ -17,13 +17,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class DummyPlayerManager extends PlayerChunkMapBase {
-	public static final DummyWorldServer DUMMYWORLD;
-	public static final DummyChunkProvider DUMMYCPS;
-	static {
-		DUMMYWORLD = new DummyWorldServer();
-		DUMMYCPS = new DummyChunkProvider(DUMMYWORLD);
-		WorldServerRef.chunkProviderServer.set(DUMMYWORLD, DUMMYCPS);
-	}
+	private static final DummyWorldServer DUMMYWORLD = new DummyWorldServer();
 
 	public static void convertAll() {
 		// Alter player manager to prevent chunk loading outside range
@@ -98,7 +92,7 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
 			if (elem.getMethodName().equals("<init>")) {
 				if (elem.getClassName().equals(Common.NMS_ROOT + ".PlayerInstance")) {
-					DUMMYCPS.setBase(super.getWorld());
+					DUMMYWORLD.DUMMYCPS.setBase(super.getWorld());
 					return DUMMYWORLD.getWorld();
 				}
 			}

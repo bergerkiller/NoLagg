@@ -85,16 +85,12 @@ public class TimedChunkProviderServer extends ChunkProviderServerBase {
 
 				chunk = this.loadBukkitChunk(x, z);
 				if (chunk == null) {
-					if (this.hasGenerator()) {
-						try {
-							prevtime = System.nanoTime();
-							chunk = this.generateChunk(x, z);
-							this.genmeas.setTime(prevtime);
-						} catch (Throwable throwable) {
-							handleGeneratorError(throwable, x, z);
-						}
-					} else {
-						chunk = this.emptyChunk;
+					try {
+						prevtime = System.nanoTime();
+						chunk = this.generateChunk(x, z);
+						this.genmeas.setTime(prevtime);
+					} catch (Throwable throwable) {
+						handleGeneratorError(throwable, x, z);
 					}
 					newChunk = true; // CraftBukkit
 				}
