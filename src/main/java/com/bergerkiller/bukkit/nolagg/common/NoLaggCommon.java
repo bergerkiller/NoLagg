@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,8 +15,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -106,6 +109,17 @@ public class NoLaggCommon extends NoLaggComponent {
 						}
 					}
 					for (String name : inputTypes) {
+						if (name.equals("minecart")) {
+							name = "minecarts";
+						} else if (name.equals("item")) {
+							name = "items";
+						} else if (name.equals("monster")) {
+							name = "monsters";
+						} else if (name.equals("animal")) {
+							name = "animals";
+						} else if (name.equals("fallingblock")) {
+							name = "fallingblocks";
+						}
 						if (name.contains("xp") || name.contains("orb")) {
 							types.add("experienceorb");
 							continue;
@@ -118,15 +132,6 @@ public class NoLaggCommon extends NoLaggComponent {
 							types.add("animals");
 							types.add("monsters");
 							continue;
-						}
-						if (name.equals("item")) {
-							name = "items";
-						} else if (name.equals("monster")) {
-							name = "monsters";
-						} else if (name.equals("animal")) {
-							name = "animals";
-						} else if (name.equals("fallingblock")) {
-							name = "fallingblocks";
 						}
 						types.add(name);
 					}
@@ -160,6 +165,7 @@ public class NoLaggCommon extends NoLaggComponent {
 				boolean animals = types.contains("animals");
 				boolean items = types.contains("items");
 				boolean fallingblocks = types.contains("fallingblocks");
+				boolean minecarts = types.contains("minecarts");
 				boolean remove;
 				for (World world : worlds) {
 					// Use the types set and clear them
@@ -175,6 +181,8 @@ public class NoLaggCommon extends NoLaggComponent {
 						} else if (items && e instanceof Item) {
 							remove = true;
 						} else if (fallingblocks && e instanceof FallingBlock) {
+							remove = true;
+						} else if (minecarts && e instanceof Minecart) {
 							remove = true;
 						} else if (types.contains(EntityUtil.getName(e))) {
 							remove = true;
