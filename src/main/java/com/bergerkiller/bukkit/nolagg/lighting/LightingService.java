@@ -25,6 +25,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -34,10 +35,10 @@ public class LightingService extends AsyncTask {
 	private static Task tickTask = null;
 	private static final Set<String> recipientsForDone = new HashSet<String>();
 	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
-	private static final int PENDING_WRITE_INTERVAL = 5;
+	private static final int PENDING_WRITE_INTERVAL = 10;
 	private static int taskChunkCount = 0;
 	private static int taskCounter = 0;
-	private static boolean isSaving = false;
+	private static boolean pendingFileInUse = false;
 	private static LightingTask currentTask;
 
 	/**
@@ -149,6 +150,7 @@ public class LightingService extends AsyncTask {
 			return;
 		}
 		final HashSet<String> missingWorlds = new HashSet<String>();
+		pendingFileInUse = true;
 		if (!new CompressedDataReader(saveFile) {
 			@Override
 			public void read(DataInputStream stream) throws IOException {
@@ -183,7 +185,11 @@ public class LightingService extends AsyncTask {
 				}
 			}}.read()) {
 			NoLaggLighting.plugin.log(Level.SEVERE, "Failed to continue previous saved lighting operations");
+		} else if (!missingWorlds.isEmpty()) {
+			NoLaggLighting.plugin.log(Level.WARNING, "Removed lighting operations for the following (now missing) worlds: ");
+			NoLaggLighting.plugin.log(Level.WARNING, StringUtil.combineNames(missingWorlds));
 		}
+		pendingFileInUse = false;
 	}
 
 	/**
@@ -191,11 +197,10 @@ public class LightingService extends AsyncTask {
 	 * If the server, for whatever reason, crashes, it can restore using this file.
 	 */
 	public static void savePendingBatches() {
-		if (isSaving) {
-			// Already saving - ignore it this run
+		if (pendingFileInUse) {
 			return;
 		}
-		isSaving = true;
+		pendingFileInUse = true;
 		final File saveFile = NoLagg.plugin.getDataFile("PendingLight.dat");
 		if (saveFile.exists() && tasks.isEmpty()) {
 			saveFile.delete();
@@ -234,7 +239,7 @@ public class LightingService extends AsyncTask {
 			}}.write()) {
 
 			// Move the files around
-			if (!saveFile.delete()) {
+			if (saveFile.exists() && !saveFile.delete()) {
 				NoLaggLighting.plugin.log(Level.WARNING, "Failed to remove the previous pending light save file. No states saved.");
 			} else if (!tmpFile.renameTo(saveFile)) {
 				NoLaggLighting.plugin.log(Level.WARNING, "Failed to move pending save file to the actual save file. No states saved.");
@@ -242,7 +247,7 @@ public class LightingService extends AsyncTask {
 		} else {
 			NoLaggLighting.plugin.log(Level.WARNING, "Failed to write to pending save file. No states saved.");
 		}
-		isSaving = false;
+		pendingFileInUse = false;
 	}
 
 	/**
