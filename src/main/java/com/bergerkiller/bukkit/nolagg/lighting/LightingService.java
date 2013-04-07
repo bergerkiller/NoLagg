@@ -177,7 +177,7 @@ public class LightingService extends AsyncTask {
 					// Load all the coordinates
 					for (int i = 0; i < chunkCount; i++) {
 						chunk = stream.readLong();
-						coords.add(new IntVector2(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk)));
+						coords.add(new IntVector2(MathUtil.longHashLsw(chunk), MathUtil.longHashMsw(chunk)));
 					}
 					// Schedule and clear
 					schedule(world, coords);
