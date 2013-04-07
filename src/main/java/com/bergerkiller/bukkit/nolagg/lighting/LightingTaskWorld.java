@@ -18,10 +18,11 @@ import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
 public class LightingTaskWorld implements LightingTask {
 	private static final int ASSUMED_CHUNKS_PER_REGION = 34 * 34;
+	private static final double ASSUMED_AVG_REGION_CHUNK_RATIO = 0.75;
 	private final World world;
 	private final File regionFolder;
 	private final List<WorldRegion> regions;
-	private final LongHashSet chunks = new LongHashSet();
+	private final LongHashSet chunks;
 	private int chunkCount;
 
 	public LightingTaskWorld(World world) {
@@ -59,6 +60,7 @@ public class LightingTaskWorld implements LightingTask {
 			}
 		}
 		this.chunkCount = this.regions.size() * ASSUMED_CHUNKS_PER_REGION;
+		this.chunks = new LongHashSet((int) (ASSUMED_AVG_REGION_CHUNK_RATIO * this.chunkCount));
 	}
 
 	@Override
