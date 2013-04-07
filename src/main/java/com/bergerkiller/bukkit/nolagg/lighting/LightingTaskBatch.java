@@ -49,6 +49,10 @@ public class LightingTaskBatch implements LightingTask {
 		return world;
 	}
 
+	public LongHashSet getChunks() {
+		return chunksCoords;
+	}
+
 	@Override
 	public int getChunkCount() {
 		int faults = 0;

@@ -29,6 +29,7 @@ public class NoLaggLighting extends NoLaggComponent {
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
 		this.onReload(config);
+		LightingService.loadPendingBatches();
 	}
 
 	@Override

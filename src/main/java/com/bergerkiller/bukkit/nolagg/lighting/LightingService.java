@@ -1,5 +1,9 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,13 +15,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
+import com.bergerkiller.bukkit.common.config.CompressedDataReader;
+import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class LightingService extends AsyncTask {
@@ -25,7 +34,10 @@ public class LightingService extends AsyncTask {
 	private static Task tickTask = null;
 	private static final Set<String> recipientsForDone = new HashSet<String>();
 	private static final LinkedList<LightingTask> tasks = new LinkedList<LightingTask>();
+	private static final int PENDING_WRITE_INTERVAL = 5;
 	private static int taskChunkCount = 0;
+	private static int taskCounter = 0;
+	private static boolean isSaving = false;
 	private static LightingTask currentTask;
 
 	/**
@@ -128,15 +140,116 @@ public class LightingService extends AsyncTask {
 	}
 
 	/**
+	 * Loads the pending chunk batch operations from a save file.
+	 * If it is there, it will start processing these again.
+	 */
+	public static void loadPendingBatches() {
+		final File saveFile = NoLagg.plugin.getDataFile("PendingLight.dat");
+		if (!saveFile.exists()) {
+			return;
+		}
+		final HashSet<String> missingWorlds = new HashSet<String>();
+		if (!new CompressedDataReader(saveFile) {
+			@Override
+			public void read(DataInputStream stream) throws IOException {
+				final int count = stream.readInt();
+				NoLaggLighting.plugin.log(Level.INFO, "Continuing previously saved lighting operations (" + count + ")...");
+				final List<IntVector2> coords = new ArrayList<IntVector2>(2000);
+				long chunk;
+				for (int c = 0; c < count; c++) {
+					String worldName = stream.readUTF();
+					World world = Bukkit.getWorld(worldName);
+					if (world == null) {
+						// Load it?
+						if (new File(Bukkit.getWorldContainer(), worldName).exists()) {
+							world = Bukkit.createWorld(new WorldCreator(worldName));
+						} else {
+							missingWorlds.add(worldName);
+						}
+					}
+					final int chunkCount = stream.readInt();
+					if (world == null) {
+						stream.skip(chunkCount * (Long.SIZE / Byte.SIZE));
+						continue;
+					}
+					// Load all the coordinates
+					for (int i = 0; i < chunkCount; i++) {
+						chunk = stream.readLong();
+						coords.add(new IntVector2(MathUtil.longHashMsw(chunk), MathUtil.longHashLsw(chunk)));
+					}
+					// Schedule and clear
+					schedule(world, coords);
+					coords.clear();
+				}
+			}}.read()) {
+			NoLaggLighting.plugin.log(Level.SEVERE, "Failed to continue previous saved lighting operations");
+		}
+	}
+
+	/**
+	 * Saves all pending chunk batch operations to a save file.
+	 * If the server, for whatever reason, crashes, it can restore using this file.
+	 */
+	public static void savePendingBatches() {
+		if (isSaving) {
+			// Already saving - ignore it this run
+			return;
+		}
+		isSaving = true;
+		final File saveFile = NoLagg.plugin.getDataFile("PendingLight.dat");
+		if (saveFile.exists() && tasks.isEmpty()) {
+			saveFile.delete();
+			return;
+		}
+		// Write the data to a temporary save file
+		final File tmpFile = new File(saveFile.toString() + ".tmp");
+		final List<LightingTaskBatch> batches = new ArrayList<LightingTaskBatch>(tasks.size());
+		synchronized (tasks) {
+			if (tmpFile.exists() && !tmpFile.delete()) {
+				NoLaggLighting.plugin.log(Level.WARNING, "Failed to delete temporary pending light file. No states saved.");
+				return;
+			}
+			// Obtain all the batches to save
+			for (LightingTask task : tasks) {
+				if (task instanceof LightingTaskBatch) {
+					batches.add((LightingTaskBatch) task);
+				}
+			}
+		}
+		// Write to the tmp file
+		if (new CompressedDataWriter(tmpFile) {
+			@Override
+			public void write(DataOutputStream stream) throws IOException {
+				stream.writeInt(batches.size());
+				for (LightingTaskBatch batch : batches) {
+					// Write world name
+					stream.writeUTF(batch.getWorld().getName());
+					// Write all chunks
+					LongHashSet chunks = batch.getChunks();
+					stream.writeInt(chunks.size());
+					for (long chunk : chunks.toArray()) {
+						stream.writeLong(chunk);
+					}
+				}
+			}}.write()) {
+
+			// Move the files around
+			if (!saveFile.delete()) {
+				NoLaggLighting.plugin.log(Level.WARNING, "Failed to remove the previous pending light save file. No states saved.");
+			} else if (!tmpFile.renameTo(saveFile)) {
+				NoLaggLighting.plugin.log(Level.WARNING, "Failed to move pending save file to the actual save file. No states saved.");
+			}
+		} else {
+			NoLaggLighting.plugin.log(Level.WARNING, "Failed to write to pending save file. No states saved.");
+		}
+		isSaving = false;
+	}
+
+	/**
 	 * Orders this service to abort all tasks, finishing the current task in an orderly fashion.
 	 * This method can only be called from the main Thread.
 	 */
 	public static void abort() {
-		// Clear lighting tasks
-		synchronized (tasks) {
-			tasks.clear();
-			taskChunkCount = 0;
-		}
 		// Finish the current lighting task if available
 		final LightingTask current = currentTask;
 		final AsyncTask service = fixThread;
@@ -148,6 +261,17 @@ public class LightingService extends AsyncTask {
 			while (service.isRunning()) {
 				current.syncTick();
 				sleep(20);
+			}
+
+			// Clear lighting tasks
+			synchronized (tasks) {
+				if (!tasks.isEmpty()) {
+					NoLaggLighting.plugin.log(Level.INFO, "Writing the pending lighting tasks (" + tasks.size() + ") to file to continue later...");
+					NoLaggLighting.plugin.log(Level.INFO, "Want to abort all operations? Delete the 'PendingLighting.dat' file from the plugins/NoLagg folder");
+					savePendingBatches();
+				}
+				tasks.clear();
+				taskChunkCount = 0;
 			}
 		}
 	}
@@ -181,9 +305,21 @@ public class LightingService extends AsyncTask {
 				recipientsForDone.clear();
 			}
 			// Stop task and abort
+			taskCounter = 0;
 			setProcessing(false);
+			savePendingBatches();
 			return;
 		} else {
+			// Write to file?
+			if (taskCounter++ >= PENDING_WRITE_INTERVAL) {
+				taskCounter = 0;
+				// Start saving on another thread (IO access is slow...)
+				new AsyncTask() {
+					public void run() {
+						savePendingBatches();
+					}
+				}.start();
+			}
 			// Subtract task from the task count
 			taskChunkCount -= currentTask.getChunkCount();
 			// Process the task
@@ -204,7 +340,14 @@ public class LightingService extends AsyncTask {
 			}
 			runtime.gc();
 			final long freemb = runtime.freeMemory() / (1024 * 1024);
-			NoLaggLighting.plugin.log(Level.WARNING, "All worlds saved. Free memory: " + freemb + "MB. Continueing...");
+			if (runtime.freeMemory() >= NoLaggLighting.minFreeMemory) {
+				// WAIT! We are running out of juice here!
+				NoLaggLighting.plugin.log(Level.WARNING, "Almost running out of memory still (" + freemb + "MB) ...waiting for a bit");
+				sleep(10000);
+				runtime.gc();
+			} else {
+				NoLaggLighting.plugin.log(Level.WARNING, "All worlds saved. Free memory: " + freemb + "MB. Continueing...");
+			}
 		}
 	}
 }
