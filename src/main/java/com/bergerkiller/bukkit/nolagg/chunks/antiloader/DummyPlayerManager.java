@@ -17,7 +17,7 @@ import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class DummyPlayerManager extends PlayerChunkMapBase {
-	private static final DummyWorldServer DUMMYWORLD = new DummyWorldServer();
+	private static final DummyWorldServer DUMMYWORLD = DummyWorldServer.newInstance();
 
 	public static void convertAll() {
 		// Alter player manager to prevent chunk loading outside range
