@@ -31,12 +31,23 @@
       <id>bukkit-repo</id>
       <url>http://repo.bukkit.org/content/groups/public</url>
     </repository>
+    <!-- Repo for access to Spigot -->
+    <repository>
+      <id>md-5 repository</id>
+      <url>http://repo.md-5.net/content/repositories/snapshots/</url>
+    </repository>
   </repositories>
 
   <dependencies>
     <dependency>
       <groupId>org.bukkit</groupId>
       <artifactId>craftbukkit</artifactId>
+      <version>${project.cbversion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.spigotmc</groupId>
+      <artifactId>spigot</artifactId>
       <version>${project.cbversion}</version>
       <scope>provided</scope>
     </dependency>

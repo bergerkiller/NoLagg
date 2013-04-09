@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -76,7 +77,7 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			CommonPacket packet = PacketFields.MAP_CHUNK.newInstance(Conversion.toChunkHandle.convert(chunk), true, 0xffff);
+			CommonPacket packet = PacketFields.MAP_CHUNK_BULK.newInstance(Arrays.asList(chunk));
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
 	}

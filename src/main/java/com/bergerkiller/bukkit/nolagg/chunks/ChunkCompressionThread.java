@@ -5,15 +5,20 @@ import java.util.logging.Level;
 import java.util.zip.Deflater;
 
 import org.bukkit.entity.Player;
+import org.spigotmc.OrebfuscatorManager;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
+import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
+import com.bergerkiller.bukkit.common.reflection.classes.WorldRef;
 import com.lishid.orebfuscator.internal.IPacket51;
 import com.lishid.orebfuscator.internal.InternalAccessor;
 import com.lishid.orebfuscator.obfuscation.Calculations;
@@ -30,6 +35,7 @@ public class ChunkCompressionThread extends AsyncTask {
 	 * - Biome data, one byte for each column, 16 x 16
 	 */
 	private static final int MAX_CHUNK_DATA_LENGTH = (16 * 5 * 2048) + (16 * 16);
+	private static MethodAccessor<Void> spigotObfuscateMethod;
 
 	private static ChunkCompressQueue nextQueue() {
 		synchronized (compress) {
@@ -268,6 +274,14 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 		}
 		// ========================================
+		if (Common.IS_SPIGOT_SERVER) {
+			final int bitmap =  mapchunk.read(PacketFields.MAP_CHUNK.chunkDataBitMap);
+			final byte[] buffer = mapchunk.read(PacketFields.MAP_CHUNK.buffer);
+			if (spigotObfuscateMethod == null) {
+				spigotObfuscateMethod = new SafeMethod<Void>(OrebfuscatorManager.class, "obfuscate", int.class, int.class, int.class, byte[].class, WorldRef.TEMPLATE.getType());
+			}
+			spigotObfuscateMethod.invoke(null, chunk.getX(), chunk.getZ(), bitmap, buffer, Conversion.toWorldHandle.convert(chunk.getWorld()));
+		}
 
 		// compression
 		this.deflate(mapchunk);
