@@ -267,17 +267,16 @@ public class LightingService extends AsyncTask {
 				current.syncTick();
 				sleep(20);
 			}
-
-			// Clear lighting tasks
-			synchronized (tasks) {
-				if (!tasks.isEmpty()) {
-					NoLaggLighting.plugin.log(Level.INFO, "Writing the pending lighting tasks (" + tasks.size() + ") to file to continue later...");
-					NoLaggLighting.plugin.log(Level.INFO, "Want to abort all operations? Delete the 'PendingLighting.dat' file from the plugins/NoLagg folder");
-					savePendingBatches();
-				}
-				tasks.clear();
-				taskChunkCount = 0;
+		}
+		// Clear lighting tasks
+		synchronized (tasks) {
+			if (!tasks.isEmpty()) {
+				NoLaggLighting.plugin.log(Level.INFO, "Writing the pending lighting tasks (" + tasks.size() + ") to file to continue later...");
+				NoLaggLighting.plugin.log(Level.INFO, "Want to abort all operations? Delete the 'PendingLighting.dat' file from the plugins/NoLagg folder");
 			}
+			savePendingBatches();
+			tasks.clear();
+			taskChunkCount = 0;
 		}
 	}
 
