@@ -60,6 +60,6 @@ public class NoLaggItemBuffer extends NoLaggComponent {
 	}
 
 	public static void remove(Entity entity) {
-		items.remove(entity.getEntityId());
+		items.remove(Integer.valueOf(entity.getEntityId()));
 	}
 }
