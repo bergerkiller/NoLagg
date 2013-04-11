@@ -12,7 +12,6 @@ import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 
 public abstract class NoLaggComponent {
-
 	protected NoLaggComponents comp;
 
 	public void log(Level level, String text) {
@@ -49,7 +48,7 @@ public abstract class NoLaggComponent {
 				this.onReload(config.getNode(this.getName().toLowerCase()));
 			} catch (Throwable t) {
 				log(Level.SEVERE, "Failed to reload NoLagg component '" + this.getName() + "':");
-				t.printStackTrace();
+				NoLagg.plugin.handle(t);
 			}
 		}
 	}
@@ -61,7 +60,7 @@ public abstract class NoLaggComponent {
 				this.comp.setEnabled(true);
 			} catch (Throwable t) {
 				log(Level.SEVERE, "Failed to enable NoLagg component '" + this.getName() + "':");
-				t.printStackTrace();
+				NoLagg.plugin.handle(t);
 			}
 		}
 	}
@@ -73,7 +72,7 @@ public abstract class NoLaggComponent {
 				this.onDisable(config.getNode(this.getName().toLowerCase()));
 			} catch (Throwable t) {
 				log(Level.SEVERE, "Failed to disable NoLagg component '" + this.getName() + "':");
-				t.printStackTrace();
+				NoLagg.plugin.handle(t);
 			}
 		}
 	}
