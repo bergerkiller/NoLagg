@@ -49,7 +49,7 @@ public class NoLaggExamine extends NoLaggComponent {
 		config.addHeader("maxExamineTime", "It can be increased, but the generated file might be too large for the viewer to handle");
 		maxExamineTime = config.get("maxExamineTime", 72000);
 		config.setHeader("exportFolder", "\nThe folder in which the .exam files are saved");
-		exportFolder = new File(config.get("exportFolder", "plugins" + File.separator + "NoLagg"));
+		exportFolder = new File(config.get("exportFolder", "plugins"));
 	}
 
 	@Override
