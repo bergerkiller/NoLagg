@@ -10,6 +10,7 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.IntRemainder;
+import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
@@ -22,10 +23,9 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
-import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
-import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -106,6 +106,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private IntRemainder rate = new IntRemainder(2.0, 1);
 	private int intervalcounter = 200;
 	private ChunkCompressQueue chunkQueue;
+	private final ToggledState isSentChunksVerified = new ToggledState();
 
 	/*
 	 * Packet queue related variables
@@ -191,9 +192,12 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		}
 	}
 
-	@Override
+	/**
+	 * Sorts the contents of this queue to send in direction of the player<br>
+	 * Also cleans up some of the other internal collections (to handle chunk
+	 * change movement)
+	 */
 	public void sort() {
-		super.sort();
 		this.chunkQueue.sort();
 		synchronized (this) {
 			this.updating.next(true);
@@ -216,6 +220,25 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		} catch (Throwable t) {
 			NoLaggChunks.plugin.log(Level.SEVERE, "An error occurred while sorting a collection:");
 			t.printStackTrace();
+		}
+	}
+
+	public void verifySentChunks() {
+		if (isSentChunksVerified.set()) {
+			// Verify all chunks - add those that haven't been sent yet
+			final int view = DynamicViewDistance.viewDistance;
+			int cx, cz;
+			int x = this.getCenterX();
+			int z = this.getCenterZ();
+			IntVector2 pair;
+			for (cx = x - view; cx <= x + view; cx++) {
+				for (cz = z - view; cz <= z + view; cz++) {
+					pair = new IntVector2(cx, cz);
+					if (!PlayerUtil.isChunkVisible(player, pair.x, pair.z)) {
+						this.add(pair);
+					}
+				}
+			}
 		}
 	}
 
@@ -338,9 +361,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		int newx = MathUtil.toChunk(locX);
 		int newz = MathUtil.toChunk(locZ);
 		if (world != this.world || newx != this.x || newz != this.z || this.sendDirection != newDirection) {
-			if (this.world != world) { 
-				setOldUnloaded();
-			}
 			this.sendDirection = newDirection;
 			this.x = newx;
 			this.z = newz;
@@ -357,20 +377,22 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 */
 	private void sendBatch(int count) {
 		// load chunks
-		long start = System.nanoTime();
+		final World world = this.player.getWorld();
 		for (int i = 0; i < count; i++) {
-			IntVector2 pair = this.pollNextChunk();
+			final IntVector2 pair = this.pollNextChunk();
 			if (pair == null) {
 				break;
 			}
-			this.chunkQueue.enqueue(WorldUtil.getChunk(this.player.getWorld(), pair.x, pair.z));
-		}
-		// Filter the chunk load times to prevent duplication in the examiner
-		if (NoLaggComponents.EXAMINE.isEnabled()) {
-			if (PluginLogger.isRunning()) {
-				// Subtract time from chunk loading task
-				PluginLogger.getTask(task, NoLagg.plugin).subtractTime(start);
-			}
+			WorldUtil.getChunkAsync(this.player.getWorld(), pair.x, pair.z, new Runnable() {
+				public void run() {
+					// Check whether we didn't just change worlds
+					if (ChunkSendQueue.this.player.getWorld() != world) {
+						return;
+					}
+					// Load the chunk
+					ChunkSendQueue.this.chunkQueue.enqueue(WorldUtil.getChunk(world, pair.x, pair.z));
+				}
+			});
 		}
 
 		// send chunks
@@ -416,6 +438,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (super.addPair(index, pair)) {
 			this.chunkQueue.remove(pair.x, pair.z);
 			this.sendDirection = null; // invalidate
+			this.isSentChunksVerified.clear(); // invalidate
 			return true;
 		} else {
 			return false;

@@ -1,15 +1,16 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
 
 import com.bergerkiller.bukkit.common.ActiveState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.reflection.classes.VectorRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
 /**
  * Only contains the empty-faking and double-mapping of contained elements
@@ -18,64 +19,11 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 public abstract class ChunkSendQueueBase extends LinkedList {
 	private static final long serialVersionUID = 1L;
 	protected final ActiveState<Boolean> updating = new ActiveState<Boolean>(false);
-	private final Set<IntVector2> contained = new HashSet<IntVector2>();
-	protected final Set<IntVector2> sentChunks = new HashSet<IntVector2>();
-	private boolean isSentChunksVerified = true;
-
-	/**
-	 * Sorts the contents of this queue to send in direction of the player<br>
-	 * Also cleans up some of the other internal collections (to handle chunk
-	 * change movement)
-	 */
-	public void sort() {
-		for (Iterator<IntVector2> iter = sentChunks.iterator(); iter.hasNext();) {
-			if (!this.isNear(iter.next(), CommonUtil.VIEW)) {
-				iter.remove();
-			}
-		}
-	}
-
-	/**
-	 * Notifies the queue that all chunks previously sent have been unloaded by the client
-	 */
-	public void setOldUnloaded() {
-		this.sentChunks.clear();
-	}
-
-	/**
-	 * Performs a pre-unload operation on this queue
-	 * 
-	 * @param chunkCoord of the chunk to unload
-	 * @return True if an unload packet is required, False if not
-	 */
-	public boolean preUnloadChunk(IntVector2 chunkCoord) {
-		this.removePair(chunkCoord);
-		return this.sentChunks.remove(chunkCoord);
-	}
+	private final LongHashSet contained = new LongHashSet();
 
 	public abstract int getCenterX();
 
 	public abstract int getCenterZ();
-
-	public void verifySentChunks() {
-		if (!this.isSentChunksVerified) {
-			this.isSentChunksVerified = true;
-			// Verify all chunks - add those that haven't been sent yet
-			final int view = DynamicViewDistance.viewDistance;
-			int cx, cz;
-			int x = this.getCenterX();
-			int z = this.getCenterZ();
-			IntVector2 pair;
-			for (cx = x - view; cx <= x + view; cx++) {
-				for (cz = z - view; cz <= z + view; cz++) {
-					pair = new IntVector2(cx, cz);
-					if (!this.sentChunks.contains(pair)) {
-						this.add(pair);
-					}
-				}
-			}
-		}
-	}
 
 	/**
 	 * Polls the next chunk coordinate for the chunk that can be loaded and sent
@@ -91,7 +39,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 				return pair;
 			} else if (!this.isNear(pair, CommonUtil.VIEW)) {
 				iter.remove();
-				this.contained.remove(pair);
+				this.contained.remove(pair.x, pair.z);
 			}
 		}
 		return null;
@@ -104,7 +52,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * @param z- coordinate of the chunk
 	 */
 	public void removeContained(int x, int z) {
-		this.contained.remove(new IntVector2(x, z));
+		this.contained.remove(x, z);
 	}
 
 	/**
@@ -114,8 +62,9 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	public LinkedList toLinkedList() {
 		LinkedList value = new LinkedList();
-		for (IntVector2 pair : this.contained) {
-			value.add(Conversion.toChunkCoordIntPairHandle.convert(pair));
+		for (long key : this.contained) {
+			IntVector2 vec = new IntVector2(MathUtil.longHashMsw(key), MathUtil.longHashLsw(key));
+			value.add(Conversion.toChunkCoordIntPairHandle.convert(vec));
 		}
 		return value;
 	}
@@ -173,9 +122,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 			return;
 		}
 		synchronized (this) {
-			for (Object value : this) {
-				this.contained.remove(Conversion.toIntVector2.convert(value));
-			}
+			this.contained.clear();
 			super.clear();
 		}
 	}
@@ -194,7 +141,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	@Override
 	public boolean contains(Object o) {
 		synchronized (this) {
-			return this.contained.contains(Conversion.toIntVector2.convert(o));
+			return this.contained.contains(VectorRef.getPairX(o), VectorRef.getPairZ(o));
 		}
 	}
 
@@ -257,7 +204,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		if (pair == null) {
 			return false;
 		}
-		return this.contained.remove(pair) && super.remove(Conversion.toChunkCoordIntPairHandle.convert(pair));
+		return this.contained.remove(MathUtil.longHashToLong(pair.x, pair.z)) && super.remove(Conversion.toChunkCoordIntPairHandle.convert(pair));
 	}
 
 	protected final synchronized boolean addPair(IntVector2 pair) {
@@ -271,8 +218,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 		if (this.isNear(pair, CommonUtil.VIEW)) {
 			final Object handle = Conversion.toChunkCoordIntPairHandle.convert(pair);
 			// Add to sending queue if not contained, or a re-send is requested
-			if (this.contained.add(pair) || !super.contains(handle)) {
-				this.isSentChunksVerified = false;
+			if (this.contained.add(pair.x, pair.z) || !super.contains(handle)) {
 				super.add(index, handle);
 				return true;
 			}

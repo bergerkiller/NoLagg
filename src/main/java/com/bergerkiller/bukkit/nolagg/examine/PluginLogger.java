@@ -3,10 +3,8 @@ package com.bergerkiller.bukkit.nolagg.examine;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +32,7 @@ import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class PluginLogger {
@@ -171,18 +170,10 @@ public class PluginLogger {
 		}.start(1, 1);
 	}
 
-	public static String now(String dateformat) {
-		return new SimpleDateFormat(dateformat).format(Calendar.getInstance().getTime()).trim();
-	}
-
 	public static void onFinish() {
 		measuretask = null;
-		StringBuilder filename = new StringBuilder();
-		filename.append("plugins").append(File.separator);
-		filename.append(now("yyyy_MM_dd-H_mm_ss"));
-		filename.append(".exam");
-		File file = new File(filename.toString());
-		file.getAbsoluteFile().getParentFile().mkdirs();
+		NoLaggExamine.exportFolder.mkdirs();
+		final File file = new File(NoLaggExamine.exportFolder, TimeUtil.now("yyyy_MM_dd-H_mm_ss") + ".exam");
 
 		// Start a new compressed (deflater, ZIP) data writer
 		new CompressedDataWriter(file) {

@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
+import java.io.File;
+
 import net.timedminecraft.server.TimedChunkProviderServer;
 
 import org.bukkit.ChatColor;
@@ -19,6 +21,7 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 public class NoLaggExamine extends NoLaggComponent {
 	public static NoLaggExamine plugin;
 	public static int maxExamineTime;
+	public static File exportFolder;
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
@@ -45,6 +48,8 @@ public class NoLaggExamine extends NoLaggComponent {
 		config.setHeader("maxExamineTime", "\nThe maximum time in ticks a generated examine report can be");
 		config.addHeader("maxExamineTime", "It can be increased, but the generated file might be too large for the viewer to handle");
 		maxExamineTime = config.get("maxExamineTime", 72000);
+		config.setHeader("exportFolder", "\nThe folder in which the .exam files are saved");
+		exportFolder = new File(config.get("exportFolder", "plugins" + File.separator + "NoLagg"));
 	}
 
 	@Override
