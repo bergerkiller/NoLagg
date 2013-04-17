@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.itemstacker;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import org.bukkit.World;
@@ -16,8 +18,8 @@ public class WorldStackFormer {
 	private boolean isProcessing = false; // Processing state, True for async busy or waiting, False for sync available
 	private final double radiusSquared;
 	private boolean disabled = false;
-	private final LinkedList<Item> syncItems = new LinkedList<Item>();
-	private final LinkedList<ExperienceOrb> syncOrbs = new LinkedList<ExperienceOrb>();
+	private final Collection<Item> syncItems = new HashSet<Item>();
+	private final Collection<ExperienceOrb> syncOrbs = new HashSet<ExperienceOrb>();
 	private LinkedList<StackingTask<ExperienceOrb>> orbTasks = new LinkedList<StackingTask<ExperienceOrb>>();
 	private LinkedList<StackingTask<Item>> itemTasks = new LinkedList<StackingTask<Item>>();
 
@@ -63,10 +65,8 @@ public class WorldStackFormer {
 	 */
 	public void removeEntity(Entity e) {
 		if (e instanceof Item) {
-			if (!NoLaggItemStacker.isIgnoredItem(e)) {
-				// don't bother doing an 'ignored item' check as it checks in a map or set anyway
-				syncItems.remove((Item) e);
-			}
+			// don't bother doing an 'ignored item' check as it checks in a map or set anyway
+			syncItems.remove((Item) e);
 		} else if (e instanceof ExperienceOrb && NoLaggItemStacker.stackOrbs) {
 			syncOrbs.remove((ExperienceOrb) e);
 		}

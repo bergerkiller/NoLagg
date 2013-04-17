@@ -5,13 +5,16 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 
-import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.ItemUtil;
 
-public class StackingTask <T extends org.bukkit.entity.Entity> {
+public class StackingTask <T extends Entity> {
+	private static Location locationBuffer = new Location(null, 0.0, 0.0, 0.0);
+	private static Location selfLocationBuffer = new Location(null, 0.0, 0.0, 0.0);
 	private T entity;
 	private List<T> nearby = new ArrayList<T>(0);
 
@@ -79,6 +82,15 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 	}
 
 	/**
+	 * Checks whether a given item reached it's maximum stacking size
+	 * 
+	 * @return True if the item is maxed, False if not
+	 */
+	public static boolean isMaxed(ItemStack item) {
+		return item.getAmount() >= ItemUtil.getMaxSize(item);
+	}
+
+	/**
 	 * Fills the nearby entities of this task
 	 * 
 	 * @param Entitytasks to use as source for entities
@@ -88,53 +100,32 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 		if (this.entity.isDead()) {
 			return;
 		}
+		this.entity.getLocation(selfLocationBuffer);
 		T entity;
-		double d;
+		ItemStack entityItemStack = this.entity instanceof Item ? ((Item) this.entity).getItemStack() : null;
 		for (StackingTask<T> task : Entitytasks) {
 			if (!task.isValid()) {
 				break; // Reached end of data
 			}
 			entity = task.entity;
-			if (!entity.isDead() && entity != this.entity) {
-				// Distance check
-				d = distance(EntityUtil.getLocX(this.entity), EntityUtil.getLocX(entity));
-				if (d > radiusSquared) {
-					continue;
-				}
-				d += distance(EntityUtil.getLocY(this.entity), EntityUtil.getLocY(entity));
-				if (d > radiusSquared) {
-					continue;
-				}
-				d += distance(EntityUtil.getLocZ(this.entity), EntityUtil.getLocZ(entity));
-				if (d > radiusSquared) {
-					continue;
-				}
-				// Add to nearby entities (performs possible more checks)
-				addNearby(entity);
+
+			// Same entity, dead entity or out of range?
+			if (entity.isDead() || entity == this.entity || 
+					entity.getLocation(locationBuffer).distanceSquared(selfLocationBuffer) > radiusSquared) {
+				continue;
 			}
-		}
-	}
 
-	private void addNearby(T entity) {
-		if (this.entity instanceof Item) {
-			// Do a compatibility check
-			Item from = (Item) this.entity;
-			Item to = (Item) entity;
-			if (isMaxed(from) || !itemEquals(from, to)) {
-				return;
+			// Same item type and data? (If item)
+			if (entityItemStack != null) {
+				Item to = (Item) entity;
+				if (isMaxed(entityItemStack) || !ItemUtil.equalsIgnoreAmount(entityItemStack, to.getItemStack())) {
+					continue;
+				}
 			}
+
+			// This item can stack: add the nearby entity
+			this.nearby.add(entity);
 		}
-		this.nearby.add(entity);
-	}
-
-	private static boolean itemEquals(Item item1, Item item2) {
-		ItemStack stack1 = item1.getItemStack();
-		ItemStack stack2 = item2.getItemStack();
-		return stack1.getTypeId() == stack2.getTypeId() && stack1.getDurability() == stack2.getDurability();
-	}
-
-	private static double distance(final double d1, final double d2) {
-		return Math.abs((d1 - d2) * (d1 - d2));
 	}
 
 	/**
@@ -143,7 +134,7 @@ public class StackingTask <T extends org.bukkit.entity.Entity> {
 	 * @param entities to transfer
 	 * @param tasks to transfer the entities to
 	 */
-	public static <T extends org.bukkit.entity.Entity> void transfer(Collection<T> entities, Collection<StackingTask<T>> tasks) {
+	public static <T extends Entity> void transfer(Collection<T> entities, Collection<StackingTask<T>> tasks) {
 		// Ensure required tasks capacity
 		if (entities.size() > tasks.size()) {
 			for (int i = tasks.size(); i < entities.size(); i++) {
