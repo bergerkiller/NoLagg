@@ -63,8 +63,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	public LinkedList toLinkedList() {
 		LinkedList value = new LinkedList();
 		for (long key : this.contained) {
-			IntVector2 vec = new IntVector2(MathUtil.longHashMsw(key), MathUtil.longHashLsw(key));
-			value.add(Conversion.toChunkCoordIntPairHandle.convert(vec));
+			value.add(VectorRef.newPair(MathUtil.longHashMsw(key), MathUtil.longHashLsw(key)));
 		}
 		return value;
 	}

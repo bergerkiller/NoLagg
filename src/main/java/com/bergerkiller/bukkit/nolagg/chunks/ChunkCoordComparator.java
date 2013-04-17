@@ -7,6 +7,7 @@ import org.bukkit.block.BlockFace;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.reflection.classes.VectorRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 
@@ -200,6 +201,8 @@ public class ChunkCoordComparator implements Comparator<Object> {
 		} else if (coord instanceof ChunkSendCommand) {
 			ChunkSendCommand cmd = (ChunkSendCommand) coord;
 			return getIndex(cmd.chunk.getX(), cmd.chunk.getZ());
+		} else if (VectorRef.isPair(coord)) {
+			return getIndex(VectorRef.getPairX(coord), VectorRef.getPairZ(coord));
 		} else {
 			final IntVector2 i2coord = Conversion.toIntVector2.convert(coord);
 			if (coord != null) {

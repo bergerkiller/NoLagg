@@ -223,25 +223,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		}
 	}
 
-	public void verifySentChunks() {
-		if (isSentChunksVerified.set()) {
-			// Verify all chunks - add those that haven't been sent yet
-			final int view = DynamicViewDistance.viewDistance;
-			int cx, cz;
-			int x = this.getCenterX();
-			int z = this.getCenterZ();
-			IntVector2 pair;
-			for (cx = x - view; cx <= x + view; cx++) {
-				for (cz = z - view; cz <= z + view; cz++) {
-					pair = new IntVector2(cx, cz);
-					if (!PlayerUtil.isChunkVisible(player, pair.x, pair.z)) {
-						this.add(pair);
-					}
-				}
-			}
-		}
-	}
-
 	/**
 	 * Main update routine - handles the calculation of the rate and interval
 	 * and updates afterwards
@@ -275,8 +256,21 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		}
 
 		if (this.isEmpty() && !this.chunkQueue.canSend()) {
-			// Queue some remaining chunks?
-			this.verifySentChunks();
+			// Queue some remaining chunks that are not visible yet?
+			if (isSentChunksVerified.set()) {
+				// Verify all chunks - add those that haven't been sent yet
+				final int view = DynamicViewDistance.viewDistance;
+				int cx, cz;
+				int x = this.getCenterX();
+				int z = this.getCenterZ();
+				for (cx = x - view; cx <= x + view; cx++) {
+					for (cz = z - view; cz <= z + view; cz++) {
+						if (!PlayerUtil.isChunkVisible(player, cx, cz)) {
+							this.addPair(new IntVector2(cx, cz));
+						}
+					}
+				}
+			}
 			if (this.isEmpty()) {
 				return;
 			}
@@ -308,7 +302,11 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 
 		this.rate.set(newrate);
 		this.prevQueueSize = this.packetBufferQueueSize;
-		// send chunks
+
+		// Update position
+		this.updatePosition(player.getLocation());
+
+		// Send chunks
 		if (newrate >= 1) {
 			this.update(1, (int) this.rate.next());
 		} else {
@@ -331,9 +329,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			return;
 		}
 		if (this.intervalcounter >= interval) {
-			updatePosition(player.getLocation());
-			this.sendBatch(rate);
 			this.intervalcounter = 1;
+			this.sendBatch(rate);
 		} else {
 			this.intervalcounter++;
 		}
