@@ -19,6 +19,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.StopWatch;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
@@ -179,8 +180,8 @@ public class PerformanceMonitor extends Task {
 		return sdf.format(Calendar.getInstance().getTime());
 	}
 
-	private static String getColumn(String text) {
-		return " " + text + "		|";
+	private static void appendColumn(StringBuilder builder, String text) {
+		builder.append(" ").append(text).append("		|");
 	}
 
 	public static class ProcessTime extends StopWatch {
@@ -325,37 +326,38 @@ public class PerformanceMonitor extends Task {
 				try {
 					if (!wroteHeader) {
 						wroteHeader = true;
-						String columns = "";
-						columns += "| Time		| Tick rate		| Total Memory	| Static Memory	| Dynamic Memory	";
-						columns += "| Memory Write Rate	| Total Chunks	| Unloadable Chunks	";
-						columns += "| Chunks Loaded	| Chunks generated	| Chunks Unloaded	| Lighting Fixes	";
-						columns += "| Chunk Packets	| Entities		| Mobs		| Items		| TNT		| Players		| Update		| Update type	|";
-						log(columns);
+						StringBuilder columns = new StringBuilder();
+						columns.append("| Time		| Tick rate		| Total Memory	| Static Memory	| Dynamic Memory	");
+						columns.append("| Memory Write Rate	| Total Chunks	| Unloadable Chunks	");
+						columns.append("| Chunks Loaded	| Chunks generated	| Chunks Unloaded	| Lighting Fixes	");
+						columns.append("| Chunk Packets	| Entities		| Mobs		| Items		| TNT		| Players		| Update		| Update type	|");
+						log(columns.toString());
 					}
-					String msg = "";
-					msg += "|" + getColumn(getTime());
-					msg += getColumn(String.valueOf(MathUtil.round(tps, 1)));
-					msg += getColumn(mem(maxmem) + " MB");
-					msg += getColumn(mem(minmem) + " MB");
-					msg += getColumn(mem(usedmem - minmem) + " MB");
+					StringBuilder msg = new StringBuilder(500);
+					msg.append("|");
+					appendColumn(msg, getTime());
+					appendColumn(msg, String.valueOf(MathUtil.round(tps, 1)));
+					appendColumn(msg, mem(maxmem) + " MB");
+					appendColumn(msg, mem(minmem) + " MB");
+					appendColumn(msg, mem(usedmem - minmem) + " MB");
 					if (diff <= 0) {
-						msg += getColumn("GC");
+						appendColumn(msg, "GC");
 					} else {
-						msg += getColumn(mem(diff / elapsedtimesec) + " MB/s");
+						appendColumn(msg, mem(diff / elapsedtimesec) + " MB/s");
 					}
-					msg += getColumn(String.valueOf(totalchunkcount));
-					msg += getColumn(String.valueOf(totaluchunkcount));
-					msg += getColumn(String.valueOf(NLMListener.loadedChunks));
-					msg += getColumn(String.valueOf(NLMListener.generatedChunks));
-					msg += getColumn(String.valueOf(NLMListener.unloadedChunks));
-					msg += getColumn(String.valueOf(lighting));
-					msg += getColumn(String.valueOf(bufftnt));
-					msg += getColumn(String.valueOf(entitycount));
-					msg += getColumn(String.valueOf(mobcount));
-					msg += getColumn(String.valueOf(itemcount));
-					msg += getColumn(String.valueOf(tntcount));
-					msg += getColumn(String.valueOf(playercount));
-					log(msg);
+					appendColumn(msg, String.valueOf(totalchunkcount));
+					appendColumn(msg, String.valueOf(totaluchunkcount));
+					appendColumn(msg, String.valueOf(NLMListener.loadedChunks));
+					appendColumn(msg, String.valueOf(NLMListener.generatedChunks));
+					appendColumn(msg, String.valueOf(NLMListener.unloadedChunks));
+					appendColumn(msg, String.valueOf(lighting));
+					appendColumn(msg, String.valueOf(bufftnt));
+					appendColumn(msg, String.valueOf(entitycount));
+					appendColumn(msg, String.valueOf(mobcount));
+					appendColumn(msg, String.valueOf(itemcount));
+					appendColumn(msg, String.valueOf(tntcount));
+					appendColumn(msg, String.valueOf(playercount));
+					log(msg.toString());
 					logger.flush();
 				} catch (IOException ex) {
 					NoLaggMonitor.plugin.log(Level.SEVERE, "Logging disabled:");
@@ -372,22 +374,24 @@ public class PerformanceMonitor extends Task {
 				CommandSender s = Bukkit.getServer().getConsoleSender();
 				// Line
 				s.sendMessage("-");
-				String mem;
+				StringBuilder mem = new StringBuilder();
 				// memory
 				s.sendMessage(getMemory(false));
 				// chunks
-				mem = "Chunks: ";
-				mem += totalchunkcount + " [" + totaluchunkcount + " Unloadable]";
-				mem += " [+" + (NLMListener.loadedChunks + NLMListener.generatedChunks) + "]";
-				mem += " [-" + NLMListener.unloadedChunks + "]";
-				s.sendMessage(mem);
+				mem.append("Chunks: ");
+				mem.append(totalchunkcount).append(" [").append(totaluchunkcount).append(" Unloadable]");
+				mem.append(" [+").append((NLMListener.loadedChunks + NLMListener.generatedChunks)).append("]");
+				mem.append(" [-").append(NLMListener.unloadedChunks).append("]");
+				s.sendMessage(mem.toString());
 				// Entities
-				mem = "Entities: " + entitycount + " [" + mobcount + " mobs]";
-				mem += " [" + itemcount + " items] [" + tntcount + " mobile TNT]";
-				s.sendMessage(mem);
+				mem.setLength(0);
+				mem.append("Entities: ").append(entitycount).append(" [").append(mobcount).append(" mobs]");
+				mem.append(" [").append(itemcount).append(" items] [").append(tntcount).append(" mobile TNT]");
+				s.sendMessage(mem.toString());
 				// Compression thread busy
-				mem = "Chunk packet sending thread: " + chunksendbusy + "% busy";
-				s.sendMessage(mem);
+				mem.setLength(0);
+				mem.append("Chunk packet sending thread: ").append(chunksendbusy).append("% busy");
+				s.sendMessage(mem.toString());
 				// Tick times
 				s.sendMessage(getTPS(false));
 
@@ -397,41 +401,36 @@ public class PerformanceMonitor extends Task {
 				}
 			}
 			if (recipients.size() > 0) {
-				ArrayList<String> messages = new ArrayList<String>(6);
 				// Line
-				messages.add("");
-
-				String mem;
+				MessageBuilder mem = new MessageBuilder();
+				// Newline to flush the text before
+				mem.newLine();
 
 				// Memory
-				messages.add(getMemory(true));
+				mem.append(getMemory(true)).newLine();
 				// Tick times
-				messages.add(getTPS(true));
+				mem.append(getTPS(true)).newLine();
 				// Chunks
-				mem = ChatColor.YELLOW + "Chunks: " + ChatColor.GOLD;
-				mem += totalchunkcount + " [" + totaluchunkcount + " U]";
-				mem += ChatColor.GREEN + " [+" + NLMListener.loadedChunks + "]";
-				mem += ChatColor.YELLOW + " [+" + NLMListener.generatedChunks + "]";
-				mem += ChatColor.RED + " [-" + NLMListener.unloadedChunks + "]";
-				mem += (isLightingActive ? ChatColor.RED : ChatColor.GOLD) + " [" + lighting + " lighting]";
-				messages.add(mem);
-				// Buffering
-				// entities
-				mem = ChatColor.YELLOW + "Entities: " + ChatColor.GOLD;
-				mem += entitycount + " " + ChatColor.DARK_GREEN + "[" + mobcount + " mobs]" + ChatColor.YELLOW + " [" + itemcount + " items] ";
-				mem += ChatColor.GREEN + "[" + tntcount + " TNT] " + ChatColor.AQUA + "[" + playercount + " players]";
-				messages.add(mem);
+				mem.yellow("Chunks: ").gold(totalchunkcount, " [", totaluchunkcount, " U]");
+				mem.green(" [+", NLMListener.loadedChunks, "]");
+				mem.yellow(" [+", NLMListener.generatedChunks, "]");
+				mem.red(" [-", NLMListener.unloadedChunks, "]");
+				mem.append(isLightingActive ? ChatColor.RED : ChatColor.GOLD, " [", lighting, " lighting]");
+				mem.newLine();
+				// Buffering entities
+				mem.yellow("Entities: ").gold(entitycount, " ").dark_green("[", mobcount, " mobs]");
+				mem.yellow(" [", itemcount, " items] ").green("[", tntcount, " TNT]").aqua("[", playercount, " players]");
+				mem.newLine();
 				// Compression thread busy
-				mem = ChatColor.YELLOW + "Packet compression busy: ";
+				mem.yellow("Packet compression busy: ");
 				if (chunksendbusy > 60) {
-					mem += ChatColor.RED;
+					mem.append(ChatColor.RED);
 				} else if (chunksendbusy > 30) {
-					mem += ChatColor.GOLD;
+					mem.append(ChatColor.RED);
 				} else {
-					mem += ChatColor.GREEN;
+					mem.append(ChatColor.RED);
 				}
-				mem += chunksendbusy + "% busy";
-				messages.add(mem);
+				mem.append(chunksendbusy, "% busy");
 
 				// average send rate
 				double avgrate = 0;
@@ -444,9 +443,7 @@ public class PerformanceMonitor extends Task {
 					String name = recipients.get(i);
 					Player p = Bukkit.getServer().getPlayer(name);
 					if (p != null) {
-						for (String msg : messages) {
-							p.sendMessage(msg);
-						}
+						mem.send(p);
 						// send individual sending rate
 						if (NoLaggComponents.CHUNKS.isEnabled()) {
 							ChunkSendQueue queue = ChunkSendQueue.bind(p);
@@ -477,5 +474,4 @@ public class PerformanceMonitor extends Task {
 		prevtime = time;
 		prevusedmem = usedmem;
 	}
-
 }

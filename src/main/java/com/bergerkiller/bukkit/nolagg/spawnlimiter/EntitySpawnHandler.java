@@ -138,12 +138,11 @@ public class EntitySpawnHandler {
 	 * @param entity to remove
 	 */
 	public static void removeEntity(Entity entity) {
-		if (!isIgnored(entity)) {
-			if (entity.isDead()) {
-				getLimits(entity, mobSpawnerEntities.remove(entity.getEntityId())).despawn();
-			} else {
-				getLimits(entity, mobSpawnerEntities.contains(entity.getEntityId())).despawn();
-			}
+		final boolean dead = entity.isDead();
+		final Integer id = entity.getEntityId();
+		// If dead, remove the entries
+		if (!(dead ? ignoredEntities.remove(id) : ignoredEntities.contains(id))) {
+			getLimits(entity, dead ? mobSpawnerEntities.remove(id) : mobSpawnerEntities.contains(id)).despawn();
 		}
 	}
 }
