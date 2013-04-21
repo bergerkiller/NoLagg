@@ -110,7 +110,7 @@ public class StackingTask <T extends Entity> {
 			entity = task.entity;
 
 			// Same entity, dead entity or out of range?
-			if (entity.isDead() || entity == this.entity || 
+			if (entity.isDead() || entity == this.entity || entity.getWorld() != this.entity.getWorld() ||
 					entity.getLocation(locationBuffer).distanceSquared(selfLocationBuffer) > radiusSquared) {
 				continue;
 			}
