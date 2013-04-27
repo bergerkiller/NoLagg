@@ -13,7 +13,7 @@ import com.bergerkiller.bukkit.common.IntRemainder;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
@@ -23,6 +23,7 @@ import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.FaceUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
@@ -138,23 +139,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (!NetworkManagerRef.TEMPLATE.isInstance(nm)) {
 			return;
 		}
-		Object lockObject = NetworkManagerRef.lockObject.get(nm);
-		if (lockObject != null) {
-			List<Object> low = NetworkManagerRef.lowPriorityQueue.get(nm);
-			List<Object> high = NetworkManagerRef.highPriorityQueue.get(nm);
-			if (low != null && high != null) {
-				int queuedsize = 0;
-				synchronized (lockObject) {
-					for (Object p : low) {
-						queuedsize += PacketFields.DEFAULT.getPacketSize(p) + 1;
-					}
-					for (Object p : high) {
-						queuedsize += PacketFields.DEFAULT.getPacketSize(p) + 1;
-					}
-					NetworkManagerRef.queueSize.set(nm, queuedsize - 9437184);
-				}
-			}
-		}
+		long queued = CommonPlugin.getInstance().getPacketHandler().getPendingBytes(player);
+		NetworkManagerRef.queueSize.set(nm, (int) (queued - 9437184));
 	}
 
 	@Override
@@ -229,20 +215,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	 */
 	private void update() {
 		// Update queue size
-		if (NetworkManagerRef.queueSize.isValid()) {
-			final Object playerHandle = Conversion.toEntityHandle.convert(this.player);
-			final Object playerConnection = EntityPlayerRef.playerConnection.get(playerHandle);
-			final Object networkManager = PlayerConnectionRef.networkManager.get(playerConnection);
-			if (NetworkManagerRef.TEMPLATE.isInstance(networkManager)) {
-				this.packetBufferQueueSize = NetworkManagerRef.queueSize.get(networkManager) + 9437184;
-			} else {
-				// We can not properly find out what the size queued is
-				// This section occurs in Spigot, and therefore needs to be handled
-				// As fallback we can only assume that there is no buffer related issue...
-				this.packetBufferQueueSize = 0;
-				//TODO: Find out a way to add support for Spigot so the queued size can be read.
-			}
-		}
+		this.packetBufferQueueSize = (int) PacketUtil.getPendingBytes(player);
 		// Update current buffer size
 		if (this.buffersizeavg == 0) {
 			this.buffersizeavg = this.packetBufferQueueSize;
