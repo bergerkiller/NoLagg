@@ -29,6 +29,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
@@ -289,7 +290,7 @@ public class PerformanceMonitor extends Task {
 				for (Entity e : w.getEntities()) {
 					if (e.isDead())
 						continue;
-					if (e instanceof Player) {
+					if (e instanceof Player && !NoLaggUtil.isNPCPlayer((Player) e)) {
 						playercount++;
 					} else if (EntityUtil.isMob(e)) {
 						mobcount++;

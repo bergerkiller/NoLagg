@@ -2,33 +2,12 @@ package com.bergerkiller.bukkit.nolagg;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import com.bergerkiller.bukkit.common.Common;
 
 public class NoLaggUtil {
-
-	public static void logFilterMainThread(StackTraceElement[] stackTrace, Level level, String header) {
-		logFilterMainThread(Arrays.asList(stackTrace), level, header);
-	}
-
-	public static void logFilterMainThread(List<StackTraceElement> stackTrace, Level level, String header) {
-		for (StackTraceElement element : stackTrace) {
-			String className = element.getClassName().toLowerCase();
-			String m = element.getMethodName();
-			if (className.equals("net.minecraft.server.minecraftserver") || className.equals("net.minecraft.server.dedicatedserver")) {
-				if (m.equals("p") || m.equals("q") || m.equals("ai")) {
-					break;
-				}
-			}
-			if (className.equals("org.bukkit.craftbukkit.scheduler.craftscheduler")) {
-				if (m.equals("mainThreadHeartbeat")) {
-					break;
-				}
-			}
-			Bukkit.getLogger().log(level, header + "    at " + element.toString());
-		}
-	}
 
 	public static StackTraceElement findExternal(StackTraceElement[] stackTrace) {
 		return findExternal(Arrays.asList(stackTrace));
@@ -37,8 +16,7 @@ public class NoLaggUtil {
 	/**
 	 * Gets the first stack trace element that is outside Bukkit/nms scope
 	 * 
-	 * @param stackTrace
-	 *            to look at
+	 * @param stackTrace to look at
 	 * @return first element
 	 */
 	public static StackTraceElement findExternal(List<StackTraceElement> stackTrace) {
@@ -48,11 +26,21 @@ public class NoLaggUtil {
 			if (className.startsWith("org.bukkit")) {
 				continue;
 			}
-			if (className.startsWith("net.minecraft.server")) {
+			if (className.startsWith(Common.NMS_ROOT)) {
 				continue;
 			}
 			return stackTrace.get(j);
 		}
-		return new StackTraceElement("net.minecraft.server.MinecraftServer", "main", "MinecraftServer.java", 0);
+		return new StackTraceElement(Common.NMS_ROOT + ".MinecraftServer", "main", "MinecraftServer.java", 0);
+	}
+
+	/**
+	 * Checks whether a given player is an NPC, and should not be treated as a player that needs network updates
+	 * 
+	 * @param player to check
+	 * @return True if the player is an NPC, False if not
+	 */
+	public static boolean isNPCPlayer(Player player) {
+		return player.hasMetadata("NPC");
 	}
 }

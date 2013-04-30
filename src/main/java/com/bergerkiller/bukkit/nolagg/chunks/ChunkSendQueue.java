@@ -27,6 +27,7 @@ import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ChunkSendQueue extends ChunkSendQueueBase {
@@ -49,6 +50,9 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 				compressBusyPercentage = MathUtil.useOld(compressBusyPercentage, newper * 100.0, 0.1);
 				prevtime = System.currentTimeMillis();
 				for (Player player : CommonUtil.getOnlinePlayers()) {
+					if (NoLaggUtil.isNPCPlayer(player)) {
+						continue;
+					}
 					ChunkSendQueue queue = bind(player);
 					queue.updating.next(true);
 					queue.update();
@@ -78,11 +82,16 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		task = null;
 		// clear bound queues
 		for (Player player : CommonUtil.getOnlinePlayers()) {
-			ChunkSendQueue queue = bind(player);
+			ChunkSendQueue queue = get(player);
 			if (queue != null) {
 				EntityPlayerRef.chunkQueue.set(Conversion.toEntityHandle.convert(player), queue.toLinkedList());
 			}
 		}
+	}
+
+	public static ChunkSendQueue get(Player player) {
+		Object ep = Conversion.toEntityHandle.convert(player);
+		return CommonUtil.tryCast(EntityPlayerRef.chunkQueue.get(ep), ChunkSendQueue.class);
 	}
 
 	public static ChunkSendQueue bind(Player with) {
@@ -94,6 +103,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			ChunkSendQueue queue = new ChunkSendQueue(with);
 			currqueue.clear();
 			EntityPlayerRef.chunkQueue.set(ep, queue);
+			System.out.println("BINDING FOR " + with.getName());
+			Thread.dumpStack();
 			return queue;
 		}
 	}
@@ -157,8 +168,11 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		double totalrate = 0;
 		int pcount = 0;
 		for (Player player : CommonUtil.getOnlinePlayers()) {
-			totalrate += bind(player).rate.get();
-			pcount++;
+			ChunkSendQueue queue = get(player);
+			if (queue != null) {
+				totalrate += queue.rate.get();
+				pcount++;
+			}
 		}
 		return totalrate / (double) pcount;
 	}

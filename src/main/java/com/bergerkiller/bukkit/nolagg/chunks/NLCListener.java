@@ -13,31 +13,40 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.bergerkiller.bukkit.nolagg.chunks.antiloader.DummyPlayerManager;
 
 public class NLCListener implements Listener {
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerJoin(PlayerJoinEvent event) {
+		if (NoLaggUtil.isNPCPlayer(event.getPlayer())) {
+			return;
+		}
 		ChunkSendQueue.bind(event.getPlayer());
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+		if (NoLaggUtil.isNPCPlayer(event.getPlayer())) {
+			return;
+		}
 		ChunkSendQueue.bind(event.getPlayer()).idle(5);
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onPlayerMove(PlayerMoveEvent event) {
-		if (!event.isCancelled()) {
-			ChunkSendQueue.bind(event.getPlayer()).updatePosition(event.getTo());
+		if (NoLaggUtil.isNPCPlayer(event.getPlayer())) {
+			return;
 		}
+		ChunkSendQueue.bind(event.getPlayer()).updatePosition(event.getTo());
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onPlayerTeleport(PlayerTeleportEvent event) {
-		if (!event.isCancelled()) {
-			ChunkSendQueue.bind(event.getPlayer()).updatePosition(event.getTo());
+		ChunkSendQueue queue = ChunkSendQueue.get(event.getPlayer());
+		if (queue != null) {
+			queue.updatePosition(event.getTo());
 		}
 	}
 
@@ -46,11 +55,8 @@ public class NLCListener implements Listener {
 		DynamicViewDistance.addChunk();
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event) {
-		if (event.isCancelled()) {
-			return;
-		}
 		DynamicViewDistance.removeChunk();
 	}
 
@@ -61,9 +67,9 @@ public class NLCListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.MONITOR)
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onWorldUnload(WorldUnloadEvent event) {
-		if (event.isCancelled() || !NoLaggChunks.useDynamicView) {
+		if (!NoLaggChunks.useDynamicView) {
 			return;
 		}
 		int chunkCount = WorldUtil.getChunks(event.getWorld()).size();

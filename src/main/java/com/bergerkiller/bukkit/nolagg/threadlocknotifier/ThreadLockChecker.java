@@ -1,15 +1,16 @@
 package com.bergerkiller.bukkit.nolagg.threadlocknotifier;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.ModuleLogger;
+import com.bergerkiller.bukkit.common.StackTraceFilter;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
-import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 
 public class ThreadLockChecker extends AsyncTask {
 	private StackTraceElement[] previous = null;
@@ -19,6 +20,7 @@ public class ThreadLockChecker extends AsyncTask {
 
 	public static boolean pulse = false;
 	public static boolean ignored = true;
+	public static final ModuleLogger SERVER_LOGGER = new ModuleLogger("Server");
 
 	@Override
 	public void run() {
@@ -70,31 +72,36 @@ public class ThreadLockChecker extends AsyncTask {
 					head = elems.get(1);
 				}
 				Plugin[] plugins = CommonUtil.findPlugins(previous);
-				Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread is still stuck, current loop line is:");
-				Bukkit.getLogger().log(Level.WARNING, "[Server]    at " + head.toString());
+				SERVER_LOGGER.log(Level.WARNING, "The main thread is still stuck, current loop line is:");
+				SERVER_LOGGER.log(Level.WARNING, "    at " + head.toString());
 				if (plugins.length > 0) {
-					Bukkit.getLogger().log(Level.WARNING, "[Server] This appears to be plugin '" + plugins[0].getName() + "'!");
+					SERVER_LOGGER.log(Level.WARNING, "This appears to be plugin '" + plugins[0].getName() + "'!");
 				}
 			}
 		} else {
 			previous = CommonUtil.MAIN_THREAD.getStackTrace();
 			maxidx = Integer.MAX_VALUE;
 			Plugin[] plugins = CommonUtil.findPlugins(previous);
-			Bukkit.getLogger().log(Level.WARNING, "[Server] The main thread failed to respond after 10 seconds");
+			SERVER_LOGGER.log(Level.WARNING, "The main thread failed to respond after 10 seconds");
 			if (plugins.length > 0) {
 				if (plugins.length == 1) {
-					Bukkit.getLogger().log(Level.WARNING, "[Server] Probable Plugin cause: '" + plugins[0].getName() + "'");
+					SERVER_LOGGER.log(Level.WARNING, "Probable Plugin cause: '" + plugins[0].getName() + "'");
 				} else {
 					String[] names = new String[plugins.length];
 					for (int i = 0; i < names.length; i++) {
 						names[i] = plugins[i].getName();
 					}
-					Bukkit.getLogger().log(Level.WARNING, "[Server] Probable Plugin causes: '" + StringUtil.combineNames(names) + "'");
+					SERVER_LOGGER.log(Level.WARNING, "Probable Plugin causes: '" + StringUtil.combineNames(names) + "'");
 				}
 
 			}
-			Bukkit.getLogger().log(Level.WARNING, "[Server] What follows is the stack trace of the main thread");
-			NoLaggUtil.logFilterMainThread(previous, Level.WARNING, "[Server]");
+			SERVER_LOGGER.log(Level.WARNING, "What follows is the stack trace of the main thread");
+			// Print filtered stack trace
+			ArrayList<StackTraceElement> stackTrace = new ArrayList<StackTraceElement>(Arrays.asList(previous));
+			StackTraceFilter.SERVER.filter(stackTrace);
+			for (StackTraceElement element : stackTrace) {
+				SERVER_LOGGER.log(Level.WARNING, "    at " + element.toString());
+			}
 		}
 	}
 }
