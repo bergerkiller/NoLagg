@@ -103,8 +103,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			ChunkSendQueue queue = new ChunkSendQueue(with);
 			currqueue.clear();
 			EntityPlayerRef.chunkQueue.set(ep, queue);
-			System.out.println("BINDING FOR " + with.getName());
-			Thread.dumpStack();
 			return queue;
 		}
 	}
