@@ -93,17 +93,12 @@ public class NoLaggCommon extends NoLaggComponent {
 				}
 				// Read all the requested entity types
 				final Set<String> types = new HashSet<String>();
-				double radius = Double.MAX_VALUE;
 				if (args.length > 1) {
 					// Read the types
 					List<String> tmpList;
 					ArrayList<String> inputTypes = new ArrayList<String>();
 					for (int i = 1; i < args.length; i++) {
 						final String name = args[i];
-						if (ParseUtil.isNumeric(name)) {
-							radius = ParseUtil.parseDouble(name, radius);
-							continue;
-						}
 						tmpList = clearShortcuts.getLower(name);
 						if (tmpList != null) {
 							inputTypes.addAll(tmpList);
@@ -111,7 +106,12 @@ public class NoLaggCommon extends NoLaggComponent {
 							inputTypes.add(name.toLowerCase(Locale.ENGLISH));
 						}
 					}
+					double radius = Double.MAX_VALUE;
 					for (String name : inputTypes) {
+						if (ParseUtil.isNumeric(name)) {
+							radius = ParseUtil.parseDouble(name, radius);
+							continue;
+						}
 						if (name.equals("minecart")) {
 							name = "minecarts";
 						} else if (name.equals("item")) {
