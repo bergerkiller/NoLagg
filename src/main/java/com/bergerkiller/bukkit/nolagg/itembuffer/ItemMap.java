@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.EntitySelector;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class ItemMap {
@@ -39,24 +40,15 @@ public class ItemMap {
 	 * Clears the item types in the worlds specified
 	 * 
 	 * @param worlds to clear items in
-	 * @param types of items to clear
+	 * @param entitySelector used to set what entities to clear
 	 */
-	public static void clear(Collection<World> worlds, Set<String> types) {
+	public static void clear(Collection<World> worlds, EntitySelector entitySelector) {
 		synchronized (items) {
 			Set<World> worldsClone = new HashSet<World>(worlds);
-			if (types.contains("all") || types.contains("items")) {
-				// Remove all from worlds
-				for (ChunkItems ci : items.values()) {
-					if (worldsClone.contains(ci.getWorld())) {
-						ci.clear();
-					}
-				}
-			} else {
-				// Remove item per type
-				for (ChunkItems ci : items.values()) {
-					if (worldsClone.contains(ci.getWorld())) {
-						ci.clear(types);
-					}
+			// Remove item per type
+			for (ChunkItems ci : items.values()) {
+				if (worldsClone.contains(ci.getWorld())) {
+					ci.clear(entitySelector);
 				}
 			}
 		}

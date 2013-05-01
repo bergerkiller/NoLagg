@@ -15,6 +15,7 @@ import org.bukkit.entity.Item;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.EntitySelector;
 import com.bergerkiller.bukkit.nolagg.chunks.NoLaggChunks;
 
 public class ChunkItems {
@@ -50,10 +51,10 @@ public class ChunkItems {
 		this.spawnedItems.clear();
 	}
 
-	public synchronized void clear(Set<String> types) {
+	public synchronized void clear(EntitySelector entitySelector) {
 		Iterator<Item> iter = this.hiddenItems.iterator();
 		while (iter.hasNext()) {
-			if (types.contains(EntityUtil.getName(iter.next()))) {
+			if (entitySelector.check(iter.next())) {
 				iter.remove();
 			}
 		}

@@ -3,14 +3,14 @@ package com.bergerkiller.bukkit.nolagg.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -19,12 +19,15 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.nolagg.EntitySelector;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
@@ -33,7 +36,7 @@ import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
 	private final Set<String> lastargs = new HashSet<String>();
-	private Map<String, List<String>> clearShortcuts = new HashMap<String, List<String>>();
+	private StringMap<List<String>> clearShortcuts = new StringMap<List<String>>();
 
 	@Override
 	public void onDisable(ConfigurationNode config) {
@@ -67,7 +70,7 @@ public class NoLaggCommon extends NoLaggComponent {
 		shortc.setHeader("");
 		shortc.addHeader("Several shortcuts you can use for the /nolagg clear(all) command");
 		for (String key : shortc.getKeys()) {
-			clearShortcuts.put(key.toLowerCase(), shortc.getList(key, String.class));
+			clearShortcuts.putLower(key, shortc.getList(key, String.class));
 		}
 	}
 
@@ -89,21 +92,23 @@ public class NoLaggCommon extends NoLaggComponent {
 					worlds = Arrays.asList(((Player) sender).getWorld());
 				}
 				// Read all the requested entity types
-				Set<String> types = new HashSet<String>();
-				if (args.length == 1) {
-					// Default types
-					types.addAll(clearShortcuts.get("default"));
-				} else {
+				final Set<String> types = new HashSet<String>();
+				double radius = Double.MAX_VALUE;
+				if (args.length > 1) {
 					// Read the types
 					List<String> tmpList;
 					ArrayList<String> inputTypes = new ArrayList<String>();
 					for (int i = 1; i < args.length; i++) {
-						String name = args[i].toLowerCase();
-						tmpList = clearShortcuts.get(name);
+						final String name = args[i];
+						if (ParseUtil.isNumeric(name)) {
+							radius = ParseUtil.parseDouble(name, radius);
+							continue;
+						}
+						tmpList = clearShortcuts.getLower(name);
 						if (tmpList != null) {
 							inputTypes.addAll(tmpList);
 						} else {
-							inputTypes.add(name);
+							inputTypes.add(name.toLowerCase(Locale.ENGLISH));
 						}
 					}
 					for (String name : inputTypes) {
@@ -138,6 +143,10 @@ public class NoLaggCommon extends NoLaggComponent {
 						types.addAll(lastargs);
 					}
 				}
+				if (types.isEmpty()) {
+					// Default types
+					types.addAll(clearShortcuts.get("default"));
+				}
 				lastargs.clear();
 				lastargs.addAll(types);
 
@@ -152,40 +161,38 @@ public class NoLaggCommon extends NoLaggComponent {
 					}
 				}
 
+				// Prepare an Entity Selector
+				final EntitySelector entitySelector;
+				if (radius == Double.MAX_VALUE || !(sender instanceof Player)) {
+					entitySelector = new TypedEntitySelector(types);
+				} else {
+					final double searchRadiusSq = radius * radius;
+					final Location middle = ((Player) sender).getLocation();
+					final Location locBuffer = new Location(null, 0.0, 0.0, 0.0);
+					entitySelector = new TypedEntitySelector(types) {
+						@Override
+						public boolean check(Entity entity) {
+							// Perform distance check (we disallow other worlds too)
+							if (entity.getWorld() != middle.getWorld()
+									|| entity.getLocation(locBuffer).distanceSquared(middle) > searchRadiusSq) {
+								return false;
+							}
+							return super.check(entity);
+						}
+					};
+				}
+
 				// Remove items from the item buffer
 				if (NoLaggComponents.ITEMBUFFER.isEnabled()) {
-					ItemMap.clear(worlds, types);
+					ItemMap.clear(worlds, entitySelector);
 				}
 
 				// Entity removal logic
 				int remcount = 0; // The amount of removed entities
-				boolean monsters = types.contains("monsters");
-				boolean animals = types.contains("animals");
-				boolean items = types.contains("items");
-				boolean fallingblocks = types.contains("fallingblocks");
-				boolean minecarts = types.contains("minecarts");
-				boolean remove;
 				for (World world : worlds) {
 					// Use the types set and clear them
 					for (Entity e : world.getEntities()) {
-						if (e instanceof Player) {
-							continue;
-						}
-						remove = false;
-						if (monsters && EntityUtil.isMonster(e)) {
-							remove = true;
-						} else if (animals && EntityUtil.isAnimal(e)) {
-							remove = true;
-						} else if (items && e instanceof Item) {
-							remove = true;
-						} else if (fallingblocks && e instanceof FallingBlock) {
-							remove = true;
-						} else if (minecarts && e instanceof Minecart) {
-							remove = true;
-						} else if (types.contains(EntityUtil.getName(e))) {
-							remove = true;
-						}
-						if (remove) {
+						if (entitySelector.check(e)) {
 							e.remove();
 							remcount++;
 						}
@@ -235,5 +242,45 @@ public class NoLaggCommon extends NoLaggComponent {
 			return true;
 		}
 		return false;
+	}
+
+	private static class TypedEntitySelector implements EntitySelector {
+		private final Set<String> types;
+		private final boolean monsters;
+		private final boolean animals;
+		private final boolean items;
+		private final boolean fallingblocks;
+		private final boolean minecarts;
+
+		public TypedEntitySelector(Set<String> types) {
+			this.types = types;
+			this.monsters = types.contains("monsters");
+			this.animals = types.contains("animals");
+			this.items = types.contains("items");
+			this.fallingblocks = types.contains("fallingblocks");
+			this.minecarts = types.contains("minecarts");
+		}
+
+		@Override
+		public boolean check(Entity entity) {
+			if (entity instanceof Player) {
+				return false;
+			}
+			if (monsters && EntityUtil.isMonster(entity)) {
+				return true;
+			} else if (animals && EntityUtil.isAnimal(entity)) {
+				return true;
+			} else if (items && entity instanceof Item) {
+				return true;
+			} else if (fallingblocks && entity instanceof FallingBlock) {
+				return true;
+			} else if (minecarts && entity instanceof Minecart) {
+				return true;
+			} else if (types.contains(EntityUtil.getName(entity))) {
+				return true;
+			} else {
+				return false;
+			}
+		}
 	}
 }
