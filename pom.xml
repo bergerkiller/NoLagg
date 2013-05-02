@@ -12,7 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.cbversion>1.5.1-R0.1-SNAPSHOT</project.cbversion>
+    <project.cbversion>1.5.1-R0.2-SNAPSHOT</project.cbversion>
   </properties>
 
   <repositories>
@@ -61,7 +61,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.51-SNAPSHOT</version>
+      <version>1.51</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -83,7 +83,7 @@
 		</includes>
         <!-- Don't add source files to target jar -->
 	    <excludes>
-		  <exclude>me/lenis0012/**/*.java</exclude>
+		  <exclude>com/bergerkiller/bukkit/**/*.java</exclude>
 		</excludes>
 	  </resource>
 	</resources>
