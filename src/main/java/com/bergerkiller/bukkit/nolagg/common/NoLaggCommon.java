@@ -93,6 +93,7 @@ public class NoLaggCommon extends NoLaggComponent {
 				}
 				// Read all the requested entity types
 				final Set<String> types = new HashSet<String>();
+				double radius = Double.MAX_VALUE;
 				if (args.length > 1) {
 					// Read the types
 					List<String> tmpList;
@@ -106,7 +107,6 @@ public class NoLaggCommon extends NoLaggComponent {
 							inputTypes.add(name.toLowerCase(Locale.ENGLISH));
 						}
 					}
-					double radius = Double.MAX_VALUE;
 					for (String name : inputTypes) {
 						if (ParseUtil.isNumeric(name)) {
 							radius = ParseUtil.parseDouble(name, radius);
