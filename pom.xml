@@ -13,6 +13,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.cbversion>1.5.1-R0.2-SNAPSHOT</project.cbversion>
+    <project.bkcversion>1.52</project.bkcversion>
   </properties>
 
   <repositories>
@@ -61,7 +62,7 @@
     <dependency>
       <groupId>com.bergerkiller.bukkit</groupId>
       <artifactId>BKCommonLib</artifactId>
-      <version>1.51</version>
+      <version>${project.bkcversion}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
