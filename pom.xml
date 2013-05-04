@@ -13,7 +13,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.cbversion>1.5.1-R0.2-SNAPSHOT</project.cbversion>
-    <project.bkcversion>1.52</project.bkcversion>
+    <project.bkcversion>1.51</project.bkcversion>
   </properties>
 
   <repositories>
