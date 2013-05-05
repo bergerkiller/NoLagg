@@ -86,7 +86,7 @@ public class LightingChunk {
 
 	public void fill(Chunk chunk) {
 		// Fill using chunk sections
-		final Object[] chunkSections = ChunkRef.getSections(Conversion.toChunkHandle.convert(chunk));
+		final Object[] chunkSections = ChunkRef.sections.invoke(Conversion.toChunkHandle.convert(chunk));
 		for (int section = 0; section < SECTION_COUNT; section++) {
 			if (chunkSections[section] != null) {
 				fillSection(section, chunkSections[section]);
@@ -280,7 +280,7 @@ public class LightingChunk {
 	 * @param chunk to save to
 	 */
 	public void saveToChunk(Chunk chunk) {
-		final Object[] chunkSections = ChunkRef.getSections(Conversion.toChunkHandle.convert(chunk));
+		final Object[] chunkSections = ChunkRef.sections.invoke(Conversion.toChunkHandle.convert(chunk));
 		for (int section = 0; section < SECTION_COUNT; section++) {
 			if (chunkSections[section] != null && sections[section] != null) {
 				sections[section].saveToChunk(chunkSections[section]);

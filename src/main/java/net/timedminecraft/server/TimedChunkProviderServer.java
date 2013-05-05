@@ -94,8 +94,8 @@ public class TimedChunkProviderServer extends ChunkProviderServerBase {
 					}
 					newChunk = true; // CraftBukkit
 				}
-				// Empty chunks should not be stored, only returned
-				if (chunk != this.emptyChunk) {
+				// Empty chunks should not be dealt with
+				if (chunk != null) {
 					final Object chunkHandle = Conversion.toChunkHandle.convert(chunk);
 					WorldUtil.setChunk(world, x, z, chunk);
 					if (chunk != null) {
