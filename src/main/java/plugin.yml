@@ -1,10 +1,12 @@
-name: NoLagg
+name: ${project.name}
 main: com.bergerkiller.bukkit.nolagg.NoLagg
-version: 1.89.9
+version: ${project.version}
 authors: [bergerkiller, lenis0012]
 depend: [BKCommonLib]
 metrics: true
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam
+dev-url: ${project.url}
+bkcversion: ${project.bkcversion}
 commands:
     nolagg:
         description: The general command of NoLagg

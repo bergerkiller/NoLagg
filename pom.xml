@@ -75,35 +75,34 @@
 
   <!-- Build -->
   <build>
-    <!-- Resources -->
-    <resources>
-	  <resource>
-	    <directory>src/main/java/</directory>
-		<includes>
-          <include>**</include>
-		</includes>
-        <!-- Don't add source files to target jar -->
-	    <excludes>
-		  <exclude>com/bergerkiller/bukkit/**/*.java</exclude>
-		</excludes>
-	  </resource>
-	</resources>
 	<defaultGoal>clean install</defaultGoal>
+
+	<!-- Resources (the filtering allows us to use project properties in plugin.yml) -->
+	<resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <filtering>true</filtering>
+        <includes>
+          <include>plugin.yml</include>
+        </includes>
+      </resource>
+	</resources>
+
 	<!-- Plugins -->
 	<plugins>
-	  <!-- Compiler plugin -->
-	  <plugin>
-	    <groupId>org.apache.maven.plugins</groupId>
-		<artifactId>maven-compiler-plugin</artifactId>
-		<version>2.4</version>
-		<configuration>
-		  <source>1.6</source>
-		  <target>1.6</target>
+      <!-- Compiling the source code -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
 		  <showWarnings>true</showWarnings>
 		  <showDeprecation>true</showDeprecation>
-		</configuration>
+        </configuration>
       </plugin>
-      
+
       <!-- Manifest generation for examiner GUI -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -3,14 +3,13 @@ package com.bergerkiller.bukkit.nolagg;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.PluginBase;
 import com.bergerkiller.bukkit.common.config.FileConfiguration;
 import com.bergerkiller.bukkit.common.metrics.Graph;
@@ -27,15 +26,7 @@ public class NoLagg extends PluginBase {
 
 	@Override
 	public int getMinimumLibVersion() {
-		String result = "";
-		Pattern pattern = Pattern.compile("\\d+");
-		Matcher matcher = pattern.matcher("${project.bkcversion}");
-		
-		while(matcher.find()) {
-			result += matcher.group();
-		}
-		
-		return result != "" ? Integer.valueOf(result) : 0;
+		return Common.VERSION;
 	}
 
 	@Override
