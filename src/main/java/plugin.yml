@@ -6,7 +6,6 @@ depend: [BKCommonLib]
 metrics: true
 description: Plugin that prevents server lag caused by all sorts of events, from tnt to item drop spam
 dev-url: ${project.url}
-bkcversion: ${project.bkcversion}
 commands:
     nolagg:
         description: The general command of NoLagg
