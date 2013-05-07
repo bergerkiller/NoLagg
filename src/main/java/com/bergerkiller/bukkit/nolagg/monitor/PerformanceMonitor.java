@@ -420,7 +420,7 @@ public class PerformanceMonitor extends Task {
 				mem.newLine();
 				// Buffering entities
 				mem.yellow("Entities: ").gold(entitycount, " ").dark_green("[", mobcount, " mobs]");
-				mem.yellow(" [", itemcount, " items] ").green("[", tntcount, " TNT]").aqua("[", playercount, " players]");
+				mem.yellow(" [", itemcount, " items] ").green("[", tntcount, " TNT] ").aqua("[", playercount, " players]");
 				mem.newLine();
 				// Compression thread busy
 				mem.yellow("Packet compression busy: ");
