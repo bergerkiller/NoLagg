@@ -1,13 +1,11 @@
 package com.bergerkiller.bukkit.nolagg.chunks;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
-import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class ChunkSendCommand {
 	private final CommonPacket mapPacket;
@@ -38,11 +36,7 @@ public class ChunkSendCommand {
 			}
 		}
 
-		// Entity entities
-		new Task(NoLagg.plugin) {
-			public void run() {
-				WorldUtil.getTracker(chunk.getWorld()).spawnEntities(queue.player, chunk);
-			}
-		}.start(2);
+		// Send Entities
+		WorldUtil.getTracker(chunk.getWorld()).spawnEntities(queue.player, chunk);
 	}
 }

@@ -162,8 +162,8 @@ public class ChunkCompressQueue {
 		if (next == null) {
 			return false;
 		}
-		next.send(this.owner);
 		this.owner.removeContained(next.chunk.getX(), next.chunk.getZ());
+		next.send(this.owner);
 		return true;
 	}
 }
