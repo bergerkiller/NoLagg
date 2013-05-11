@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.patches;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.bases.IntVector3;
@@ -64,7 +65,7 @@ public class NLPPacketListener implements PacketListener {
 				}
 				IntHashMap<Object> entitiesById = WorldServerRef.entitiesById.get(Conversion.toWorldHandle.convert(event.getPlayer().getWorld()));
 				Entity entity = Conversion.toEntity.convert(entitiesById.get(entityId));
-				if (entity == null) {
+				if (entity == null || entity instanceof ItemFrame) {
 					return;
 				}
 				EntityNetworkController<?> controller = CommonEntity.get(entity).getNetworkController();
