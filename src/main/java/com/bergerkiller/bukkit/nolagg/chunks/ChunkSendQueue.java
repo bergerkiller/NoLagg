@@ -38,8 +38,8 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	private static long prevtime;
 	private static Task task;
 
-	private static class ChunkLoadingTask extends Task {
-		public ChunkLoadingTask() {
+	private static class ChunkSendingTask extends Task {
+		public ChunkSendingTask() {
 			super(NoLagg.plugin);
 		}
 
@@ -74,7 +74,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
 		}
 		prevtime = System.currentTimeMillis();
-		task = new ChunkLoadingTask().start(1, 1);
+		task = new ChunkSendingTask().start(1, 1);
 	}
 
 	public static void deinit() {
@@ -260,6 +260,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 				return;
 			}
 		}
+
 		double newrate = this.rate.get();
 		if (this.packetBufferQueueSize > this.maxQueueSize) {
 			newrate = minRate;
@@ -287,10 +288,10 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 
 		this.rate.set(newrate);
 		this.prevQueueSize = this.packetBufferQueueSize;
-
+		
 		// Update position
 		this.updatePosition(player.getLocation());
-
+		
 		// Send chunks
 		if (newrate >= 1) {
 			this.update(1, (int) this.rate.next());
