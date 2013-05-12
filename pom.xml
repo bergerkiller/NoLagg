@@ -13,6 +13,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.libversion>1.5.2-R0.2-SNAPSHOT</project.libversion>
+    <project.cbversion>1.5.2-R0.1</project.cbversion>
     <project.bkcversion>1.52-SNAPSHOT</project.bkcversion>
   </properties>
 
@@ -32,9 +33,20 @@
       <id>libigot-repo</id>
       <url>http://repo.libigot.org/</url>
     </repository>
+    <!-- Repo for access to CraftBukkit -->
+    <repository>
+      <id>bukkit-repo</id>
+      <url>http://repo.bukkit.org/content/groups/public</url>
+    </repository> 
   </repositories>
 
   <dependencies>
+    <dependency>
+      <groupId>org.bukkit</groupId>
+      <artifactId>craftbukkit</artifactId>
+      <version>${project.cbversion}</version>
+      <scope>provided</scope>
+    </dependency> 
     <dependency>
       <groupId>org.libigot</groupId>
       <artifactId>libigot</artifactId>
