@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>NoLagg</artifactId>
-  <version>1.89.9</version>
+  <version>1.90.0</version>
   <packaging>jar</packaging>
 
   <name>NoLagg</name>
@@ -12,8 +12,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.cbversion>1.5.1-R0.2-SNAPSHOT</project.cbversion>
-    <project.bkcversion>1.51</project.bkcversion>
+    <project.libversion>1.5.2-R0.2-SNAPSHOT</project.libversion>
+    <project.bkcversion>1.52-SNAPSHOT</project.bkcversion>
   </properties>
 
   <repositories>
@@ -27,30 +27,20 @@
       <id>dj-tcraft-repo</id>
       <url>http://ci.dj-tcraft.nl/plugin/repository/everything/</url>
     </repository>
-    <!-- Repo for access to CraftBukkit -->
+    <!-- Repo for access to Libigot -->
     <repository>
-      <id>bukkit-repo</id>
-      <url>http://repo.bukkit.org/content/groups/public</url>
-    </repository>
-    <!-- Repo for access to Spigot -->
-    <repository>
-      <id>md-5 repository</id>
-      <url>http://repo.md-5.net/content/repositories/snapshots/</url>
+      <id>libigot-repo</id>
+      <url>http://repo.libigot.org/</url>
     </repository>
   </repositories>
 
   <dependencies>
     <dependency>
-      <groupId>org.bukkit</groupId>
-      <artifactId>craftbukkit</artifactId>
-      <version>${project.cbversion}</version>
+      <groupId>org.libigot</groupId>
+      <artifactId>libigot</artifactId>
+      <version>${project.libversion}</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot</artifactId>
-      <version>${project.cbversion}</version>
-      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.lishid.orebfuscator</groupId>
