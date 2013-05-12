@@ -26,7 +26,6 @@ import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
-import com.bergerkiller.bukkit.common.internal.NextTickListener;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
@@ -112,12 +111,13 @@ public class PluginLogger {
 		Task.stop(measuretask);
 		measuretask = null;
 		position = Integer.MAX_VALUE;
-		CommonPlugin.getInstance().removeNextTickListener(nextTickListener);
+		// Unregister timings listener
+		CommonPlugin.getInstance().removeTimingsListener(NLETimingsListener.INSTANCE);
 	}
 
 	public static void start() {
-		// Register next-tick listener
-		CommonPlugin.getInstance().addNextTickListener(nextTickListener);
+		// Register timings listener
+		CommonPlugin.getInstance().addTimingsListener(NLETimingsListener.INSTANCE);
 
 		// Initialize event listeners
 		List<TimedRegisteredListener> rval = new ArrayList<TimedRegisteredListener>();
@@ -222,14 +222,5 @@ public class PluginLogger {
 			}
 		}
 		recipients.clear();
-	}
-
-	private static final BKCNextTickListener nextTickListener = new BKCNextTickListener();
-
-	private static class BKCNextTickListener implements NextTickListener {
-		@Override
-		public void onNextTicked(Runnable runnable, long executionTime) {
-			getNextTickTask(runnable).addDelta(executionTime);
-		}
 	}
 }

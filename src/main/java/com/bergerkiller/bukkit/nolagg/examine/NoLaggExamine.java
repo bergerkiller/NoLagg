@@ -2,10 +2,7 @@ package com.bergerkiller.bukkit.nolagg.examine;
 
 import java.io.File;
 
-import net.timedminecraft.server.TimedChunkProviderServer;
-
 import org.bukkit.ChatColor;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -14,7 +11,6 @@ import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
@@ -27,10 +23,6 @@ public class NoLaggExamine extends NoLaggComponent {
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
 		this.onReload(config);
-		for (World world : WorldUtil.getWorlds()) {
-			TimedChunkProviderServer.convert(world);
-		}
-		this.register(NLEListener.class);
 		SchedulerWatcher.init();
 	}
 
@@ -38,9 +30,6 @@ public class NoLaggExamine extends NoLaggComponent {
 	public void onDisable(ConfigurationNode config) {
 		SchedulerWatcher.deinit();
 		PluginLogger.stopTask();
-		for (World world : WorldUtil.getWorlds()) {
-			TimedChunkProviderServer.restore(world);
-		}
 	}
 
 	@Override
