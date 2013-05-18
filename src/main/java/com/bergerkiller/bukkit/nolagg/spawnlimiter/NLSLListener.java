@@ -1,8 +1,10 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -16,12 +18,13 @@ import org.bukkit.event.world.ChunkLoadEvent;
 
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
+import com.bergerkiller.bukkit.common.internal.MobPreSpawnListener;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 
-public class NLSLListener implements Listener {
+public class NLSLListener implements Listener, MobPreSpawnListener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
@@ -79,17 +82,17 @@ public class NLSLListener implements Listener {
 		}
 	}
 
+	@Override
+	public boolean canSpawn(World world, int x, int y, int z, EntityType entityType) {
+		return EntitySpawnHandler.GENERALHANDLER.getEntityLimits(world, EntityUtil.getName(entityType)).canSpawn();
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onCreatureSpawn(CreatureSpawnEvent event) {
 		if (!event.isCancelled()) {
 			if (event.getSpawnReason() == SpawnReason.CUSTOM) {
 				EntitySpawnHandler.setIgnored(event.getEntity());
 				return;
-			} else if (event.getSpawnReason() == SpawnReason.NATURAL) {
-				if (!NoLaggSpawnLimiter.isCreatureSpawnAllowed()) {
-					event.setCancelled(true);
-					return;
-				}
 			}
 			if (!EntitySpawnHandler.handlePreSpawn(event.getEntity(), event.getSpawnReason() == SpawnReason.SPAWNER)) {
 				event.setCancelled(true);

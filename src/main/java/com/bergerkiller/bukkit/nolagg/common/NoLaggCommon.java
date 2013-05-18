@@ -32,6 +32,7 @@ import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.itembuffer.ItemMap;
+import com.bergerkiller.bukkit.nolagg.tnt.NoLaggTNT;
 import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
 
 public class NoLaggCommon extends NoLaggComponent {
@@ -152,11 +153,12 @@ public class NoLaggCommon extends NoLaggComponent {
 
 				// Remove from TNT component if enabled
 				if (NoLaggComponents.TNT.isEnabled() && (types.contains("all") || types.contains("tnt"))) {
+					TNTHandler handler = NoLaggTNT.plugin.getTNTHandler();
 					if (all) {
-						TNTHandler.clear();
+						handler.clear();
 					} else {
 						for (World world : worlds) {
-							TNTHandler.clear(world);
+							handler.clear(world);
 						}
 					}
 				}

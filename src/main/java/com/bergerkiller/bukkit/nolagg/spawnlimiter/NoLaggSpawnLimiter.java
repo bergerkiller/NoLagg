@@ -4,19 +4,20 @@ import java.util.Arrays;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.nolagg.NoLagg;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggSpawnLimiter extends NoLaggComponent {
 	public static NoLaggSpawnLimiter plugin;
 	private Task spawnWaveTask;
-	private static final int SPAWN_WAVE_INTERVAL = 20; // Allow a creature spawn wave to occur every second
-	private static int spawnWaveCounter = 0;
+	private NLSLListener listener;
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		this.register(NLSLListener.class);
+		listener = new NLSLListener();
+		this.register(listener);
+		CommonPlugin.getInstance().addMobPreSpawnListener(listener);
 		this.onReload(config);
 	}
 
@@ -79,15 +80,6 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear().load(config.getNode("mobSpawnerLimits"));
 		// Init entities
 		EntitySpawnHandler.initEntities();
-
-		// Spawn wave tick task
-		spawnWaveTask = new Task(NoLagg.plugin) {
-			public void run() {
-				if (spawnWaveCounter++ >= SPAWN_WAVE_INTERVAL) {
-					spawnWaveCounter = 0;
-				}
-			}
-		}.start(1, 1);
 	}
 
 	@Override
@@ -95,15 +87,6 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 		EntitySpawnHandler.GENERALHANDLER.clear();
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear();
 		Task.stop(spawnWaveTask);
-		spawnWaveTask = null;
-	}
-
-	/**
-	 * Checks if spawning creatures is currently allowed
-	 * 
-	 * @return True if spawning is possible, False if not
-	 */
-	public static boolean isCreatureSpawnAllowed() {
-		return spawnWaveCounter == 0;
+		CommonPlugin.getInstance().removeMobPreSpawnListener(listener);
 	}
 }

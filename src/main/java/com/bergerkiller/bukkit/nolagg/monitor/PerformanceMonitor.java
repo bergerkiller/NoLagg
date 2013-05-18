@@ -34,7 +34,7 @@ import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.chunks.ChunkSendQueue;
 import com.bergerkiller.bukkit.nolagg.chunks.DynamicViewDistance;
 import com.bergerkiller.bukkit.nolagg.lighting.LightingService;
-import com.bergerkiller.bukkit.nolagg.tnt.TNTHandler;
+import com.bergerkiller.bukkit.nolagg.tnt.NoLaggTNT;
 
 public class PerformanceMonitor extends Task {
 
@@ -284,7 +284,7 @@ public class PerformanceMonitor extends Task {
 			int entitycount = 0;
 			int itemcount = 0;
 			int tntcount = 0;
-			int bufftnt = NoLaggComponents.TNT.isEnabled() ? TNTHandler.getBufferCount() : 0;
+			int bufftnt = NoLaggComponents.TNT.isEnabled() ? NoLaggTNT.plugin.getTNTHandler().getBufferCount() : 0;
 			int playercount = 0;
 			for (World w : Bukkit.getServer().getWorlds()) {
 				for (Entity e : w.getEntities()) {

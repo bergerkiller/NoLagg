@@ -18,48 +18,62 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
+import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
+/**
+ * Deals with all NoLagg TNT routines to handle and schedule TNT explosions
+ */
 public class TNTHandler {
-	private static Queue<Block> todo = new LinkedList<Block>();
-	private static BlockSet added = new BlockSet();
-	private static Task task;
-	public static int interval;
-	public static int rate;
-	public static int explosionRate;
-	private static long sentExplosions = 0;
-	private static long intervalCounter = 0;
-	public static boolean changeBlocks = true;
-	private static int denyExplosionsCounter = 0; // tick countdown to deny explosions
-	private static boolean isInitialized = false;
+	private Queue<Block> todo = new LinkedList<Block>();
+	private BlockSet added = new BlockSet();
+	private Task task;
+	private int interval = 1;
+	private int rate = 10;
+	private int explosionRate = 5;
+	private long sentExplosions = 0;
+	private long intervalCounter = 0;
+	private boolean changeBlocks = true;
+	private int denyExplosionsCounter = 0; // tick countdown to deny explosions
 
 	/**
 	 * Gets the amount of TNT currently buffered for detonation
 	 * 
 	 * @return tnt block count
 	 */
-	public static int getBufferCount() {
+	public int getBufferCount() {
 		return todo.size();
 	}
 
 	/**
-	 * Initializes the TNT buffering and starts the detonation task
+	 * Initializes the TNT buffering and starts the detonation task.
+	 * 
+	 * @param node - ConfigurationNode to load the settings from
 	 */
-	public static void init() {
-		added = new BlockSet();
-		todo = new LinkedList<Block>();
-		isInitialized = true;
-		// start the task
+	public void init(ConfigurationNode node) {
+		// Load settings
+		node.setHeader("detonationInterval", "The interval (in ticks) at which TNT is detonated by explosions");
+		node.setHeader("detonationRate", "How many TNT is detonated by explosions per interval");
+		node.setHeader("explosionRate", "The amount of explosion packets to send to the clients per tick");
+		node.setHeader("changeBlocks", "If TNT explosions can change non-TNT blocks");
+		interval = node.get("detonationInterval", interval);
+		rate = node.get("detonationRate", rate);
+		explosionRate = node.get("explosionRate", explosionRate);
+		changeBlocks = node.get("changeBlocks", changeBlocks);
+
+		// Stop the old task
+		if (task != null) {
+			Task.stop(task);
+			task = null;
+		}
+		// Start the new task (if needed)
 		if (interval > 0) {
 			task = new Task(NoLagg.plugin) {
 				public void run() {
-					if (!isInitialized) {
-						return;
-					}
 					if (denyExplosionsCounter > 0) {
 						--denyExplosionsCounter;
 					}
@@ -76,30 +90,23 @@ public class TNTHandler {
 								break;
 							}
 							added.remove(next);
-							int x = next.getX();
-							int y = next.getY();
-							int z = next.getZ();
-							int cx = x >> 4;
-							int cz = z >> 4;
-							int dcx, dcz;
-							boolean isLoaded = true;
-							for (dcx = -2; dcx <= 5 && isLoaded; dcx++) {
-								for (dcz = -2; dcz <= 5 && isLoaded; dcz++) {
-									if (!WorldUtil.isLoaded(next.getWorld(), cx + dcx, cz+ dcz)) {
-										isLoaded = false;
-									}
-								}
-							}
-							if (isLoaded) {
-								org.bukkit.Chunk chunk = next.getChunk();
-								if (WorldUtil.getBlockTypeId(chunk, x, y, z) == Material.TNT.getId()) {
-									WorldUtil.setBlock(chunk, x, y, z, 0, 0);
+							// This extra getting is needed to avoid chunk unloads bugging blocks (thanks BUKKIT!)
+							next = next.getWorld().getBlockAt(next.getX(), next.getY(), next.getZ());
 
-									TNTPrimed tnt = next.getWorld().spawn(next.getLocation().add(0.5, 0.5, 0.5), TNTPrimed.class);
-									int fuse = tnt.getFuseTicks();
-									fuse = WorldUtil.getRandom(tnt.getWorld()).nextInt(fuse >> 2) + fuse >> 3;
-									tnt.setFuseTicks(fuse);
-								}
+							// Chunk loaded check
+							if (!WorldUtil.areChunksLoaded(next.getWorld(), next.getChunk().getX(), next.getChunk().getZ(), 2)) {
+								continue;
+							}
+
+							// Detonate the block if TNT
+							if (next.getTypeId() == Material.TNT.getId()) {
+								next.setTypeId(0);
+
+								// Spawn a mobile TNT entity
+								TNTPrimed tnt = next.getWorld().spawn(next.getLocation().add(0.5, 0.5, 0.5), TNTPrimed.class);
+								int fuse = tnt.getFuseTicks();
+								fuse = WorldUtil.getRandom(tnt.getWorld()).nextInt(fuse >> 2) + fuse >> 3;
+								tnt.setFuseTicks(fuse);
 							}
 						}
 					} else {
@@ -113,12 +120,9 @@ public class TNTHandler {
 	/**
 	 * De-initializes the TNT buffering, disabling the entire Class
 	 */
-	public static void deinit() {
+	public void deinit() {
 		Task.stop(task);
-		isInitialized = false;
 		task = null;
-		added = null;
-		todo = null;
 	}
 
 	/**
@@ -126,10 +130,7 @@ public class TNTHandler {
 	 * 
 	 * @param world to clear for
 	 */
-	public static void clear(World world) {
-		if (!isInitialized) {
-			return;
-		}
+	public void clear(World world) {
 		Iterator<BlockLocation> iter = added.iterator();
 		while (iter.hasNext()) {
 			if (iter.next().world.equals(world.getName())) {
@@ -148,12 +149,20 @@ public class TNTHandler {
 	/**
 	 * Clears all scheduled TNT detonations on the server
 	 */
-	public static void clear() {
-		if (isInitialized) {
-			todo.clear();
-			added.clear();
-			denyExplosionsCounter = 5;
-		}
+	public void clear() {
+		todo.clear();
+		added.clear();
+		denyExplosionsCounter = 5;
+	}
+
+	/**
+	 * Checks whether a given block is allowed to be exploded by TNT
+	 * 
+	 * @param block that exploded
+	 * @return True if allowed, False if not
+	 */
+	public boolean isExplosionAllowed(Block block) {
+		return !isScheduledForDetonation(block) && (changeBlocks || block.getTypeId() == Material.TNT.getId());
 	}
 
 	/**
@@ -162,10 +171,7 @@ public class TNTHandler {
 	 * @param block to check
 	 * @return True if scheduled for detonation, False if not
 	 */
-	public static boolean isScheduledForDetonation(Block block) {
-		if (!isInitialized) {
-			return false;
-		}
+	public boolean isScheduledForDetonation(Block block) {
 		return added.contains(block);
 	}
 
@@ -173,19 +179,19 @@ public class TNTHandler {
 	 * Detonates TNT and creates explosions Returns false if it was not possible
 	 * to do in any way (Including if the feature is disabled)
 	 */
-	public static boolean detonate(Block tntBlock) {
-		if (!isInitialized || interval <= 0 || tntBlock == null || !added.add(tntBlock)) {
+	public boolean detonate(Block tntBlock) {
+		if (interval <= 0 || tntBlock == null || !added.add(tntBlock)) {
 			return false;
 		}
 		todo.offer(tntBlock);
 		return true;
 	}
 
-	public static boolean createExplosion(EntityExplodeEvent event) {
+	public boolean createExplosion(EntityExplodeEvent event) {
 		return createExplosion(event.getLocation(), event.blockList(), event.getYield());
 	}
 
-	public static boolean createExplosion(Location at, List<Block> affectedBlocks, float yield) {
+	public boolean createExplosion(Location at, List<Block> affectedBlocks, float yield) {
 		if (interval > 0) {
 			if (denyExplosionsCounter == 0) {
 				try {
@@ -195,7 +201,7 @@ public class TNTHandler {
 						if (id == Material.TNT.getId()) {
 							detonate(b);
 						} else if (id != Material.FIRE.getId()) {
-							BlockInfo.get(b).destroy(b, yield);
+							BlockInfo.get(id).destroy(b, yield);
 						}
 					}
 					if (sentExplosions < explosionRate) {

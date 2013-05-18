@@ -20,7 +20,9 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.Location;
 
+import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
+import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -29,6 +31,13 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 
 public class CustomExplosion {
+	private static ExplosionSlot root;
+	private static List<ExplosionLayer> explosionLayers = new ArrayList<ExplosionLayer>();
+	private static List<ExplosionBlock> explosionBlocks = new ArrayList<ExplosionBlock>();
+	private static Map<IntVector3, ExplosionBlock> explosionBlockMap = new HashMap<IntVector3, ExplosionBlock>();
+	private static List<IntVector3> blocks = new ArrayList<IntVector3>(100);
+	public static float factor = 1.0f;
+	public static boolean useQuickDamageMode = false;
 	public boolean fire;
 	private Random h = new Random();
 	private final Random worldRandom;
@@ -36,9 +45,12 @@ public class CustomExplosion {
 	public final Location pos;
 	public Entity source;
 	public float size;
-	private static List<IntVector3> blocks = new ArrayList<IntVector3>(100);
-
 	public boolean wasCanceled = false; // CraftBukkit
+
+	static {
+		explosionLayers.add(new ExplosionLayer());
+		root = explosionLayers.get(0).slots.get(new IntVector3(0, 0, 0));
+	}
 
 	public CustomExplosion(org.bukkit.entity.Entity entity, Location location, float size, boolean fire) {
 		this.world = location.getWorld();
@@ -54,110 +66,14 @@ public class CustomExplosion {
 		this.doBlocks();
 	}
 
-	private static ExplosionSlot root;
-	private static List<ExplosionLayer> explosionLayers = new ArrayList<ExplosionLayer>();
-	private static List<ExplosionBlock> explosionBlocks = new ArrayList<ExplosionBlock>();
-	private static Map<IntVector3, ExplosionBlock> explosionBlockMap = new HashMap<IntVector3, ExplosionBlock>();
-	static {
-		explosionLayers.add(new ExplosionLayer());
-		root = explosionLayers.get(0).slots.get(new IntVector3(0, 0, 0));
-	}
-
-	private static class ExplosionBlock {
-		public ExplosionBlock(final IntVector3 pos) {
-			this.pos = pos;
-		}
-
-		public final IntVector3 pos;
-		public boolean isSet = false;
-		public boolean destroy = false;
-		public int type = 0;
-		public float damagefactor;
-	}
-
-	public static float factor = 1.0f;
-
-	private static class ExplosionLayer {
-		public ExplosionLayer() {
-			this.index = 0;
-			this.slotArray = new ExplosionSlot[] { this.createSlot(0.0, 0.0, 0.0) };
-		}
-
-		public ExplosionLayer(final int index) {
-			this(index, 16);
-		}
-
-		public ExplosionLayer(final int index, final int scale) {
-			this.index = index;
-			final int scaleminone = scale - 1;
-			final double fact = (double) scaleminone / 2.0;
-			int x, y, z;
-			double dx, dy, dz;
-			ExplosionLayer prev = explosionLayers.get(explosionLayers.size() - 1);
-			for (x = 0; x < scale; ++x) {
-				for (y = 0; y < scale; ++y) {
-					for (z = 0; z < scale; ++z) {
-						if (x == 0 || x == scaleminone || y == 0 || y == scaleminone || z == 0 || z == scaleminone) {
-							dx = (double) x / fact - 1.0;
-							dy = (double) y / fact - 1.0;
-							dz = (double) z / fact - 1.0;
-							double d = 0.3 / MathUtil.length(dx, dy, dz);
-							dx *= d;
-							dy *= d;
-							dz *= d;
-							// =============================================
-							prev.createSlot(dx, dy, dz).nextSet.add(this.createSlot(dx, dy, dz));
-						}
-					}
-				}
-			}
-			this.slotArray = slots.values().toArray(new ExplosionSlot[0]);
-		}
-
-		private final int index;
-		private final ExplosionSlot[] slotArray;
-		private Map<IntVector3, ExplosionSlot> slots = new HashMap<IntVector3, ExplosionSlot>();
-
-		public ExplosionSlot createSlot(final double dx, final double dy, final double dz) {
-			int x = MathUtil.floor(dx * (double) this.index + 0.5);
-			int y = MathUtil.floor(dy * (double) this.index + 0.5);
-			int z = MathUtil.floor(dz * (double) this.index + 0.5);
-			IntVector3 pos = new IntVector3(x, y, z);
-			ExplosionSlot slot = this.slots.get(pos);
-			if (slot == null) {
-				slot = new ExplosionSlot(pos);
-				this.slots.put(pos, slot);
-			}
-			return slot;
-		}
-	}
-
-	private static class ExplosionSlot {
-		public ExplosionSlot(IntVector3 pos) {
-			this.block = explosionBlockMap.get(pos);
-			if (this.block == null) {
-				this.block = new ExplosionBlock(pos);
-				explosionBlocks.add(this.block);
-				explosionBlockMap.put(pos, this.block);
-			}
-		}
-
-		public ExplosionBlock block;
-		public Set<ExplosionSlot> nextSet = new HashSet<ExplosionSlot>();
-		public ExplosionSlot[] next;
-		public float sourcedamage = 0;
-	}
-
-	public static boolean useQuickDamageMode = false;
-
 	public void prepare() {
 		int xoff = pos.getBlockX();
 		int yoff = pos.getBlockY();
 		int zoff = pos.getBlockZ();
 
-		root.sourcedamage = 0.05f * factor * this.size * (0.7F + worldRandom.nextFloat() * 0.6F);
+		root.sourcedamage = factor * this.size * (0.7F + worldRandom.nextFloat() * 0.6F);
 
-		// recursively operate on all blocks
+		// Recursively operate on all blocks
 		int i = 0;
 		float damageFactor;
 		int x, y, z;
@@ -165,8 +81,8 @@ public class CustomExplosion {
 		while (hasDamage && i < explosionLayers.size()) {
 			hasDamage = false;
 			for (ExplosionSlot slot : explosionLayers.get(i).slotArray) {
-				if (!slot.block.isSet) {
-					// generate the info for this block
+				// generate the info for this block
+				if (slot.block.initialized.set()) {
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
@@ -175,29 +91,27 @@ public class CustomExplosion {
 						slot.block.damagefactor = (MaterialUtil.getDamageResilience(slot.block.type, source) + 0.3F) * 0.3F;
 						slot.block.damagefactor *= (2.0F + worldRandom.nextFloat()) / 3.0F;
 					} else {
-						slot.block.destroy = true; // prevent air getting
-													// destroyed
+						slot.block.destroyed.set(); // prevent air getting destroyed by marking it as destroyed already
 						slot.block.damagefactor = 0;
 					}
-					slot.block.isSet = true;
 				}
 
 				// subtract damage factor
 				damageFactor = slot.sourcedamage - slot.block.damagefactor;
 				slot.sourcedamage = 0;
-				if (damageFactor <= 0)
+				if (damageFactor <= 0) {
 					continue;
-				if (!slot.block.destroy) {
-					slot.block.destroy = true;
-					x = slot.block.pos.x + xoff;
-					y = slot.block.pos.y + yoff;
-					z = slot.block.pos.z + zoff;
-					blocks.add(new IntVector3(x, y, z));
+				}
+
+				// mark the block for destroying
+				if (slot.block.destroyed.set()) {
+					blocks.add(slot.block.pos.add(xoff, yoff, zoff));
 				}
 
 				// one block layer further...
-				if ((damageFactor -= 0.225) <= 0.0F)
+				if ((damageFactor -= 0.225F) <= 0.0F) {
 					continue;
+				}
 
 				// force a new layer if needed
 				if (slot.next == null) {
@@ -223,9 +137,11 @@ public class CustomExplosion {
 			i++;
 		}
 
-		double tmpX;
-		double tmpY;
-		double tmpZ;
+		// Restore blocks to old state
+		for (ExplosionBlock block : explosionBlocks) {
+			block.destroyed.clear();
+			block.initialized.clear();
+		}
 
 		// =====================generate entities===================
 		double tmpsize = (double) this.size * 2.0;
@@ -241,14 +157,15 @@ public class CustomExplosion {
 		// ==========================================================
 
 		//Vec3D vec3d = Vec3D.a(this.posX, this.posY, this.posZ);
-		
-		for (Entity entity : list) {
-			if (entity == null || entity.isDead()) {
+		double tmpX, tmpY, tmpZ;
+		for (Entity bukkitEntity : list) {
+			if (bukkitEntity == null || bukkitEntity.isDead()) {
 				continue;
 			}
-			tmpX = EntityUtil.getLocX(entity) - this.pos.getX();
-			tmpY = EntityUtil.getLocY(entity) - this.pos.getY();
-			tmpZ = EntityUtil.getLocZ(entity) - this.pos.getZ();
+			final CommonEntity<?> entity = CommonEntity.get(bukkitEntity);
+			tmpX = entity.loc.getX() - this.pos.getX();
+			tmpY = entity.loc.getY() - this.pos.getY();
+			tmpZ = entity.loc.getZ() - this.pos.getZ();
 
 			double length = MathUtil.lengthSquared(tmpX, tmpY, tmpZ);
 			if (length >= (tmpsize * tmpsize))
@@ -264,15 +181,15 @@ public class CustomExplosion {
 
 			if (useQuickDamageMode) {
 				// damage factor
-				if (entity instanceof Item) {
+				if (bukkitEntity instanceof Item) {
 					damageFactor = 1.0F;
-				} else if (entity instanceof TNTPrimed) {
+				} else if (bukkitEntity instanceof TNTPrimed) {
 					damageFactor = 8.0F / 9.0F;
 				} else {
-					damageFactor = WorldUtil.getExplosionDamageFactor(pos, entity);
+					damageFactor = WorldUtil.getExplosionDamageFactor(pos, bukkitEntity);
 				}
 			} else {
-				damageFactor = WorldUtil.getExplosionDamageFactor(pos, entity);
+				damageFactor = WorldUtil.getExplosionDamageFactor(pos, bukkitEntity);
 			}
 			double force = (1.0 - distanceFactor) * (double) damageFactor;
 			int damageDone = (int) (force * (force + 1.0) * 4.0 * tmpsize + 1.0);
@@ -280,26 +197,17 @@ public class CustomExplosion {
 			// Send a damage event to Bukkit and deal the damage if not cancelled
 			final EntityDamageEvent event;
 			if (source == null) {
-				event = new EntityDamageByBlockEvent(null, entity, DamageCause.BLOCK_EXPLOSION, damageDone);
+				event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
 			} else if (source instanceof TNTPrimed) {
-				event = new EntityDamageByEntityEvent(source, entity, DamageCause.BLOCK_EXPLOSION, damageDone);
+				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
 			} else {
-				event = new EntityDamageByEntityEvent(source, entity, DamageCause.ENTITY_EXPLOSION, damageDone);
+				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, damageDone);
 			}
 			if (!CommonUtil.callEvent(event).isCancelled()) {
-				EntityUtil.damage(entity, DamageCause.BLOCK_EXPLOSION, event.getDamage());
-				EntityUtil.setMotX(entity, EntityUtil.getMotX(entity) + tmpX * force);
-				EntityUtil.setMotY(entity, EntityUtil.getMotY(entity) + tmpY * force);
-				EntityUtil.setMotZ(entity, EntityUtil.getMotZ(entity) + tmpZ * force);
+				EntityUtil.damage(bukkitEntity, DamageCause.BLOCK_EXPLOSION, event.getDamage());
+				entity.vel.add(tmpX * force, tmpY * force, tmpZ * force);
 			}
 		}
-
-		// Restore blocks to old state
-		for (ExplosionBlock block : explosionBlocks) {
-			block.destroy = false;
-			block.isSet = false;
-		}
-
 	}
 
 	public void doBlocks() {
@@ -321,7 +229,7 @@ public class CustomExplosion {
 		if (event.isCancelled()) {
 			this.wasCanceled = true;
 			return;
-		} else if (TNTHandler.createExplosion(event)) {
+		} else if (NoLaggTNT.plugin.getTNTHandler().createExplosion(event)) {
 			// handled by ourself
 			return;
 		}
@@ -368,6 +276,89 @@ public class CustomExplosion {
 				if (type == 0 && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
 					block.setType(org.bukkit.Material.FIRE);
 				}
+			}
+		}
+	}
+
+	private static class ExplosionBlock {
+		public final IntVector3 pos;
+		public final ToggledState initialized = new ToggledState();
+		public final ToggledState destroyed = new ToggledState();
+		public int type = 0;
+		public float damagefactor;
+
+		public ExplosionBlock(final IntVector3 pos) {
+			this.pos = pos;
+		}
+	}
+
+	private static class ExplosionLayer {
+		private final int index;
+		private final ExplosionSlot[] slotArray;
+		private Map<IntVector3, ExplosionSlot> slots = new HashMap<IntVector3, ExplosionSlot>();
+
+		public ExplosionLayer() {
+			this.index = 0;
+			this.slotArray = new ExplosionSlot[] { this.createSlot(0.0, 0.0, 0.0) };
+		}
+
+		public ExplosionLayer(final int index) {
+			this(index, 16);
+		}
+
+		public ExplosionLayer(final int index, final int scale) {
+			this.index = index;
+			final int scaleminone = scale - 1;
+			final double fact = (double) scaleminone / 2.0;
+			int x, y, z;
+			double dx, dy, dz;
+			ExplosionLayer prev = explosionLayers.get(explosionLayers.size() - 1);
+			for (x = 0; x < scale; ++x) {
+				for (y = 0; y < scale; ++y) {
+					for (z = 0; z < scale; ++z) {
+						if (x == 0 || x == scaleminone || y == 0 || y == scaleminone || z == 0 || z == scaleminone) {
+							dx = (double) x / fact - 1.0;
+							dy = (double) y / fact - 1.0;
+							dz = (double) z / fact - 1.0;
+							double d = 0.3 / MathUtil.length(dx, dy, dz);
+							dx *= d;
+							dy *= d;
+							dz *= d;
+							// =============================================
+							prev.createSlot(dx, dy, dz).nextSet.add(this.createSlot(dx, dy, dz));
+						}
+					}
+				}
+			}
+			this.slotArray = slots.values().toArray(new ExplosionSlot[0]);
+		}
+
+		public ExplosionSlot createSlot(final double dx, final double dy, final double dz) {
+			int x = MathUtil.floor(dx * (double) this.index + 0.5);
+			int y = MathUtil.floor(dy * (double) this.index + 0.5);
+			int z = MathUtil.floor(dz * (double) this.index + 0.5);
+			IntVector3 pos = new IntVector3(x, y, z);
+			ExplosionSlot slot = this.slots.get(pos);
+			if (slot == null) {
+				slot = new ExplosionSlot(pos);
+				this.slots.put(pos, slot);
+			}
+			return slot;
+		}
+	}
+
+	private static class ExplosionSlot {
+		public ExplosionBlock block;
+		public Set<ExplosionSlot> nextSet = new HashSet<ExplosionSlot>();
+		public ExplosionSlot[] next;
+		public float sourcedamage = 0;
+
+		public ExplosionSlot(IntVector3 pos) {
+			this.block = explosionBlockMap.get(pos);
+			if (this.block == null) {
+				this.block = new ExplosionBlock(pos);
+				explosionBlocks.add(this.block);
+				explosionBlockMap.put(pos, this.block);
 			}
 		}
 	}
