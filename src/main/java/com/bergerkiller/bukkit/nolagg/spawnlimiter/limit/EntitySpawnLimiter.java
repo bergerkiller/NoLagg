@@ -1,10 +1,10 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Locale;
 
 import org.bukkit.World;
 
+import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 
 /**
@@ -14,10 +14,9 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 public class EntitySpawnLimiter {
 	public final GroupLimiter GLOBAL = new GroupLimiter();
 	public final GroupLimiter WORLDDEFAULT = new GroupLimiter();
-	protected final Map<String, WorldGroupLimiter> limiters = new HashMap<String, WorldGroupLimiter>();
+	protected final StringMapCaseInsensitive<WorldGroupLimiter> limiters = new StringMapCaseInsensitive<WorldGroupLimiter>();
 
 	private WorldGroupLimiter getWorldLimiter(String worldname) {
-		worldname = worldname.toLowerCase();
 		WorldGroupLimiter lim = limiters.get(worldname);
 		if (lim == null) {
 			lim = new WorldGroupLimiter(this.GLOBAL, WORLDDEFAULT);
@@ -30,7 +29,7 @@ public class EntitySpawnLimiter {
 	 * Gets the Entity limits set for the entity in the world specified
 	 * 
 	 * @param world the entity is in
-	 * @param entityname of the Entity
+	 * @param entityname of the Entity (lower-cased)
 	 * @return Entity limits for that Entity
 	 */
 	public EntityLimit getEntityLimits(World world, String entityname) {
@@ -57,7 +56,7 @@ public class EntitySpawnLimiter {
 	public void load(ConfigurationNode limits) {
 		ConfigurationNode node = limits.getNode("default");
 		for (String key : node.getKeys()) {
-			WORLDDEFAULT.setLimit(key, node.get(key, -1));
+			WORLDDEFAULT.setLimit(key.toLowerCase(Locale.ENGLISH), node.get(key, -1));
 		}
 		node = limits.getNode("global");
 		for (String key : node.getKeys()) {

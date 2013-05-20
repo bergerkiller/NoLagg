@@ -38,6 +38,14 @@ public class EntityLimit {
 		return builder.toString();
 	}
 
+	public int getSpawnableCount() {
+		int count = Integer.MAX_VALUE;
+		for (SpawnLimit limit : limits) {
+			count = Math.min(count, limit.getSpawnableCount());
+		}
+		return count;
+	}
+
 	public boolean canSpawn() {
 		for (SpawnLimit limit : limits) {
 			if (!limit.canSpawn()) {

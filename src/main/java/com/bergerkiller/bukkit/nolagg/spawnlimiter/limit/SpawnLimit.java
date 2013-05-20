@@ -20,6 +20,10 @@ public class SpawnLimit {
 		this.limit = -1;
 	}
 
+	public int getSpawnableCount() {
+		return this.limit == -1 ? Integer.MAX_VALUE : (this.limit - this.count);
+	}
+
 	public boolean canSpawn() {
 		return this.limit == -1 || this.count < this.limit;
 	}

@@ -1,10 +1,11 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
+import java.util.Locale;
+
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -16,15 +17,15 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 
+import com.bergerkiller.bukkit.common.events.CreaturePreSpawnEvent;
 import com.bergerkiller.bukkit.common.events.EntityAddEvent;
 import com.bergerkiller.bukkit.common.events.EntityRemoveEvent;
-import com.bergerkiller.bukkit.common.internal.MobPreSpawnListener;
 import com.bergerkiller.bukkit.common.utils.BlockUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.limit.EntityLimit;
 
-public class NLSLListener implements Listener, MobPreSpawnListener {
+public class NLSLListener implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onItemSpawn(ItemSpawnEvent event) {
@@ -82,9 +83,22 @@ public class NLSLListener implements Listener, MobPreSpawnListener {
 		}
 	}
 
-	@Override
-	public boolean canSpawn(World world, int x, int y, int z, EntityType entityType) {
-		return EntitySpawnHandler.GENERALHANDLER.getEntityLimits(world, EntityUtil.getName(entityType)).canSpawn();
+	@EventHandler(priority = EventPriority.LOW)
+	public void onCreaturePreSpawn(CreaturePreSpawnEvent event) {
+		World world = event.getSpawnLocation().getWorld();
+		String entityName = EntityUtil.getName(event.getEntityType());
+		EntityLimit limit = EntitySpawnHandler.GENERALHANDLER.getEntityLimits(world, entityName);
+		final int spawnableCount = limit.getSpawnableCount();
+
+		// Work with the spawnable count obtained
+		if (spawnableCount == 0) {
+			event.setCancelled(true);
+		} else if (spawnableCount < event.getMaxSpawnCount()) {
+			event.setMaxSpawnCount(spawnableCount);
+			if (event.getMinSpawnCount() > event.getMaxSpawnCount()) {
+				event.setMinSpawnCount(event.getMaxSpawnCount());
+			}
+		}
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
@@ -108,7 +122,8 @@ public class NLSLListener implements Listener, MobPreSpawnListener {
 		Material type = event.getBlock().getType();
 		if (BlockUtil.isType(type, Material.GRAVEL, Material.SAND)) {
 			if (event.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR) {
-				EntityLimit limiter = EntitySpawnHandler.GENERALHANDLER.getEntityLimits(event.getBlock().getWorld(), "falling" + type.toString());
+				String name = "falling" + type.toString().toLowerCase(Locale.ENGLISH);
+				EntityLimit limiter = EntitySpawnHandler.GENERALHANDLER.getEntityLimits(event.getBlock().getWorld(), name);
 				if (limiter != null) {
 					if (limiter.canSpawn()) {
 						limiter.spawn();

@@ -1,8 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.EntitySpawnHandler;
 
@@ -16,18 +14,18 @@ public class GroupLimiter {
 	public final SpawnLimit monsterLimiter = new SpawnLimit();
 	public final SpawnLimit itemLimiter = new SpawnLimit();
 	public final SpawnLimit fallingBlockLimiter = new SpawnLimit();
-	protected final Map<String, SpawnLimit> entityLimiters = new HashMap<String, SpawnLimit>();
+	protected final StringMapCaseInsensitive<SpawnLimit> entityLimiters = new StringMapCaseInsensitive<SpawnLimit>();
 
 	/**
 	 * Configures a limit for an Entity
 	 * 
-	 * @param entityname for the limit
+	 * @param entityname for the limit (lower-cased)
 	 * @param limit to set
 	 */
 	public void setLimit(String entityname, int limit) {
-		entityname = entityname.toLowerCase();
-		if (entityname.contains("tnt"))
+		if (entityname.contains("tnt")) {
 			entityname = "tnt";
+		}
 		if (entityname.equals("mob") || entityname.equals("mobs")) {
 			mobLimiter.limit = limit;
 		} else if (entityname.equals("animal") || entityname.equals("animals")) {
@@ -64,7 +62,6 @@ public class GroupLimiter {
 	 * @return spawn limits for this Entity
 	 */
 	protected SpawnLimit[] getLimits(String name) {
-		name = name.toLowerCase();
 		if (EntitySpawnHandler.isItem(name)) {
 			return new SpawnLimit[] { entityLimiters.get(name), itemLimiter };
 		} else if (EntityUtil.isAnimal(name)) {

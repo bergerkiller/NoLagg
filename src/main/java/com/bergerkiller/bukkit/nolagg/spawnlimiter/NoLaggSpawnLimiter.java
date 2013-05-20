@@ -2,22 +2,16 @@ package com.bergerkiller.bukkit.nolagg.spawnlimiter;
 
 import java.util.Arrays;
 
-import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 
 public class NoLaggSpawnLimiter extends NoLaggComponent {
 	public static NoLaggSpawnLimiter plugin;
-	private Task spawnWaveTask;
-	private NLSLListener listener;
 
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		listener = new NLSLListener();
-		this.register(listener);
-		CommonPlugin.getInstance().addMobPreSpawnListener(listener);
+		this.register(NLSLListener.class);
 		this.onReload(config);
 	}
 
@@ -86,7 +80,5 @@ public class NoLaggSpawnLimiter extends NoLaggComponent {
 	public void onDisable(ConfigurationNode config) {
 		EntitySpawnHandler.GENERALHANDLER.clear();
 		EntitySpawnHandler.MOBSPAWNERHANDLER.clear();
-		Task.stop(spawnWaveTask);
-		CommonPlugin.getInstance().removeMobPreSpawnListener(listener);
 	}
 }

@@ -20,11 +20,11 @@ public class EntitySpawnHandler {
 	private static HashSet<Integer> ignoredEntities = new HashSet<Integer>(); //N.B: Excludes ignored items!
 
 	public static boolean isItem(String name) {
-		return name.toLowerCase().startsWith("item");
+		return name.startsWith("item");
 	}
 
 	public static boolean isFalling(String name) {
-		return name.toLowerCase().startsWith("falling");
+		return name.startsWith("falling");
 	}
 
 	/**
