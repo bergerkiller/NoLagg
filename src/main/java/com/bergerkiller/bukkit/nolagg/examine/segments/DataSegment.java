@@ -84,7 +84,7 @@ public class DataSegment extends Segment {
 			if (cancelCount != -1) {
 				builder.append("Cancelled: ").append(cancelCount);
 				if (execCount != -1) {
-					builder.append(" (").append(round(cancelCount / execCount * 100.0, 2)).append("%)");
+					builder.append(" (").append(round(100.0 * (double) cancelCount / (double) execCount, 2)).append("%)");
 				}
 			}
 		}

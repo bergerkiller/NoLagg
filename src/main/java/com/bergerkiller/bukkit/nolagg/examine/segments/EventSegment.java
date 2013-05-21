@@ -49,7 +49,7 @@ public class EventSegment extends SegmentNode {
 			if (cancelCount != -1) {
 				builder.append("\n  Cancelled: ").append(cancelCount);
 				if (execCount != -1) {
-					builder.append(" (").append(round(cancelCount / execCount * 100.0, 2)).append("%)");
+					builder.append(" (").append(round(100.0 * (double) cancelCount / (double) execCount, 2)).append("%)");
 				}
 			}
 		}
