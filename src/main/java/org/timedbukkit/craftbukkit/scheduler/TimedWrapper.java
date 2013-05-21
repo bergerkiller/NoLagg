@@ -32,6 +32,7 @@ public class TimedWrapper implements Runnable {
 				} finally {
 					try {
 						this.dest.setTime(time);
+						this.dest.executionCount++;
 					} catch (ArrayIndexOutOfBoundsException ex) {
 					}
 				}

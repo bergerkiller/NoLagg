@@ -120,7 +120,7 @@ public class ExamFile extends Segment {
 			location.append(name);
 		}
 		for (int j = 0; j < loccount; j++) {
-			location.append('\n').append('\n').append(stream.readUTF());
+			location.append('\n').append(stream.readUTF());
 		}
 		return location.toString();
 	}

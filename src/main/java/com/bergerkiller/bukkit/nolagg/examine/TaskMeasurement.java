@@ -16,12 +16,14 @@ public class TaskMeasurement {
 		this.name = name;
 		this.reset();
 		this.plugin = plugin;
+		this.executionCount = 0;
 	}
 
 	public final String name;
 	public final Set<String> locations = new HashSet<String>();
 	public long[] times;
 	public final String plugin;
+	public int executionCount;
 
 	public void addDelta(long deltaTime) {
 		this.times[PluginLogger.position] += deltaTime;

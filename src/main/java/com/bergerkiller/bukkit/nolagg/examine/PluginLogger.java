@@ -4,7 +4,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -14,7 +13,7 @@ import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -22,10 +21,12 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.TimedRegisteredListener;
+import org.timedbukkit.craftbukkit.scheduler.CancellableEventExecutor;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
+import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
 import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
@@ -35,11 +36,10 @@ import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class PluginLogger {
-	private static SafeField<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
+	public static FieldAccessor<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
 	public static Set<String> recipients = new HashSet<String>();
 	private static Task measuretask;
-	private static TimedRegisteredListener[] listeners;
-	private static float[][] eventtimes;
+	private static ListenerMeasurement[] events;
 	public static int duration = 500;
 	public static int position;
 	public static Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
@@ -120,34 +120,40 @@ public class PluginLogger {
 		CommonPlugin.getInstance().addTimingsListener(NLETimingsListener.INSTANCE);
 
 		// Initialize event listeners
-		List<TimedRegisteredListener> rval = new ArrayList<TimedRegisteredListener>();
-		RegisteredListener[] a;
+		List<ListenerMeasurement> rval = new ArrayList<ListenerMeasurement>();
 		for (HandlerList handler : HandlerList.getHandlerLists()) {
-			a = handler.getRegisteredListeners();
-			for (int i = 0; i < a.length; i++) {
-				if (a[i] instanceof TimedRegisteredListener) {
-					rval.add((TimedRegisteredListener) a[i]);
-				} else {
-					// convert
-					EventExecutor exec = exefield.get(a[i]);
-					if (exec == null)
-						continue;
-					Listener list = a[i].getListener();
-					Plugin plug = a[i].getPlugin();
-					EventPriority prio = a[i].getPriority();
-					boolean ignoreCancelled = a[i].isIgnoringCancelled();
-					TimedRegisteredListener listener = new TimedRegisteredListener(list, exec, prio, plug, ignoreCancelled);
-					a[i] = listener;
-					rval.add(listener);
+			RegisteredListener[] listeners = handler.getRegisteredListeners();
+			for (int i = 0; i < listeners.length; i++) {
+				// Convert to a timed registered listener if needed
+				RegisteredListener listener = listeners[i];
+				EventExecutor exec = exefield.get(listener);
+				if (exec == null) {
+					continue;
 				}
+				if (!(listener instanceof TimedRegisteredListener)) {
+					Listener list = listener.getListener();
+					Plugin plug = listener.getPlugin();
+					EventPriority prio = listener.getPriority();
+					boolean ignoreCancelled = listener.isIgnoringCancelled();
+					listeners[i] = listener = new TimedRegisteredListener(list, exec, prio, plug, ignoreCancelled);
+				}
+
+				// Set up a new measurement and reset to clear initial data
+				ListenerMeasurement meas = new ListenerMeasurement((TimedRegisteredListener) listener, duration);
+				meas.listener.reset();
+
+				// Hook up an event cancel monitor
+				if (exec instanceof CancellableEventExecutor) {
+					((CancellableEventExecutor) exec).meas = meas;
+				} else {
+					exefield.set(listener, new CancellableEventExecutor(exec, meas));
+				}
+
+				// Done
+				rval.add(meas);
 			}
 		}
-		listeners = rval.toArray(new TimedRegisteredListener[0]);
-		eventtimes = new float[listeners.length][duration];
-		for (int i = 0; i < eventtimes.length; i++) {
-			listeners[i].reset();
-			Arrays.fill(eventtimes[i], 0f);
-		}
+		events = rval.toArray(new ListenerMeasurement[0]);
 		position = 0;
 
 		for (TaskMeasurement tm : tasks.values()) {
@@ -158,9 +164,8 @@ public class PluginLogger {
 		Task.stop(measuretask);
 		measuretask = new Task(NoLagg.plugin) {
 			public void run() {
-				for (int i = 0; i < eventtimes.length; i++) {
-					eventtimes[i][position] = (float) (listeners[i].getTotalTime() / 1E6);
-					listeners[i].reset();
+				for (int i = 0; i < events.length; i++) {
+					events[i].update(position);
 				}
 				if (position++ >= duration - 1) {
 					stopTask();
@@ -179,20 +184,31 @@ public class PluginLogger {
 		new CompressedDataWriter(file) {
 			@Override
 			public void write(DataOutputStream stream) throws IOException {
-				stream.writeInt(listeners.length);
+				stream.writeInt(events.length);
 				stream.writeInt(duration);
-				for (int i = 0; i < listeners.length; i++) {
-					Event event = listeners[i].getEvent();
-					if (event == null) {
-						stream.writeBoolean(false);
-					} else {
-						stream.writeBoolean(true);
-						stream.writeUTF(listeners[i].getPlugin().getDescription().getName());
-						stream.writeUTF(event.getClass().getSimpleName());
-						stream.writeInt(listeners[i].getPriority().getSlot());
-						stream.writeUTF(listeners[i].getListener().getClass().toString());
+				StringBuilder descBuilder = new StringBuilder(200);
+				for (ListenerMeasurement meas : events) {
+					final boolean wasCalled = meas.wasCalled();
+					stream.writeBoolean(wasCalled);
+					if (wasCalled) {
+						Class<?> eventClass = meas.listener.getEvent().getClass();
+						// Plugin that fired the event
+						stream.writeUTF(meas.listener.getPlugin().getDescription().getName());
+						// Name of the event fired
+						stream.writeUTF(eventClass.getSimpleName());
+						// Priority of the event
+						stream.writeInt(meas.listener.getPriority().getSlot());
+						// Description
+						descBuilder.setLength(0);
+						descBuilder.append(meas.listener.getListener().getClass().toString());
+						descBuilder.append("\nExecution count: ").append(meas.executionCount);
+						if (Cancellable.class.isAssignableFrom(eventClass)) {
+							descBuilder.append("\nCancelled: ").append(meas.cancelCount);
+						}
+						stream.writeUTF(descBuilder.toString());
+						// The duration values
 						for (int d = 0; d < duration; d++) {
-							stream.writeLong((long) (eventtimes[i][d] * 1E6));
+							stream.writeLong((long) (meas.times[d] * 1E6));
 						}
 					}
 				}
@@ -201,7 +217,9 @@ public class PluginLogger {
 					stream.writeUTF(task.getKey());
 					TaskMeasurement tm = task.getValue();
 					stream.writeUTF(tm.plugin);
-					stream.writeInt(tm.locations.size());
+					// Descriptions
+					stream.writeInt(tm.locations.size() + 1);
+					stream.writeUTF("Execution count: " + tm.executionCount);
 					for (String loc : tm.locations) {
 						stream.writeUTF(loc);
 					}
