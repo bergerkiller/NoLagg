@@ -14,10 +14,19 @@ public class MultiEventSegment extends SegmentNode {
 	public static MultiEventSegment create(int duration, int plugincount, List<DataSegment> segments) {
 		Map<String, List<DataSegment>> eventMap = new LinkedHashMap<String, List<DataSegment>>();
 		for (DataSegment seg : segments) {
-			List<DataSegment> plist = eventMap.get(seg.getName());
+			// Parse the name (ignore event priority!)
+			String name = seg.getName();
+			if (!seg.isTask() && name.endsWith("]")) {
+				int start = name.lastIndexOf('[');
+				if (start != -1) {
+					name = name.substring(0, start);
+				}
+			}
+
+			List<DataSegment> plist = eventMap.get(name);
 			if (plist == null) {
 				plist = new ArrayList<DataSegment>();
-				eventMap.put(seg.getName(), plist);
+				eventMap.put(name, plist);
 			}
 			plist.add(seg.clone());
 		}

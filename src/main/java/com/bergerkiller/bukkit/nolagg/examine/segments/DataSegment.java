@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class DataSegment extends Segment {
-
 	private String plugin;
 	private String location;
 	private boolean task;
@@ -56,7 +55,7 @@ public class DataSegment extends Segment {
 	public String getDescription() {
 		StringBuilder builder = new StringBuilder(super.getDescription());
 		if (this.isServerOperation()) {
-			builder.append('\n').append("Selected server operation: ").append(this.getName());
+			builder.append('\n').append("Server operation: ").append(this.getName());
 			builder.append('\n').append("Server branch: ").append(this.getPlugin());
 		} else {
 			if (this.isTask()) {
@@ -65,7 +64,29 @@ public class DataSegment extends Segment {
 				builder.append('\n').append("Selected event: ").append(this.getName());
 			}
 			builder.append('\n').append("Plugin: ").append(this.getPlugin());
-			builder.append('\n').append("Location: ").append(this.getLocation());
+			builder.append('\n').append("Location: ");
+			int execCount = -1;
+			int cancelCount = -1;
+			for (String loc : this.getLocation().split("\n")) {
+				if (loc.startsWith("Execution count: ")) {
+					try {
+						execCount = Integer.parseInt(loc.substring(17));
+					} catch (NumberFormatException ex) {}
+				}
+				if (loc.startsWith("Cancelled: ")) {
+					try {
+						cancelCount = Integer.parseInt(loc.substring(11));
+						continue;
+					} catch (NumberFormatException ex) {}
+				}
+				builder.append(loc).append('\n');
+			}
+			if (cancelCount != -1) {
+				builder.append("Cancelled: ").append(cancelCount);
+				if (execCount != -1) {
+					builder.append(" (").append(round(cancelCount / execCount * 100.0, 2)).append("%)");
+				}
+			}
 		}
 		return builder.toString();
 	}

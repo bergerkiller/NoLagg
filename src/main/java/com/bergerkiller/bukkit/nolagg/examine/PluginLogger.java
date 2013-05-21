@@ -218,8 +218,14 @@ public class PluginLogger {
 					TaskMeasurement tm = task.getValue();
 					stream.writeUTF(tm.plugin);
 					// Descriptions
-					stream.writeInt(tm.locations.size() + 1);
-					stream.writeUTF("Execution count: " + tm.executionCount);
+					if (tm.plugin.startsWith("#")) {
+						// Server operation
+						stream.writeInt(tm.locations.size());
+					} else {
+						// Task
+						stream.writeInt(tm.locations.size() + 1);
+						stream.writeUTF("Execution count: " + tm.executionCount);
+					}
 					for (String loc : tm.locations) {
 						stream.writeUTF(loc);
 					}

@@ -42,6 +42,10 @@ public abstract class SegmentNode extends Segment {
 
 	public abstract int getPluginCount();
 
+	public Segment[] getSegments() {
+		return this.segments;
+	}
+	
 	@Override
 	public Segment getSegment(int index) {
 		if (index < 0 || index >= this.segments.length) {

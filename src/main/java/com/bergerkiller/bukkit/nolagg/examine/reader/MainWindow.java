@@ -71,8 +71,8 @@ public class MainWindow extends JFrame {
 		this.ticktimes1.orderAreas();
 	}
 
-	public final int selectionWidth = 290;
-	public final int selectionHeight = 300;
+	public final int selectionWidth = 320;
+	public final int selectionHeight = 310;
 	final int graphwidth = 600;
 	final int yoffset = 40;
 
@@ -125,8 +125,8 @@ public class MainWindow extends JFrame {
 			public void ancestorResized(HierarchyEvent e) {
 				// make sure all contents can fit riiight in :)
 				main.ticktimes1.setSize(main.getWidth() - selectionWidth - 28, main.getHeight() - 80);
-				main.locscroll.setLocation(main.getWidth() - 310, main.getHeight() - 240);
-				main.selection.setBounds(main.getWidth() - 310, yoffset, selectionWidth, main.getHeight() - 285);
+				main.locscroll.setLocation(main.getWidth() - selectionWidth - 20, main.getHeight() - 240);
+				main.selection.setBounds(main.getWidth() - selectionWidth - 20, yoffset, selectionWidth, main.getHeight() - 285);
 				main.filepath.setSize(main.getWidth() - 235, main.filepath.getHeight());
 				main.exportbutton.setLocation(main.getWidth() - 121, 5);
 			}
