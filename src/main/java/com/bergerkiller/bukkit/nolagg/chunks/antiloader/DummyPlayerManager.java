@@ -6,18 +6,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.bases.DummyWorldServer;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.PlayerChunkMapBase;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkMapRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 
 public class DummyPlayerManager extends PlayerChunkMapBase {
 	private static final DummyWorldServer DUMMYWORLD = DummyWorldServer.newInstance();
+	private static final String playerInstanceClassName = CommonUtil.getNMSClass("PlayerInstance").getName();
 
 	public static void convertAll() {
 		// Alter player manager to prevent chunk loading outside range
@@ -91,7 +92,7 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 	public World getWorld() {
 		for (StackTraceElement elem : Thread.currentThread().getStackTrace()) {
 			if (elem.getMethodName().equals("<init>")) {
-				if (elem.getClassName().equals(Common.NMS_ROOT + ".PlayerInstance")) {
+				if (elem.getClassName().equals(playerInstanceClassName)) {
 					DUMMYWORLD.DUMMYCPS.setBase(super.getWorld());
 					return DUMMYWORLD.getWorld();
 				}

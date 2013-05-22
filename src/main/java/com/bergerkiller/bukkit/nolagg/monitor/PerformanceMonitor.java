@@ -214,7 +214,7 @@ public class PerformanceMonitor extends Task {
 			builder.append(ChatColor.YELLOW).append("Memory: ");
 			builder.append(getMemoryProgress(50, usedmem, minmem, maxmem));
 			builder.append(ChatColor.YELLOW).append(" ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB ");
-			if (diff > 0) {
+			if (diff >= 0) {
 				builder.append(ChatColor.RED).append("(+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
 			} else {
 				builder.append(ChatColor.GREEN).append("(GC)");
@@ -341,7 +341,7 @@ public class PerformanceMonitor extends Task {
 					appendColumn(msg, mem(maxmem) + " MB");
 					appendColumn(msg, mem(minmem) + " MB");
 					appendColumn(msg, mem(usedmem - minmem) + " MB");
-					if (diff <= 0) {
+					if (diff < 0) {
 						appendColumn(msg, "GC");
 					} else {
 						appendColumn(msg, mem(diff / elapsedtimesec) + " MB/s");
