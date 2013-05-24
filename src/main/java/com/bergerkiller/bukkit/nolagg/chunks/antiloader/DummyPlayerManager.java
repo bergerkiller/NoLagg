@@ -94,7 +94,7 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 			if (elem.getMethodName().equals("<init>")) {
 				if (elem.getClassName().equals(playerInstanceClassName)) {
 					DUMMYWORLD.DUMMYCPS.setBase(super.getWorld());
-					return DUMMYWORLD.getWorld();
+					return Conversion.toWorld.convert(DUMMYWORLD);
 				}
 			}
 		}
