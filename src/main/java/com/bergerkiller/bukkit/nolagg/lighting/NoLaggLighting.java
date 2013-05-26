@@ -1,5 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.lighting;
 
+import java.io.File;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -10,6 +12,7 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
 
@@ -56,12 +59,19 @@ public class NoLaggLighting extends NoLaggComponent {
 				sender.sendMessage("As a console you have to specify the world to fix!");
 				return true;
 			}
+			// Obtain the region folder
+			File regionFolder = WorldUtil.getWorldRegionFolder(world.getName());
+			if (regionFolder == null) {
+				sender.sendMessage(ChatColor.RED + "Unable to figure out the location where region files for world " + world.getName() + " are stored");
+				sender.sendMessage(ChatColor.RED + "This could be a bug in the program, or it could be that there really are no regions (yet)");
+				return true;
+			}
 			// Fix all the chunks in this world
 			sender.sendMessage(ChatColor.YELLOW + "The world is now being fixed, this may take very long!");
 			sender.sendMessage(ChatColor.YELLOW + "To view the fixing status, use /lag stat");
 			LightingService.addRecipient(sender);
 			// Get an iterator for all the chunks to fix
-			LightingService.scheduleWorld(world);
+			LightingService.scheduleWorld(world, regionFolder);
 			return true;
 		}
 		if (args[0].equalsIgnoreCase("fix")) {

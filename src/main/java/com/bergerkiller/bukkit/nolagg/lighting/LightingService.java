@@ -91,8 +91,8 @@ public class LightingService extends AsyncTask {
 		}
 	}
 
-	public static void scheduleWorld(final World world) {
-		schedule(new LightingTaskWorld(world));
+	public static void scheduleWorld(final World world, File regionFolder) {
+		schedule(new LightingTaskWorld(world, regionFolder));
 	}
 
 	/**

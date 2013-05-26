@@ -8,12 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.World;
-import org.bukkit.World.Environment;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
-import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
 public class LightingTaskWorld implements LightingTask {
@@ -25,19 +23,9 @@ public class LightingTaskWorld implements LightingTask {
 	private final LongHashSet chunks;
 	private int chunkCount;
 
-	public LightingTaskWorld(World world) {
+	public LightingTaskWorld(World world, File regionFolder) {
 		this.world = world;
-
-		// Obtain the folder where regions of the world are stored
-		File regionFolderTmp = WorldUtil.getWorldFolder(world);
-		// Special dim folder for nether and the_end
-		if (world.getEnvironment() == Environment.NETHER) {
-			regionFolderTmp = new File(regionFolderTmp, "DIM-1");
-		} else if (world.getEnvironment() == Environment.THE_END) {
-			regionFolderTmp = new File(regionFolderTmp, "DIM1");
-		}
-		// Final region folder appending
-		this.regionFolder = new File(regionFolderTmp, "region");
+		this.regionFolder = regionFolder;
 
 		// Obtain the region file names
 		String[] regionFileNames = this.regionFolder.list();
