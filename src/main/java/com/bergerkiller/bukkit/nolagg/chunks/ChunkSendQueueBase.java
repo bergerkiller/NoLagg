@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.reflection.classes.VectorRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
+import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 /**
  * Only contains the empty-faking and double-mapping of contained elements
@@ -91,24 +92,20 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	@Override
-	public Object[] toArray() {
+	public synchronized Object[] toArray() {
 		this.updating.next(true);
 		try {
-			synchronized (this) {
-				return super.toArray();
-			}
+			return super.toArray();
 		} finally {
 			this.updating.previous();
 		}
 	}
 
 	@Override
-	public Object[] toArray(Object[] value) {
+	public synchronized Object[] toArray(Object[] value) {
 		this.updating.next(true);
 		try {
-			synchronized (this) {
-				return super.toArray(value);
-			}
+			return super.toArray(value);
 		} finally {
 			this.updating.previous();
 		}
@@ -127,20 +124,21 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	}
 
 	@Override
-	public boolean containsAll(Collection coll) {
-		synchronized (this) {
-			for (Object o : coll) {
-				if (!this.contains(o))
-					return false;
-			}
-			return true;
+	public synchronized boolean containsAll(Collection coll) {
+		for (Object o : coll) {
+			if (!this.contains(o))
+				return false;
 		}
+		return true;
 	}
 
 	@Override
-	public boolean contains(Object o) {
-		synchronized (this) {
+	public synchronized boolean contains(Object o) {
+		try {
 			return this.contained.contains(VectorRef.getPairX(o), VectorRef.getPairZ(o));
+		} catch (Throwable t) {
+			NoLagg.plugin.handle(t);
+			return false;
 		}
 	}
 
@@ -227,7 +225,12 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 
 	@Override
 	public boolean remove(Object object) {
-		return removePair(Conversion.toIntVector2.convert(object));
+		try {
+			return removePair(Conversion.toIntVector2.convert(object));
+		} catch (Throwable t) {
+			NoLagg.plugin.handle(t);
+			return false;
+		}
 	}
 
 	/**
@@ -235,19 +238,28 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 */
 	@Override
 	public synchronized boolean add(Object object) {
-		if (this.updating.get()) {
-			return super.add(Conversion.toChunkCoordIntPairHandle.convert(object));
-		} else {
-			return this.addPair(Conversion.toIntVector2.convert(object));
+		try {
+			if (this.updating.get()) {
+				return super.add(Conversion.toChunkCoordIntPairHandle.convert(object));
+			} else {
+				return this.addPair(Conversion.toIntVector2.convert(object));
+			}
+		} catch (Throwable t) {
+			NoLagg.plugin.handle(t);
+			return false;
 		}
 	}
 
 	@Override
 	public synchronized void add(int index, Object object) {
-		if (this.updating.get()) {
-			super.add(index, Conversion.toChunkCoordIntPairHandle.convert(object));
-		} else {
-			this.addPair(index, Conversion.toIntVector2.convert(object));
+		try {
+			if (this.updating.get()) {
+				super.add(index, Conversion.toChunkCoordIntPairHandle.convert(object));
+			} else {
+				this.addPair(index, Conversion.toIntVector2.convert(object));
+			}
+		} catch (Throwable t) {
+			NoLagg.plugin.handle(t);
 		}
 	}
 }

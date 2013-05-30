@@ -20,6 +20,8 @@ import com.google.common.collect.Lists;
 
 public class NoLaggThreadCheck extends NoLaggComponent {
 	private static HashSet<String> thrownErrors = new HashSet<String>();
+	private static final String SCHEDULER_PATH = Common.SERVER.getClassName(Common.CB_ROOT + ".scheduler.CraftScheduler");
+	private static final String SHUTDOWN_PATH = Common.SERVER.getClassName(Common.CB_ROOT + ".util.ServerShutdownThread");
 
 	@Override
 	public void onReload(ConfigurationNode config) {
@@ -61,7 +63,7 @@ public class NoLaggThreadCheck extends NoLaggComponent {
 			List<StackTraceElement> stack = Lists.newArrayList(t.getStackTrace());
 			stack.remove(0); // remove check function from stacktrace
 			stack.remove(0); // remove check function from stacktrace
-			if (t.getClass().getName().equals(Common.CB_ROOT + ".util.ServerShutdownThread"))
+			if (t.getClass().getName().equals(SHUTDOWN_PATH))
 				return true;
 			if (event != null && event.equals("")) {
 				return false; // no messages for custom events
@@ -82,7 +84,7 @@ public class NoLaggThreadCheck extends NoLaggComponent {
 			if (classCheck(stack.get(stack.size() - 1), Thread.class)) {
 				stack.remove(stack.size() - 1);
 				// bukkit task?
-				if (stack.get(stack.size() - 1).getClassName().equals(Common.CB_ROOT + ".scheduler.CraftScheduler")) {
+				if (stack.get(stack.size() - 1).getClassName().equals(SCHEDULER_PATH)) {
 					classname = stack.get(stack.size() - 2).getClassName();
 				} else {
 					classname = stack.get(stack.size() - 1).getClassName();
