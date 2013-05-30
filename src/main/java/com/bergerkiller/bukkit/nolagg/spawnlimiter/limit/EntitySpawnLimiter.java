@@ -1,7 +1,5 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
-import java.util.Locale;
-
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
@@ -56,7 +54,7 @@ public class EntitySpawnLimiter {
 	public void load(ConfigurationNode limits) {
 		ConfigurationNode node = limits.getNode("default");
 		for (String key : node.getKeys()) {
-			WORLDDEFAULT.setLimit(key.toLowerCase(Locale.ENGLISH), node.get(key, -1));
+			WORLDDEFAULT.setLimit(key, node.get(key, -1));
 		}
 		node = limits.getNode("global");
 		for (String key : node.getKeys()) {
@@ -64,9 +62,9 @@ public class EntitySpawnLimiter {
 		}
 		node = limits.getNode("worlds");
 		for (ConfigurationNode cn : node.getNodes()) {
-			String world = cn.getName();
+			WorldGroupLimiter worldLimits = getWorldLimiter(cn.getName());
 			for (String key : cn.getKeys()) {
-				getWorldLimiter(world).setLimit(key, cn.get(key, -1));
+				worldLimits.setLimit(key, cn.get(key, -1));
 			}
 		}
 	}

@@ -1,6 +1,8 @@
 package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
-import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
+import java.util.Locale;
+
+import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.nolagg.spawnlimiter.EntitySpawnHandler;
 
@@ -14,7 +16,7 @@ public class GroupLimiter {
 	public final SpawnLimit monsterLimiter = new SpawnLimit();
 	public final SpawnLimit itemLimiter = new SpawnLimit();
 	public final SpawnLimit fallingBlockLimiter = new SpawnLimit();
-	protected final StringMapCaseInsensitive<SpawnLimit> entityLimiters = new StringMapCaseInsensitive<SpawnLimit>();
+	protected final StringMap<SpawnLimit> entityLimiters = new StringMap<SpawnLimit>();
 
 	/**
 	 * Configures a limit for an Entity
@@ -23,6 +25,9 @@ public class GroupLimiter {
 	 * @param limit to set
 	 */
 	public void setLimit(String entityname, int limit) {
+		// To lower case
+		entityname = entityname.toLowerCase(Locale.ENGLISH);
+		// Parse it and apply limit
 		if (entityname.contains("tnt")) {
 			entityname = "tnt";
 		}

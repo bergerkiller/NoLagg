@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.nolagg.spawnlimiter.limit;
 
 import java.util.Map;
 
-import com.bergerkiller.bukkit.common.collections.StringMapCaseInsensitive;
+import com.bergerkiller.bukkit.common.collections.StringMap;
 
 /**
  * Generates Entity Limits using a global and world-specific set of spawn limits
@@ -11,7 +11,7 @@ public class WorldGroupLimiter extends GroupLimiter {
 	// Global limits to apply
 	private final GroupLimiter global;
 	// Entity limiters generated from group limiters
-	private final StringMapCaseInsensitive<EntityLimit> genEntities = new StringMapCaseInsensitive<EntityLimit>();
+	private final StringMap<EntityLimit> genEntities = new StringMap<EntityLimit>();
 
 	public WorldGroupLimiter(final GroupLimiter global, GroupLimiter limiter) {
 		this.global = global;
