@@ -63,7 +63,7 @@ public enum NoLaggComponents {
 				NoLagg.plugin.getComponents().add(comp);
 			} catch (Throwable t) {
 				NoLagg.plugin.log(Level.SEVERE, "Failed to load component '" + this.name + "':");
-				t.printStackTrace();
+				NoLagg.plugin.handle(t);
 			}
 		}
 	}
