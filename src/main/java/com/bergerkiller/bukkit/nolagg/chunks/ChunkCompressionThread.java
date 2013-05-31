@@ -205,10 +205,10 @@ public class ChunkCompressionThread extends AsyncTask {
 		// =====================================
 
 		// Set data in packet
-		PacketFields.MAP_CHUNK.chunkDataBitMap.set(mapchunk.getHandle(), chunkDataBitMap);
-		PacketFields.MAP_CHUNK.chunkBiomeBitMap.set(mapchunk.getHandle(), chunkBiomeBitMap);
-		PacketFields.MAP_CHUNK.size.set(mapchunk.getHandle(), this.rawLength);
-		PacketFields.MAP_CHUNK.inflatedBuffer.set(mapchunk.getHandle(), this.rawbuffer);
+		mapchunk.write(PacketFields.MAP_CHUNK.chunkDataBitMap, chunkDataBitMap);
+		mapchunk.write(PacketFields.MAP_CHUNK.chunkBiomeBitMap, chunkBiomeBitMap);
+		mapchunk.write(PacketFields.MAP_CHUNK.size, this.rawLength);
+		mapchunk.write(PacketFields.MAP_CHUNK.inflatedBuffer, this.rawbuffer);
 		return mapchunk;
 	}
 
@@ -276,7 +276,7 @@ public class ChunkCompressionThread extends AsyncTask {
 		// ========================================
 		if (Common.IS_SPIGOT_SERVER) {
 			final int bitmap =  mapchunk.read(PacketFields.MAP_CHUNK.chunkDataBitMap);
-			final byte[] buffer = mapchunk.read(PacketFields.MAP_CHUNK.buffer);
+			final byte[] buffer = mapchunk.read(PacketFields.MAP_CHUNK.inflatedBuffer);
 			if (spigotObfuscateMethod == null) {
 				spigotObfuscateMethod = new SafeMethod<Void>(OrebfuscatorManager.class, "obfuscate", int.class, int.class, int.class, byte[].class, WorldRef.TEMPLATE.getType());
 			}
