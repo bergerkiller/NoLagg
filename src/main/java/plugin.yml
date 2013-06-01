@@ -30,10 +30,11 @@ commands:
           /lag resend ([chunkRadius])
           /lag resend 5
     nolagg examine:
-        description: Starts examining server tick rate performance
+        description: Starts or stops examining server tick rate performance
         usage: |
           /lag examine ([time])
           /lag examine 500
+          /lag examine [stop/abort/cancel]
     nolagg fix:
         description: Fixes the lighting of a world
         aliases: [nolagg fixall, nolagg fixworld]

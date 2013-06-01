@@ -1,6 +1,7 @@
 package com.bergerkiller.bukkit.nolagg.examine;
 
 import java.io.File;
+import java.util.Locale;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -8,7 +9,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
-import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
@@ -29,7 +30,7 @@ public class NoLaggExamine extends NoLaggComponent {
 	@Override
 	public void onDisable(ConfigurationNode config) {
 		SchedulerWatcher.deinit();
-		PluginLogger.stopTask();
+		PluginLogger.abort();
 	}
 
 	@Override
@@ -47,6 +48,16 @@ public class NoLaggExamine extends NoLaggComponent {
 			if (args[0].equalsIgnoreCase("examine")) {
 				int duration = MathUtil.clamp(500, maxExamineTime);
 				if (args.length >= 2) {
+					if (LogicUtil.contains(args[1].toLowerCase(Locale.ENGLISH), "stop", "cancel", "abort")) {
+						// Abort any examine operation going on right now
+						if (!PluginLogger.isRunning()) {
+							sender.sendMessage(ChatColor.YELLOW + "The server is not being examined right now.");
+						} else {
+							PluginLogger.abort();
+							sender.sendMessage(ChatColor.YELLOW + "Examining aborted: examined data of " + PluginLogger.duration + " ticks is saved");
+						}
+						return true;
+					}
 					duration = ParseUtil.parseInt(args[1], duration);
 				}
 				if (sender instanceof Player) {
@@ -56,15 +67,16 @@ public class NoLaggExamine extends NoLaggComponent {
 					PluginLogger.recipients.add(null);
 				}
 				if (PluginLogger.isRunning()) {
-					CommonUtil.sendMessage(sender, ChatColor.RED + "The server is already being examined: " + PluginLogger.getDurPer() + "% completed");
-					CommonUtil.sendMessage(sender, ChatColor.GREEN + "You will be notified when the report has been generated");
+					sender.sendMessage(ChatColor.RED + "The server is already being examined: " + PluginLogger.getDurPer() + "% completed");
+					sender.sendMessage(ChatColor.GREEN + "You will be notified when the report has been generated");
 				} else if (duration > maxExamineTime) {
-					CommonUtil.sendMessage(sender, ChatColor.RED + "Examine duration of " + duration + " exceeded the maximum possible: " + maxExamineTime + " ticks");
+					sender.sendMessage(ChatColor.RED + "Examine duration of " + duration + " exceeded the maximum possible: " + maxExamineTime + " ticks");
 				} else {
 					PluginLogger.duration = duration;
 					PluginLogger.start();
-					CommonUtil.sendMessage(sender, ChatColor.GREEN + "The server will be examined for " + duration + " ticks (" + (duration / 20) + " seconds)");
-					CommonUtil.sendMessage(sender, ChatColor.GREEN + "You will be notified when the report has been generated");
+					sender.sendMessage(ChatColor.GREEN + "The server will be examined for " + duration + " ticks (" + (duration / 20) + " seconds)");
+					sender.sendMessage(ChatColor.GREEN + "You will be notified when the report has been generated");
+					sender.sendMessage(ChatColor.YELLOW + "To abort examining the server, use /lag examine abort");
 				}
 				return true;
 			}

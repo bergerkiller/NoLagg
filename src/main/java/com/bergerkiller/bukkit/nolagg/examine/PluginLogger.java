@@ -175,8 +175,20 @@ public class PluginLogger {
 		}.start(1, 1);
 	}
 
+	public static void abort() {
+		if (!isRunning()) {
+			return;
+		}
+		duration = position + 1;
+		Task.stop(measuretask);
+		onFinish();
+	}
+
 	public static void onFinish() {
 		measuretask = null;
+		if (duration <= 0) {
+			return;
+		}
 		NoLaggExamine.exportFolder.mkdirs();
 		final File file = new File(NoLaggExamine.exportFolder, TimeUtil.now("yyyy_MM_dd-H_mm_ss") + ".exam");
 
