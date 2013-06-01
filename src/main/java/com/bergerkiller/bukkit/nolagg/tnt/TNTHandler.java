@@ -140,7 +140,7 @@ public class TNTHandler {
 		Iterator<Block> iter2 = todo.iterator();
 		while (iter2.hasNext()) {
 			if (iter2.next().getWorld() == world) {
-				iter.remove();
+				iter2.remove();
 			}
 		}
 		denyExplosionsCounter = 5;

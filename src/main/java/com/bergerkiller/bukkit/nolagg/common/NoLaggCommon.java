@@ -18,6 +18,7 @@ import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 
 import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -253,6 +254,7 @@ public class NoLaggCommon extends NoLaggComponent {
 		private final boolean items;
 		private final boolean fallingblocks;
 		private final boolean minecarts;
+		private final boolean tnt;
 
 		public TypedEntitySelector(Set<String> types) {
 			this.types = types;
@@ -261,6 +263,7 @@ public class NoLaggCommon extends NoLaggComponent {
 			this.items = types.contains("items");
 			this.fallingblocks = types.contains("fallingblocks");
 			this.minecarts = types.contains("minecarts");
+			this.tnt = types.contains("tnt");
 		}
 
 		@Override
@@ -277,6 +280,8 @@ public class NoLaggCommon extends NoLaggComponent {
 			} else if (fallingblocks && entity instanceof FallingBlock) {
 				return true;
 			} else if (minecarts && entity instanceof Minecart) {
+				return true;
+			} else if (tnt && entity instanceof TNTPrimed) {
 				return true;
 			} else if (types.contains(EntityUtil.getName(entity))) {
 				return true;
