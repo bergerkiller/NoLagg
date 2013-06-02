@@ -10,17 +10,19 @@ import com.bergerkiller.bukkit.common.proxies.ProxyBase;
 import com.bergerkiller.bukkit.nolagg.examine.ListenerMeasurement;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
-public class CancellableEventExecutor extends ProxyBase<EventExecutor> implements EventExecutor {
+public class TimedListenerExecutor extends ProxyBase<EventExecutor> implements EventExecutor {
 	public ListenerMeasurement meas;
+	public PluginLogger logger;
 
-	public CancellableEventExecutor(EventExecutor base, ListenerMeasurement meas) {
+	public TimedListenerExecutor(PluginLogger logger, EventExecutor base, ListenerMeasurement meas) {
 		super(base);
 		this.meas = meas;
+		this.logger = logger;
 	}
 
 	@Override
 	public void execute(Listener listener, Event event) throws EventException {
-		if (!PluginLogger.isRunning() || !(event instanceof Cancellable)) {
+		if (!logger.isRunning() || !(event instanceof Cancellable)) {
 			// Disable this listening executor
 			PluginLogger.exefield.set(meas.listener, base);
 			// Execute like normal

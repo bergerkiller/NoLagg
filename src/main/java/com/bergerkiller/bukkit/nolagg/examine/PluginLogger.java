@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -21,7 +22,7 @@ import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.TimedRegisteredListener;
-import org.timedbukkit.craftbukkit.scheduler.CancellableEventExecutor;
+import org.timedbukkit.craftbukkit.scheduler.TimedListenerExecutor;
 import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
@@ -36,19 +37,19 @@ import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 
 public class PluginLogger {
-	public static FieldAccessor<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
-	public static Set<String> recipients = new HashSet<String>();
-	private static Task measuretask;
-	private static ListenerMeasurement[] events;
-	public static int duration = 500;
-	public static int position;
-	public static Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
+	public static final FieldAccessor<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
+	public Set<String> recipients = new HashSet<String>();
+	private Task measuretask;
+	private ListenerMeasurement[] events;
+	private int duration;
+	public int position;
+	public Map<String, TaskMeasurement> tasks = new HashMap<String, TaskMeasurement>();
 
-	public static TimedWrapper getWrapper(Runnable task, Plugin plugin) {
+	public TimedWrapper getWrapper(Runnable task, Plugin plugin) {
 		return getTask(task, plugin).getWrapper(task);
 	}
 
-	public static TaskMeasurement getNextTickTask(Runnable task) {
+	public TaskMeasurement getNextTickTask(Runnable task) {
 		final String name = "[NextTick] " + task.getClass().getName();
 		TaskMeasurement tm = tasks.get(name);
 		if (tm == null) {
@@ -56,30 +57,30 @@ public class PluginLogger {
 			if (plugin == null) {
 				plugin = CommonPlugin.getInstance();
 			}
-			tm = new TaskMeasurement(name, plugin);
+			tm = new TaskMeasurement(this, name, plugin);
 			tasks.put(name, tm);
 		}
 		return tm;
 	}
 
-	public static TaskMeasurement getTask(Runnable task, Plugin plugin) {
+	public TaskMeasurement getTask(Runnable task, Plugin plugin) {
 		return getTask(task.getClass().getName(), plugin);
 	}
 
-	public static TaskMeasurement getTask(String name, Plugin plugin) {
+	public TaskMeasurement getTask(String name, Plugin plugin) {
 		TaskMeasurement tm = tasks.get(name);
 		if (tm == null) {
-			tm = new TaskMeasurement(name, plugin);
+			tm = new TaskMeasurement(this, name, plugin);
 			tasks.put(name, tm);
 		}
 		return tm;
 	}
 
-	public static TaskMeasurement getServerOperation(String sectionname, String operationname, String desc) {
+	public TaskMeasurement getServerOperation(String sectionname, String operationname, String desc) {
 		sectionname = '#' + sectionname;
 		TaskMeasurement tm = tasks.get(operationname);
 		if (tm == null) {
-			tm = new TaskMeasurement(operationname, sectionname);
+			tm = new TaskMeasurement(this, operationname, sectionname);
 			tasks.put(operationname, tm);
 		}
 		if (desc != null) {
@@ -88,7 +89,7 @@ public class PluginLogger {
 		return tm;
 	}
 
-	public static boolean isIgnoredTask(Runnable runnable) {
+	public boolean isIgnoredTask(Runnable runnable) {
 		if (runnable instanceof TimedWrapper) {
 			return true;
 		}
@@ -99,23 +100,39 @@ public class PluginLogger {
 		return false;
 	}
 
-	public static double getDurPer() {
+	public double getDurPer() {
 		return MathUtil.round((double) position / (double) duration * 100.0, 2);
 	}
 
-	public static boolean isRunning() {
-		return measuretask != null && PluginLogger.position < PluginLogger.duration;
+	public boolean isRunning() {
+		return measuretask != null && position < duration;
 	}
 
-	public static void stopTask() {
+	public int getDuration() {
+		return duration;
+	}
+
+	public void stopTask() {
 		Task.stop(measuretask);
 		measuretask = null;
 		position = Integer.MAX_VALUE;
+
 		// Unregister timings listener
 		CommonPlugin.getInstance().removeTimingsListener(NLETimingsListener.INSTANCE);
+
+		// Unhook timed listeners from the server
+		for (ListenerMeasurement meas : events) {
+			Object exec = exefield.get(meas.listener);
+			if (exec instanceof TimedListenerExecutor) {
+				exefield.set(meas.listener, ((TimedListenerExecutor) exec).getProxyBase());
+			}
+		}
 	}
 
-	public static void start() {
+	public void start(int duration) {
+		// Set duration
+		this.duration = duration;
+
 		// Register timings listener
 		CommonPlugin.getInstance().addTimingsListener(NLETimingsListener.INSTANCE);
 
@@ -143,10 +160,10 @@ public class PluginLogger {
 				meas.listener.reset();
 
 				// Hook up an event cancel monitor
-				if (exec instanceof CancellableEventExecutor) {
-					((CancellableEventExecutor) exec).meas = meas;
+				if (exec instanceof TimedListenerExecutor) {
+					((TimedListenerExecutor) exec).meas = meas;
 				} else {
-					exefield.set(listener, new CancellableEventExecutor(exec, meas));
+					exefield.set(listener, new TimedListenerExecutor(this, exec, meas));
 				}
 
 				// Done
@@ -167,7 +184,7 @@ public class PluginLogger {
 				for (int i = 0; i < events.length; i++) {
 					events[i].update(position);
 				}
-				if (position++ >= duration - 1) {
+				if (position++ >= PluginLogger.this.duration - 1) {
 					stopTask();
 					onFinish();
 				}
@@ -175,7 +192,7 @@ public class PluginLogger {
 		}.start(1, 1);
 	}
 
-	public static void abort() {
+	public void abort() {
 		if (!isRunning()) {
 			return;
 		}
@@ -184,11 +201,13 @@ public class PluginLogger {
 		onFinish();
 	}
 
-	public static void onFinish() {
+	public void onFinish() {
 		measuretask = null;
 		if (duration <= 0) {
 			return;
 		}
+
+		// Prepare output folder and file
 		NoLaggExamine.exportFolder.mkdirs();
 		final File file = new File(NoLaggExamine.exportFolder, TimeUtil.now("yyyy_MM_dd-H_mm_ss") + ".exam");
 
@@ -247,10 +266,13 @@ public class PluginLogger {
 				}
 			}
 		}.write();
+
+		// Log to console
+		NoLaggExamine.plugin.log(Level.INFO, "The examination log has been generated in " + file.toString());
+
+		// Log to players
 		for (String rec : recipients) {
-			if (rec == null) {
-				System.out.println("The examination log has been generated in " + file.toString());
-			} else {
+			if (rec != null) {
 				Player p = Bukkit.getPlayer(rec);
 				if (p != null) {
 					p.sendMessage(ChatColor.GREEN + "The examination log has been generated in " + file.toString());

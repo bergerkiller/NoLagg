@@ -6,7 +6,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 
-import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
+import com.bergerkiller.bukkit.common.proxies.ProxyBase;
 import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
 
 /*
@@ -14,21 +14,21 @@ import com.bergerkiller.bukkit.nolagg.examine.TaskMeasurement;
  * The author (me) got tired of all the reports with this showing up in stack traces
  * To keep things fair, all rights for this Class go to the Bukkit team
  */
-public class TimedWrapper implements Runnable {
-	public final Runnable runnable;
+public class TimedWrapper extends ProxyBase<Runnable> implements Runnable {
 	private final TaskMeasurement dest;
 
 	public TimedWrapper(final Runnable runnable, final TaskMeasurement dest) {
-		this.runnable = runnable;
+		super(runnable);
 		this.dest = dest;
 	}
 
+	@Override
 	public void run() {
 		try {
-			if (PluginLogger.isRunning()) {
+			if (dest.logger.isRunning()) {
 				long time = System.nanoTime();
 				try {
-					this.runnable.run();
+					this.getProxyBase().run();
 				} finally {
 					try {
 						this.dest.setTime(time);
@@ -37,7 +37,7 @@ public class TimedWrapper implements Runnable {
 					}
 				}
 			} else {
-				this.runnable.run();
+				this.getProxyBase().run();
 			}
 		} catch (Throwable t) {
 			List<StackTraceElement> stack = new ArrayList<StackTraceElement>();

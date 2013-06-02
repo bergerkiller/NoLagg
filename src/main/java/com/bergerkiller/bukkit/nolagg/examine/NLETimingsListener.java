@@ -8,13 +8,19 @@ import com.bergerkiller.bukkit.common.internal.TimingsListener;
 
 public class NLETimingsListener implements TimingsListener {
 	public static final NLETimingsListener INSTANCE = new NLETimingsListener();
-	private final TaskMeasurement loadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk load", "Loads chunks from file");
-	private final TaskMeasurement genmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk generate", "Generates the basic terrain");
-	private final TaskMeasurement unloadmeas = PluginLogger.getServerOperation("Chunk provider", "Chunk unload", "Unloads chunks and saves them to file");
+	private final TaskMeasurement loadmeas, genmeas, unloadmeas;
+	private final PluginLogger logger;
+
+	public NLETimingsListener() {
+		logger = NoLaggExamine.logger;
+		loadmeas = logger.getServerOperation("Chunk provider", "Chunk load", "Loads chunks from file");
+		genmeas = logger.getServerOperation("Chunk provider", "Chunk generate", "Generates the basic terrain");
+		unloadmeas = logger.getServerOperation("Chunk provider", "Chunk unload", "Unloads chunks and saves them to file");
+	}
 
 	@Override
 	public void onNextTicked(Runnable runnable, long executionTime) {
-		PluginLogger.getNextTickTask(runnable).addDelta(executionTime);
+		NoLaggExamine.logger.getNextTickTask(runnable).addDelta(executionTime);
 	}
 
 	@Override
@@ -36,6 +42,6 @@ public class NLETimingsListener implements TimingsListener {
 	public void onChunkPopulate(Chunk chunk, BlockPopulator populator, long executionTime) {
 		final String classname = populator.getClass().getSimpleName();
 		final String loc = populator.getClass().getName();
-		PluginLogger.getServerOperation("Chunk populators", classname, loc).addDelta(executionTime);
+		logger.getServerOperation("Chunk populators", classname, loc).addDelta(executionTime);
 	}
 }
