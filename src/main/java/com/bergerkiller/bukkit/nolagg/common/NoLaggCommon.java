@@ -3,13 +3,17 @@ package com.bergerkiller.bukkit.nolagg.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -19,7 +23,14 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
+import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
+import org.timedbukkit.craftbukkit.scheduler.CancelCounterExecutor;
 
+import com.bergerkiller.bukkit.common.AsyncTask;
+import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
@@ -31,6 +42,7 @@ import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.EntitySelector;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponents;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.bergerkiller.bukkit.nolagg.Permission;
 import com.bergerkiller.bukkit.nolagg.itembuffer.ItemMap;
 import com.bergerkiller.bukkit.nolagg.tnt.NoLaggTNT;
@@ -239,12 +251,157 @@ public class NoLaggCommon extends NoLaggComponent {
 				Permission.COMMON_GC.handle(sender);
 				Runtime.getRuntime().gc();
 				sender.sendMessage("Memory garbage collected!");
+			} else if (args[0].equalsIgnoreCase("clean")) {
+				Permission.COMMON_CLEAN.handle(sender);
+				final Runtime runtime = Runtime.getRuntime();
+				final long startMemory = runtime.totalMemory() - runtime.freeMemory();
+				sender.sendMessage(ChatColor.YELLOW + "Cleaning up server memory...");
+
+				// Register unloader hook to see what plugins are canceling what unloads
+				for (RegisteredListener listener : ChunkUnloadEvent.getHandlerList().getRegisteredListeners()) {
+					EventExecutor baseExec = NoLaggUtil.exefield.get(listener);
+					EventExecutor hookExec = new CancelCounterExecutor(baseExec, listener.getPlugin());
+					NoLaggUtil.exefield.set(listener, hookExec);
+				}
+
+				// Obtain a list of all loaded chunks
+				Collection<Chunk> chunks = new ArrayList<Chunk>();
+				for (World world : WorldUtil.getWorlds()) {
+					chunks.addAll(WorldUtil.getChunks(world));
+				}
+
+				// Try to unload all of them
+				int playerInUseCount = 0;
+				int spawnAreaCount = 0;
+				int unloadCount = 0;
+				for (Chunk chunk : chunks) {
+					World w = chunk.getWorld();
+					if (w.getKeepSpawnInMemory()) {
+						Location spawn = w.getSpawnLocation();
+						int spawnX = spawn.getBlockX() >> 4;
+						int spawnZ = spawn.getBlockZ() >> 4;
+						if (Math.abs(spawnX - chunk.getX()) <= 12 && Math.abs(spawnZ - chunk.getZ()) <= 12) {
+							spawnAreaCount++;
+							continue;
+						}
+					}
+					if (w.isChunkInUse(chunk.getX(), chunk.getZ())) {
+						playerInUseCount++;
+						continue;
+					}
+					// Fire the event (because Bukkit doesn't!)
+					ChunkUnloadEvent event = new ChunkUnloadEvent(chunk);
+					if (!CommonUtil.callEvent(event).isCancelled() && chunk.unload(true)) {
+						unloadCount++;
+					}
+				}
+
+				// Gather the plugin-specific unloading data and unhook the cancel counter hooks
+				HashMap<Plugin, PluginStatistic> pluginStatistics = new HashMap<Plugin, PluginStatistic>();
+				for (RegisteredListener listener : ChunkUnloadEvent.getHandlerList().getRegisteredListeners()) {
+					// Obtain and validate the registered hooks
+					CancelCounterExecutor hookExec = CommonUtil.tryCast(NoLaggUtil.exefield.get(listener), CancelCounterExecutor.class);
+					if (hookExec == null) {
+						continue;
+					}
+					// Unhook
+					EventExecutor baseExec = hookExec.getProxyBase();
+					NoLaggUtil.exefield.set(listener, baseExec);
+					// Gather data
+					PluginStatistic stat = pluginStatistics.get(hookExec.owner);
+					if (stat == null) {
+						stat = new PluginStatistic(hookExec.owner);
+						pluginStatistics.put(hookExec.owner, stat);
+					}
+					stat.count += hookExec.cancelCount;
+				}
+				List<PluginStatistic> statistics = new ArrayList<PluginStatistic>(pluginStatistics.values());
+				Collections.sort(statistics);
+	
+				// Display the statistics information to the user
+				final int maxPluginStats = 3;
+				final int statCount = Math.min(statistics.size(), maxPluginStats);
+				MessageBuilder message = new MessageBuilder();
+				message.green("A total of ").yellow(unloadCount).green(" out of ").yellow(chunks.size()).green(" could be unloaded").newLine();
+				message.green("Reasons for chunks not to be unloaded are:").newLine();
+				message.green("- ").yellow(playerInUseCount).green(" because players are near").newLine();
+				message.green("- ").yellow(spawnAreaCount).green(" are part of world spawn area").newLine();
+				for (int i = 0; i < statCount; i++) {
+					PluginStatistic stat = statistics.get(i);
+					if (stat.count == 0) {
+						continue;
+					}
+					message.green("- ").yellow(stat.count).green(" are cancelled by ").yellow(stat.plugin.getName()).newLine();
+				}
+				int remCount = 0;
+				for (int i = statCount - 1; i < statistics.size(); i++) {
+					remCount += statistics.get(i).count;
+				}
+				if (remCount > 0) {
+					message.green("- ").yellow(remCount).green(" are cancelled by other plugins").newLine();
+				}
+				message.newLine();
+				message.green("Now saving worlds and garbage collecting memory...");
+				message.send(sender);
+				if (sender instanceof Player) {
+					message.log(Level.INFO);
+				}
+				// Start a new thread to save the worlds on, and to execute GC
+				final String rec = sender instanceof Player ? sender.getName() : null;
+				new AsyncTask() {
+					public void run() {
+						for (World world : Bukkit.getWorlds()) {
+							WorldUtil.saveToDisk(world);
+						}
+						runtime.gc();
+
+						// Prepare the message
+						MessageBuilder message = new MessageBuilder();
+						long memChange = (startMemory - (runtime.totalMemory() - runtime.freeMemory())) >> 20;
+						if (memChange >= 0) {
+							message.green("A total of ").yellow(memChange, " MB").green(" was freed");
+						} else {
+							message.red("Memory increased by ").yellow(memChange, " MB");
+						}
+
+						// Send the completion message
+						if (rec != null) {
+							Player p = Bukkit.getPlayer(rec);
+							if (p != null) {
+								message.send(p);
+							}
+						}
+						message.log(Level.INFO);
+					}
+				}.start(false);
 			} else {
 				return false;
 			}
 			return true;
 		}
 		return false;
+	}
+
+	private static class PluginStatistic implements Comparable<PluginStatistic> {
+		public final Plugin plugin;
+		public int count = 0;
+
+		public PluginStatistic(Plugin plugin) {
+			this.plugin = plugin;
+		}
+
+		/**
+		 * Note: equals only checks the count since sorting causes errors otherwise
+		 */
+		@Override
+		public boolean equals(Object o) {
+			return o instanceof PluginStatistic && ((PluginStatistic) o).count == this.count;
+		}
+
+		@Override
+		public int compareTo(PluginStatistic o) {
+			return o.count - this.count;
+		}
 	}
 
 	private static class TypedEntitySelector implements EntitySelector {

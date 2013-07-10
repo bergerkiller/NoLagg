@@ -27,17 +27,15 @@ import org.timedbukkit.craftbukkit.scheduler.TimedWrapper;
 
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
 import com.bergerkiller.bukkit.common.internal.CommonPlugin;
-import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
-import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.TimeUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 
 public class PluginLogger {
-	public static final FieldAccessor<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
 	public Set<String> recipients = new HashSet<String>();
 	private Task measuretask;
 	private ListenerMeasurement[] events;
@@ -122,9 +120,9 @@ public class PluginLogger {
 
 		// Unhook timed listeners from the server
 		for (ListenerMeasurement meas : events) {
-			Object exec = exefield.get(meas.listener);
+			Object exec = NoLaggUtil.exefield.get(meas.listener);
 			if (exec instanceof TimedListenerExecutor) {
-				exefield.set(meas.listener, ((TimedListenerExecutor) exec).getProxyBase());
+				NoLaggUtil.exefield.set(meas.listener, ((TimedListenerExecutor) exec).getProxyBase());
 			}
 		}
 	}
@@ -143,7 +141,7 @@ public class PluginLogger {
 			for (int i = 0; i < listeners.length; i++) {
 				// Convert to a timed registered listener if needed
 				RegisteredListener listener = listeners[i];
-				EventExecutor exec = exefield.get(listener);
+				EventExecutor exec = NoLaggUtil.exefield.get(listener);
 				if (exec == null) {
 					continue;
 				}
@@ -163,7 +161,7 @@ public class PluginLogger {
 				if (exec instanceof TimedListenerExecutor) {
 					((TimedListenerExecutor) exec).meas = meas;
 				} else {
-					exefield.set(listener, new TimedListenerExecutor(this, exec, meas));
+					NoLaggUtil.exefield.set(listener, new TimedListenerExecutor(this, exec, meas));
 				}
 
 				// Done

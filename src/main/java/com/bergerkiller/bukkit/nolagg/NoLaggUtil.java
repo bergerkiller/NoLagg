@@ -4,10 +4,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.RegisteredListener;
 
 import com.bergerkiller.bukkit.common.Common;
+import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
 
 public class NoLaggUtil {
+	public static final FieldAccessor<EventExecutor> exefield = new SafeField<EventExecutor>(RegisteredListener.class, "executor");
 
 	public static StackTraceElement findExternal(StackTraceElement[] stackTrace) {
 		return findExternal(Arrays.asList(stackTrace));

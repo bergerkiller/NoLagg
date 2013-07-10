@@ -7,6 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.EventExecutor;
 
 import com.bergerkiller.bukkit.common.proxies.ProxyBase;
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
 import com.bergerkiller.bukkit.nolagg.examine.ListenerMeasurement;
 import com.bergerkiller.bukkit.nolagg.examine.PluginLogger;
 
@@ -24,7 +25,7 @@ public class TimedListenerExecutor extends ProxyBase<EventExecutor> implements E
 	public void execute(Listener listener, Event event) throws EventException {
 		if (!logger.isRunning() || !(event instanceof Cancellable)) {
 			// Disable this listening executor
-			PluginLogger.exefield.set(meas.listener, base);
+			NoLaggUtil.exefield.set(meas.listener, base);
 			// Execute like normal
 			base.execute(listener, event);
 			return;

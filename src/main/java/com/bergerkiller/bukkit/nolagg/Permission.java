@@ -9,6 +9,7 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMON_CLEAR = new Permission("nolagg.common.clear", PermissionDefault.OP, "Allows a player to clear all entities on the server");
 	public static final Permission COMMON_GC = new Permission("nolagg.common.gc", PermissionDefault.OP, "Allows a player to garbage collect the server memory");
 	public static final Permission COMMON_RESEND = new Permission("nolagg.common.resend", PermissionDefault.OP, "Allows a player to resend all the chunks around to all players");
+	public static final Permission COMMON_CLEAN = new Permission("nolagg.common.clean", PermissionDefault.OP, "The player can clean server memory from unloadable chunks and pending saves");
 	public static final Permission CHUNKS_SENDING = new Permission("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself");
 	public static final Permission EXAMINE_RUN = new Permission("nolagg.examine.run", PermissionDefault.OP, "Allows a player to examine the server");
 	public static final Permission LIGHTING_FIX = new Permission("nolagg.lighting.fix", PermissionDefault.OP, "Allows a player to fix lighting issues in chunks around him");
