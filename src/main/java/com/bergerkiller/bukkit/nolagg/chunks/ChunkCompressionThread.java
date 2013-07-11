@@ -5,7 +5,6 @@ import java.util.logging.Level;
 import java.util.zip.Deflater;
 
 import org.bukkit.entity.Player;
-import org.spigotmc.OrebfuscatorManager;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.Common;
@@ -13,12 +12,16 @@ import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
+import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
 import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
+import com.bergerkiller.bukkit.common.reflection.SafeDirectMethod;
+import com.bergerkiller.bukkit.common.reflection.SafeField;
 import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
 import com.bergerkiller.bukkit.common.reflection.classes.NibbleArrayRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldRef;
+import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.lishid.orebfuscator.internal.IPacket51;
 import com.lishid.orebfuscator.internal.InternalAccessor;
 import com.lishid.orebfuscator.obfuscation.Calculations;
@@ -35,6 +38,7 @@ public class ChunkCompressionThread extends AsyncTask {
 	 * - Biome data, one byte for each column, 16 x 16
 	 */
 	private static final int MAX_CHUNK_DATA_LENGTH = (16 * 5 * 2048) + (16 * 16);
+	private static final Class<?>[] SPIGOT_OBFUSCATE_ARGS = {int.class, int.class, int.class, byte[].class, WorldRef.TEMPLATE.getType()};
 	private static MethodAccessor<Void> spigotObfuscateMethod;
 
 	private static ChunkCompressQueue nextQueue() {
@@ -274,13 +278,58 @@ public class ChunkCompressionThread extends AsyncTask {
 			}
 		}
 		// ========================================
-		if (Common.IS_SPIGOT_SERVER) {
+		if (NoLaggChunks.isSpigotObfEnabled) {
 			final int bitmap =  mapchunk.read(PacketFields.MAP_CHUNK.chunkDataBitMap);
 			final byte[] buffer = mapchunk.read(PacketFields.MAP_CHUNK.inflatedBuffer);
+			final Object worldHandle = Conversion.toWorldHandle.convert(chunk.getWorld());
+
+			// Initialize the Spigot Anti-XRay support module
 			if (spigotObfuscateMethod == null) {
-				spigotObfuscateMethod = new SafeMethod<Void>(OrebfuscatorManager.class, "obfuscate", int.class, int.class, int.class, byte[].class, WorldRef.TEMPLATE.getType());
+				Class<?> orebfuscatorManagerClass = CommonUtil.getClass("org.spigotmc.OrebfuscatorManager");
+				if (orebfuscatorManagerClass != null) {
+					spigotObfuscateMethod = new SafeMethod<Void>(orebfuscatorManagerClass, "obfuscate", SPIGOT_OBFUSCATE_ARGS);
+				} else {
+					// Default back to the config-based anti-xray system
+					final FieldAccessor<Object> spigotConfigField = new SafeField<Object>(worldHandle, "spigotConfig");
+					if (spigotConfigField.isValid()) {
+						Object spigotConfig = spigotConfigField.get(worldHandle);
+						final FieldAccessor<Object> antiXrayField = new SafeField<Object>(spigotConfig, "antiXrayInstance");
+						if (antiXrayField.isValid()) {
+							// Now proceed to find the obfuscate() method
+							Object antiXray = antiXrayField.get(spigotConfig);
+							final MethodAccessor<Void> obfuscateMethod = new SafeMethod<Void>(antiXray, "obfuscate", SPIGOT_OBFUSCATE_ARGS);
+							if (obfuscateMethod.isValid()) {
+								// Translator method to take care of the instanced method
+								spigotObfuscateMethod = new SafeDirectMethod<Void>() {
+									@Override
+									public Void invoke(Object instance, Object... args) {
+										// Gather world from arguments
+										Object worldHandle = args[4];
+										Object spigotConfig = spigotConfigField.get(worldHandle);
+										Object antiXray = antiXrayField.get(spigotConfig);
+										return obfuscateMethod.invoke(antiXray, args);
+									}
+								};
+							}
+							
+						}
+					}
+				}
 			}
-			spigotObfuscateMethod.invoke(null, chunk.getX(), chunk.getZ(), bitmap, buffer, Conversion.toWorldHandle.convert(chunk.getWorld()));
+
+			// If enabled properly, go ahead and try to obfuscate
+			if (spigotObfuscateMethod != null && spigotObfuscateMethod.isValid()) {
+				try {
+					spigotObfuscateMethod.invoke(null, chunk.getX(), chunk.getZ(), bitmap, buffer, worldHandle);
+				} catch (Throwable t) {
+					NoLaggChunks.isSpigotObfEnabled = false;
+					NoLaggChunks.plugin.log(Level.SEVERE, "An error occurred while processing caused by Spigot Anti-Xray:");
+					t.printStackTrace();
+				}
+			} else {
+				NoLaggChunks.isSpigotObfEnabled = false;
+				NoLaggChunks.plugin.log(Level.SEVERE, "Unable to provide support for Spigot Anti-Xray!");
+			}
 		}
 
 		// compression

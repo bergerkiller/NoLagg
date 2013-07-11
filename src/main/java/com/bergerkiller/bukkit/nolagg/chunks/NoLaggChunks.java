@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.MessageBuilder;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
@@ -32,6 +33,7 @@ public class NoLaggChunks extends NoLaggComponent {
 	private static Task chunkUnloadTask;
 	public static NoLaggChunks plugin;
 	public static boolean isOreObfEnabled = false;
+	public static boolean isSpigotObfEnabled = Common.IS_SPIGOT_SERVER;
 	public static boolean useBufferedLoading = true;
 	public static boolean useDynamicView = true;
 	public static boolean hasDynamicView = false;
