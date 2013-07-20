@@ -7,7 +7,6 @@ import java.util.zip.Deflater;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.AsyncTask;
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;

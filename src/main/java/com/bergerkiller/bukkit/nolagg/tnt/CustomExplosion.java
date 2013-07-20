@@ -192,7 +192,7 @@ public class CustomExplosion {
 				damageFactor = WorldUtil.getExplosionDamageFactor(pos, bukkitEntity);
 			}
 			double force = (1.0 - distanceFactor) * (double) damageFactor;
-			int damageDone = (int) (force * (force + 1.0) * 4.0 * tmpsize + 1.0);
+			double damageDone = force * (force + 1.0) * 4.0 * tmpsize + 1.0;
 
 			// Send a damage event to Bukkit and deal the damage if not cancelled
 			final EntityDamageEvent event;

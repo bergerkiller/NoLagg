@@ -4,7 +4,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
@@ -73,15 +72,14 @@ public class NLPPacketListener implements PacketListener {
 					return;
 				}
 				// Let's go and fix up this packet!
-				IntVector3 pos = controller.getProtocolPositionSynched();
 				if (mob) {
-					packet.write(PacketFields.MOB_SPAWN.x, pos.x);
-					packet.write(PacketFields.MOB_SPAWN.y, pos.y);
-					packet.write(PacketFields.MOB_SPAWN.z, pos.z);
+					packet.write(PacketFields.MOB_SPAWN.x, controller.locSynched.getX());
+					packet.write(PacketFields.MOB_SPAWN.y, controller.locSynched.getY());
+					packet.write(PacketFields.MOB_SPAWN.z, controller.locSynched.getZ());
 				} else if (vehicle) {
-					packet.write(PacketFields.VEHICLE_SPAWN.x, pos.x);
-					packet.write(PacketFields.VEHICLE_SPAWN.y, pos.y);
-					packet.write(PacketFields.VEHICLE_SPAWN.z, pos.z);
+					packet.write(PacketFields.VEHICLE_SPAWN.x, controller.locSynched.getX());
+					packet.write(PacketFields.VEHICLE_SPAWN.y, controller.locSynched.getY());
+					packet.write(PacketFields.VEHICLE_SPAWN.z, controller.locSynched.getZ());
 				}
 			}
 		}
