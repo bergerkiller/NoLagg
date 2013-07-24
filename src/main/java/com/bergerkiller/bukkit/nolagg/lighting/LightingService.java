@@ -155,6 +155,10 @@ public class LightingService extends AsyncTask {
 			@Override
 			public void read(DataInputStream stream) throws IOException {
 				final int count = stream.readInt();
+				// Empty file? Strange, but ignore it then
+				if (count == 0) {
+					return;
+				}
 				NoLaggLighting.plugin.log(Level.INFO, "Continuing previously saved lighting operations (" + count + ")...");
 				final List<IntVector2> coords = new ArrayList<IntVector2>(2000);
 				long chunk;

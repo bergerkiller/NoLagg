@@ -42,8 +42,9 @@ public class NoLaggLighting extends NoLaggComponent {
 
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
-		if (args.length == 0)
+		if (args.length == 0) {
 			return false;
+		}
 		if (args[0].equalsIgnoreCase("fixworld") || args[0].equalsIgnoreCase("fixall")) {
 			Permission.LIGHTING_FIX.handle(sender);
 			final World world;
@@ -72,7 +73,6 @@ public class NoLaggLighting extends NoLaggComponent {
 			LightingService.addRecipient(sender);
 			// Get an iterator for all the chunks to fix
 			LightingService.scheduleWorld(world, regionFolder);
-			return true;
 		} else if (args[0].equalsIgnoreCase("fix")) {
 			if (sender instanceof Player) {
 				Permission.LIGHTING_FIX.handle(sender);
@@ -85,7 +85,6 @@ public class NoLaggLighting extends NoLaggComponent {
 				LightingService.scheduleArea(p.getWorld(), l.getBlockX() >> 4, l.getBlockZ() >> 4, radius);
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
 				LightingService.addRecipient(sender);
-				return true;
 			}
 		} else if (args[0].equalsIgnoreCase("abort")) {
 			Permission.LIGHTING_ABORT.handle(sender);
@@ -95,7 +94,9 @@ public class NoLaggLighting extends NoLaggComponent {
 			} else {
 				sender.sendMessage(ChatColor.YELLOW + "No lighting was being processed; there was nothing to abort.");
 			}
+		} else {
+			return false;
 		}
-		return false;
+		return true;
 	}
 }
