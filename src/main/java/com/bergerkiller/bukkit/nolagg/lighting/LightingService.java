@@ -251,6 +251,16 @@ public class LightingService extends AsyncTask {
 	}
 
 	/**
+	 * Clears all pending tasks, does continue with the current tasks
+	 */
+	public static void clearTasks() {
+		synchronized (tasks) {
+			tasks.clear();
+		}
+		taskChunkCount = 0;
+	}
+
+	/**
 	 * Orders this service to abort all tasks, finishing the current task in an orderly fashion.
 	 * This method can only be called from the main Thread.
 	 */
@@ -275,8 +285,7 @@ public class LightingService extends AsyncTask {
 				NoLaggLighting.plugin.log(Level.INFO, "Want to abort all operations? Delete the 'PendingLighting.dat' file from the plugins/NoLagg folder");
 			}
 			savePendingBatches();
-			tasks.clear();
-			taskChunkCount = 0;
+			clearTasks();
 		}
 	}
 

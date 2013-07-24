@@ -220,9 +220,13 @@ public class PerformanceMonitor extends Task {
 				builder.append(ChatColor.GREEN).append("(GC)");
 			}
 		} else {
-			builder.append("Memory: ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB (+");
-			builder.append(mem(usedmem - minmem)).append(" modified)");
-			builder.append("(+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
+			builder.append("Memory: ").append(mem(minmem)).append("/").append(mem(maxmem)).append(" MB");
+			builder.append(" (+").append(mem(usedmem - minmem)).append(" modified)");
+			if (diff >= 0) {
+				builder.append(" (+").append(mem(diff / elapsedtimesec)).append(" MB/s)");
+			} else {
+				builder.append(" (Garbage Collected)");
+			}
 		}
 		return builder.toString();
 	}
@@ -375,24 +379,25 @@ public class PerformanceMonitor extends Task {
 				CommandSender s = Bukkit.getServer().getConsoleSender();
 				// Line
 				s.sendMessage("-");
-				StringBuilder mem = new StringBuilder();
+				StringBuilder msg = new StringBuilder();
 				// memory
 				s.sendMessage(getMemory(false));
 				// chunks
-				mem.append("Chunks: ");
-				mem.append(totalchunkcount).append(" [").append(totaluchunkcount).append(" Unloadable]");
-				mem.append(" [+").append((NLMListener.loadedChunks + NLMListener.generatedChunks)).append("]");
-				mem.append(" [-").append(NLMListener.unloadedChunks).append("]");
-				s.sendMessage(mem.toString());
+				msg.append("Chunks: ");
+				msg.append(totalchunkcount).append(" [").append(totaluchunkcount).append(" Unloadable]");
+				msg.append(" [+").append((NLMListener.loadedChunks + NLMListener.generatedChunks)).append("]");
+				msg.append(" [-").append(NLMListener.unloadedChunks).append("]");
+				msg.append(" [").append(lighting).append(" lighting]");
+				s.sendMessage(msg.toString());
 				// Entities
-				mem.setLength(0);
-				mem.append("Entities: ").append(entitycount).append(" [").append(mobcount).append(" mobs]");
-				mem.append(" [").append(itemcount).append(" items] [").append(tntcount).append(" mobile TNT]");
-				s.sendMessage(mem.toString());
+				msg.setLength(0);
+				msg.append("Entities: ").append(entitycount).append(" [").append(mobcount).append(" mobs]");
+				msg.append(" [").append(itemcount).append(" items] [").append(tntcount).append(" mobile TNT]");
+				s.sendMessage(msg.toString());
 				// Compression thread busy
-				mem.setLength(0);
-				mem.append("Chunk packet sending thread: ").append(chunksendbusy).append("% busy");
-				s.sendMessage(mem.toString());
+				msg.setLength(0);
+				msg.append("Chunk packet sending thread: ").append(chunksendbusy).append("% busy");
+				s.sendMessage(msg.toString());
 				// Tick times
 				s.sendMessage(getTPS(false));
 

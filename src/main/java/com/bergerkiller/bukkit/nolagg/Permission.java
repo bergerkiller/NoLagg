@@ -13,6 +13,7 @@ public class Permission extends PermissionEnum {
 	public static final Permission CHUNKS_SENDING = new Permission("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself");
 	public static final Permission EXAMINE_RUN = new Permission("nolagg.examine.run", PermissionDefault.OP, "Allows a player to examine the server");
 	public static final Permission LIGHTING_FIX = new Permission("nolagg.lighting.fix", PermissionDefault.OP, "Allows a player to fix lighting issues in chunks around him");
+	public static final Permission LIGHTING_ABORT = new Permission("nolagg.lighting.abort", PermissionDefault.OP, "Allows a player to abort all current lighting operations");
 	public static final Permission MONITOR_USE = new Permission("nolagg.monitor.use", PermissionDefault.OP, "Allows a player to monitor server stats");
 	public static final Permission MONITOR_LOG = new Permission("nolagg.monitor.log", PermissionDefault.OP, "Allows a player to toggle server stats being written to a log file");
 	public static final Permission MONITOR_CLEARLOG = new Permission("nolagg.monitor.clearlog", PermissionDefault.OP, "Allows a player to clear the NoLagg log file");

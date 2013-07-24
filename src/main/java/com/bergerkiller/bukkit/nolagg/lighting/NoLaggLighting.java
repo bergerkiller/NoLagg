@@ -73,8 +73,7 @@ public class NoLaggLighting extends NoLaggComponent {
 			// Get an iterator for all the chunks to fix
 			LightingService.scheduleWorld(world, regionFolder);
 			return true;
-		}
-		if (args[0].equalsIgnoreCase("fix")) {
+		} else if (args[0].equalsIgnoreCase("fix")) {
 			if (sender instanceof Player) {
 				Permission.LIGHTING_FIX.handle(sender);
 				Player p = (Player) sender;
@@ -87,6 +86,14 @@ public class NoLaggLighting extends NoLaggComponent {
 				p.sendMessage(ChatColor.GREEN + "A " + (radius * 2 + 1) + " X " + (radius * 2 + 1) + " chunk area around you is currently being fixed from lighting issues...");
 				LightingService.addRecipient(sender);
 				return true;
+			}
+		} else if (args[0].equalsIgnoreCase("abort")) {
+			Permission.LIGHTING_ABORT.handle(sender);
+			if (LightingService.isProcessing()) {
+				LightingService.clearTasks();
+				sender.sendMessage(ChatColor.GREEN + "All pending tasks cleared, will finish current " + LightingService.getChunkFaults() + " chunks now...");
+			} else {
+				sender.sendMessage(ChatColor.YELLOW + "No lighting was being processed; there was nothing to abort.");
 			}
 		}
 		return false;
