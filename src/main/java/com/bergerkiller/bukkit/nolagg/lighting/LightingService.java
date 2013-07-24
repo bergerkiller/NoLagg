@@ -343,14 +343,15 @@ public class LightingService extends AsyncTask {
 				WorldUtil.saveToDisk(world);
 			}
 			runtime.gc();
-			final long freemb = runtime.freeMemory() / (1024 * 1024);
+			final long freemb = runtime.freeMemory() >> 20;
 			if (runtime.freeMemory() >= NoLaggLighting.minFreeMemory) {
+				// Memory successfully reduced
+				NoLaggLighting.plugin.log(Level.WARNING, "All worlds saved. Free memory: " + freemb + "MB. Continueing...");
+			} else {
 				// WAIT! We are running out of juice here!
 				NoLaggLighting.plugin.log(Level.WARNING, "Almost running out of memory still (" + freemb + "MB) ...waiting for a bit");
 				sleep(10000);
 				runtime.gc();
-			} else {
-				NoLaggLighting.plugin.log(Level.WARNING, "All worlds saved. Free memory: " + freemb + "MB. Continueing...");
 			}
 		}
 	}
