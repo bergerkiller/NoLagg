@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
+import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
@@ -64,7 +65,7 @@ public class NoLaggLighting extends NoLaggComponent {
 			}
 			// Obtain the region folder
 			File regionFolder = WorldUtil.getWorldRegionFolder(world.getName());
-			if (regionFolder == null && WorldUtil.getChunks(world).isEmpty()) {
+			if (regionFolder == null && WorldUtil.getChunks(world).isEmpty() && RegionFileCacheRef.FILES.isEmpty()) {
 				sender.sendMessage(ChatColor.RED + "World " + world.getName() + " contains no loaded chunks neither any offline-stored regions files to read");
 				sender.sendMessage(ChatColor.RED + "This could be a bug in the program, or it could be that there really are no regions generated (yet?)");
 				return true;
