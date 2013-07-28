@@ -40,6 +40,8 @@ public class NoLaggLighting extends NoLaggComponent {
 		LightingService.abort();
 	}
 
+	int i = 0;
+	
 	@Override
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length == 0) {
@@ -62,9 +64,9 @@ public class NoLaggLighting extends NoLaggComponent {
 			}
 			// Obtain the region folder
 			File regionFolder = WorldUtil.getWorldRegionFolder(world.getName());
-			if (regionFolder == null) {
-				sender.sendMessage(ChatColor.RED + "Unable to figure out the location where region files for world " + world.getName() + " are stored");
-				sender.sendMessage(ChatColor.RED + "This could be a bug in the program, or it could be that there really are no regions (yet)");
+			if (regionFolder == null && WorldUtil.getChunks(world).isEmpty()) {
+				sender.sendMessage(ChatColor.RED + "World " + world.getName() + " contains no loaded chunks neither any offline-stored regions files to read");
+				sender.sendMessage(ChatColor.RED + "This could be a bug in the program, or it could be that there really are no regions generated (yet?)");
 				return true;
 			}
 			// Fix all the chunks in this world

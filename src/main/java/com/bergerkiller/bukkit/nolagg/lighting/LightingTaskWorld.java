@@ -5,13 +5,20 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.bukkit.Chunk;
 import org.bukkit.World;
 
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileCacheRef;
 import com.bergerkiller.bukkit.common.reflection.classes.RegionFileRef;
+import com.bergerkiller.bukkit.common.utils.MathUtil;
+import com.bergerkiller.bukkit.common.utils.WorldUtil;
+import com.bergerkiller.bukkit.common.wrappers.LongHashMap;
 import com.bergerkiller.bukkit.common.wrappers.LongHashSet;
 
 public class LightingTaskWorld implements LightingTask {
@@ -19,36 +26,67 @@ public class LightingTaskWorld implements LightingTask {
 	private static final double ASSUMED_AVG_REGION_CHUNK_RATIO = 0.75;
 	private final World world;
 	private final File regionFolder;
-	private final List<WorldRegion> regions;
+	private final LongHashMap<WorldRegion> regions;
+	private final LongHashSet loadedChunks;
 	private final LongHashSet chunks;
 	private int chunkCount;
 
 	public LightingTaskWorld(World world, File regionFolder) {
 		this.world = world;
 		this.regionFolder = regionFolder;
+		this.regions = new LongHashMap<WorldRegion>();
 
 		// Obtain the region file names
-		String[] regionFileNames = this.regionFolder.list();
-		this.regions = new ArrayList<WorldRegion>(regionFileNames.length);
-		for (String regionFileName : regionFileNames) {
-			File file = new File(regionFolder, regionFileName);
-			if (!file.isFile() || !file.exists() || file.length() < 4096) {
-				continue;
-			}
-			String[] parts = regionFileName.split("\\.");
-			if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
-				continue;
-			}
-			// Obtain the chunk offset of this region file
-			try {
-				int rx = Integer.parseInt(parts[1]) << 5;
-				int rz = Integer.parseInt(parts[2]) << 5;
-				this.regions.add(new WorldRegion(file, rx, rz));
-			} catch (Exception ex) {
+		Set<File> addedRegionFiles = new HashSet<File>();
+		if (this.regionFolder != null) {
+			String[] regionFileNames = this.regionFolder.list();
+			for (String regionFileName : regionFileNames) {
+				File file = new File(regionFolder, regionFileName);
+				if (!file.isFile() || !file.exists() || file.length() < 4096) {
+					continue;
+				}
+				if (addRegionFile(file)) {
+					addedRegionFiles.add(file);
+				}
 			}
 		}
+		// Detect any addition Region Files in the cache that are not yet saved
+		// Synchronized, since we are going to iterate the files here...unsafe not to do so!
+		synchronized (RegionFileCacheRef.TEMPLATE.getType()) {
+			for (File file : RegionFileCacheRef.FILES.keySet()) {
+				if (addedRegionFiles.add(file)) {
+					addRegionFile(file);
+				}
+			}
+		}
+
+		// Add all loaded chunks for a further check-up later on
+		Collection<Chunk> loadedChunks = WorldUtil.getChunks(world);
+		this.loadedChunks = new LongHashSet(loadedChunks.size());
+		for (Chunk chunk : loadedChunks) {
+			this.loadedChunks.add(chunk.getX(), chunk.getZ());
+		}
+
+		// All done, finish off by initializing a new buffer to store all the chunks in
 		this.chunkCount = this.regions.size() * ASSUMED_CHUNKS_PER_REGION;
 		this.chunks = new LongHashSet((int) (ASSUMED_AVG_REGION_CHUNK_RATIO * this.chunkCount));
+	}
+
+	public boolean addRegionFile(File file) {
+		String regionFileName = file.getName();
+		String[] parts = regionFileName.split("\\.");
+		if (parts.length != 4 || !parts[0].equals("r") || !parts[3].equals("mca")) {
+			return false;
+		}
+		// Obtain the chunk offset of this region file
+		try {
+			int rx = Integer.parseInt(parts[1]) << 5;
+			int rz = Integer.parseInt(parts[2]) << 5;
+			this.regions.put(MathUtil.longHashToLong(rx, rz), new WorldRegion(file, rx, rz));
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
 	}
 
 	@Override
@@ -78,7 +116,7 @@ public class LightingTaskWorld implements LightingTask {
 		int dx, dz;
 		Object regionFile;
 		int regionChunkCount;
-		for (WorldRegion region : this.regions) {
+		for (WorldRegion region : this.regions.getValues()) {
 			regionChunkCount = 0;
 			// Is it contained in the cache? If so, use that to obtain coordinates
 			if ((regionFile = RegionFileCacheRef.FILES.get(region.file)) == null) {
@@ -120,10 +158,31 @@ public class LightingTaskWorld implements LightingTask {
 			chunkCount -= ASSUMED_CHUNKS_PER_REGION - regionChunkCount;
 		}
 
+		// Now, for all loaded chunks remaining, add the region files they are in
+		// Ignore pre-existing chunks, since they were already added above here (with region)
+		if (!loadedChunks.isEmpty()) {
+			int cx, cz, rx, rz;
+			long regionKey;
+			for (long loadedChunk : loadedChunks.toArray()) {
+				// Add, if already added, ignore it (it was stored)
+				if (!chunks.add(loadedChunk)) {
+					continue;
+				}
+				cx = MathUtil.longHashLsw(loadedChunk);
+				cz = MathUtil.longHashMsw(loadedChunk);
+				rx = (cx >> 5);
+				rz = (cz >> 5);
+				regionKey = MathUtil.longHashToLong(rx, rz);
+				if (!regions.contains(regionKey)) {
+					regions.put(regionKey, new WorldRegion(null, rx, rz));
+				}
+			}
+		}
+
 		// We now know of all the regions to be processed, convert all of them into tasks
 		// Use a slightly larger area to avoid cross-region errors
 		final List<IntVector2> buffer = new ArrayList<IntVector2>(1100);
-		for (WorldRegion region : regions) {
+		for (WorldRegion region : regions.getValues()) {
 			// Put the coordinates that are available
 			for (dx = -1; dx < 33; dx++) {
 				for (dz = -1; dz < 33; dz++) {
