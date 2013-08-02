@@ -1,7 +1,8 @@
 package com.bergerkiller.bukkit.nolagg.patches;
 
+import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
 import com.bergerkiller.bukkit.common.controller.EntityNetworkController;
@@ -15,6 +16,7 @@ import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.wrappers.IntHashMap;
 
@@ -64,7 +66,7 @@ public class NLPPacketListener implements PacketListener {
 				}
 				IntHashMap<Object> entitiesById = WorldServerRef.entitiesById.get(Conversion.toWorldHandle.convert(event.getPlayer().getWorld()));
 				Entity entity = Conversion.toEntity.convert(entitiesById.get(entityId));
-				if (entity == null || entity instanceof ItemFrame) {
+				if (entity == null || !(entity instanceof Boat || entity instanceof Minecart || EntityUtil.isMob(entity))) {
 					return;
 				}
 				EntityNetworkController<?> controller = CommonEntity.get(entity).getNetworkController();
