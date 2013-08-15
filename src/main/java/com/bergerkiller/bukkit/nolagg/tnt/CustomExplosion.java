@@ -20,9 +20,11 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.Location;
 
+import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
+import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -196,15 +198,34 @@ public class CustomExplosion {
 
 			// Send a damage event to Bukkit and deal the damage if not cancelled
 			final EntityDamageEvent event;
-			if (source == null) {
-				event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
-			} else if (source instanceof TNTPrimed) {
-				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
+			double damage;
+			if (Common.MC_VERSION.equals("1.5.2")) {
+				if (source == null) {
+					event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, (int) damageDone);
+				} else if (source instanceof TNTPrimed) {
+					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, (int) damageDone);
+				} else {
+					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, (int) damageDone);
+				}
+				if (CommonUtil.callEvent(event).isCancelled()) {
+					return;
+				}
+				damage = new SafeMethod<Integer>(event, "getDamage").invoke(event);
 			} else {
-				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, damageDone);
+				if (source == null) {
+					event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
+				} else if (source instanceof TNTPrimed) {
+					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
+				} else {
+					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, damageDone);
+				}
+				if (CommonUtil.callEvent(event).isCancelled()) {
+					return;
+				}
+				damage = event.getDamage();
 			}
 			if (!CommonUtil.callEvent(event).isCancelled()) {
-				EntityUtil.damage(bukkitEntity, DamageCause.BLOCK_EXPLOSION, event.getDamage());
+				EntityUtil.damage(bukkitEntity, DamageCause.BLOCK_EXPLOSION, damage);
 				entity.vel.add(tmpX * force, tmpY * force, tmpZ * force);
 			}
 		}
