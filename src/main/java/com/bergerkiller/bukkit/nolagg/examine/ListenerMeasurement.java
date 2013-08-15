@@ -4,6 +4,8 @@ import java.util.Arrays;
 
 import org.bukkit.plugin.TimedRegisteredListener;
 
+import com.bergerkiller.bukkit.nolagg.NoLaggUtil;
+
 public class ListenerMeasurement {
 	public final TimedRegisteredListener listener;
 	public final float[] times;
@@ -24,7 +26,11 @@ public class ListenerMeasurement {
 		listener.reset();
 	}
 
+	public Class<?> getEventClass() {
+		return NoLaggUtil.getEventClass.invoke(listener);
+	}
+
 	public boolean wasCalled() {
-		return listener.getEvent() != null && executionCount > 0;
+		return getEventClass() != null && executionCount > 0;
 	}
 }

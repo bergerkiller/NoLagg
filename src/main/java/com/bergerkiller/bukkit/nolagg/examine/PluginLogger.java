@@ -220,7 +220,7 @@ public class PluginLogger {
 					final boolean wasCalled = meas.wasCalled();
 					stream.writeBoolean(wasCalled);
 					if (wasCalled) {
-						Class<?> eventClass = meas.listener.getEvent().getClass();
+						Class<?> eventClass = meas.getEventClass();
 						// Plugin that fired the event
 						stream.writeUTF(meas.listener.getPlugin().getDescription().getName());
 						// Name of the event fired
@@ -258,8 +258,8 @@ public class PluginLogger {
 					for (String loc : tm.locations) {
 						stream.writeUTF(loc);
 					}
-					for (long value : tm.times) {
-						stream.writeLong(value);
+					for (int d = 0; d < duration; d++) {
+						stream.writeLong(tm.times[d]);
 					}
 				}
 			}

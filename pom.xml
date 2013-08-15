@@ -4,7 +4,7 @@
 
   <groupId>com.bergerkiller.bukkit</groupId>
   <artifactId>NoLagg</artifactId>
-  <version>1.90.1</version>
+  <version>1.90.2</version>
   <packaging>jar</packaging>
 
   <name>NoLagg</name>
@@ -12,9 +12,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.spinotversion>1.6.2-R0.1-SNAPSHOT</project.spinotversion>
-    <project.cbversion>1.6.2-R0.1-SNAPSHOT</project.cbversion>
-    <project.bkcversion>1.54-SNAPSHOT</project.bkcversion>
+    <project.spinotversion>1.6.2-R0.2-SNAPSHOT</project.spinotversion>
+    <project.cbversion>1.6.2-R0.2-SNAPSHOT</project.cbversion>
+    <project.bkcversion>1.54</project.bkcversion>
   </properties>
 
   <repositories>
