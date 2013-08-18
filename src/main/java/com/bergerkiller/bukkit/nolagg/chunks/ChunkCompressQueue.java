@@ -77,7 +77,15 @@ public class ChunkCompressQueue {
 			}
 		} else {
 			// Let the server itself deal with it
-			CommonPacket packet = PacketFields.MAP_CHUNK_BULK.newInstance(Arrays.asList(chunk));
+			CommonPacket packet = null;
+			try {
+				packet = PacketFields.MAP_CHUNK_BULK.newInstance(Arrays.asList(chunk));
+			} catch (NullPointerException ex) {
+			}
+			if (packet == null || packet.getHandle() == null) {
+				// Something is up in the 1.5.2 version - this'll temporarily fix it
+				packet = PacketFields.MAP_CHUNK.newInstance(chunk);
+			}
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}
 	}

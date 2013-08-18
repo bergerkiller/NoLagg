@@ -373,7 +373,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 						return;
 					}
 					// Load the chunk
-					ChunkSendQueue.this.chunkQueue.enqueue(WorldUtil.getChunk(world, pair.x, pair.z));
+					ChunkSendQueue.this.chunkQueue.enqueue(world.getChunkAt(pair.x, pair.z));
 				}
 			});
 		}
