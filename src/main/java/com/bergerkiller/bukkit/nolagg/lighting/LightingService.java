@@ -205,53 +205,56 @@ public class LightingService extends AsyncTask {
 			return;
 		}
 		pendingFileInUse = true;
-		final File saveFile = NoLagg.plugin.getDataFile("PendingLight.dat");
-		if (saveFile.exists() && tasks.isEmpty()) {
-			saveFile.delete();
-			return;
-		}
-		// Write the data to a temporary save file
-		final File tmpFile = new File(saveFile.toString() + ".tmp");
-		final List<LightingTaskBatch> batches = new ArrayList<LightingTaskBatch>(tasks.size());
-		synchronized (tasks) {
-			if (tmpFile.exists() && !tmpFile.delete()) {
-				NoLaggLighting.plugin.log(Level.WARNING, "Failed to delete temporary pending light file. No states saved.");
+		try {
+			final File saveFile = NoLagg.plugin.getDataFile("PendingLight.dat");
+			if (saveFile.exists() && tasks.isEmpty()) {
+				saveFile.delete();
 				return;
 			}
-			// Obtain all the batches to save
-			for (LightingTask task : tasks) {
-				if (task instanceof LightingTaskBatch) {
-					batches.add((LightingTaskBatch) task);
+			// Write the data to a temporary save file
+			final File tmpFile = new File(saveFile.toString() + ".tmp");
+			final List<LightingTaskBatch> batches = new ArrayList<LightingTaskBatch>(tasks.size());
+			synchronized (tasks) {
+				if (tmpFile.exists() && !tmpFile.delete()) {
+					NoLaggLighting.plugin.log(Level.WARNING, "Failed to delete temporary pending light file. No states saved.");
+					return;
 				}
-			}
-		}
-		// Write to the tmp file
-		if (new CompressedDataWriter(tmpFile) {
-			@Override
-			public void write(DataOutputStream stream) throws IOException {
-				stream.writeInt(batches.size());
-				for (LightingTaskBatch batch : batches) {
-					// Write world name
-					stream.writeUTF(batch.getWorld().getName());
-					// Write all chunks
-					LongHashSet chunks = batch.getChunks();
-					stream.writeInt(chunks.size());
-					for (long chunk : chunks.toArray()) {
-						stream.writeLong(chunk);
+				// Obtain all the batches to save
+				for (LightingTask task : tasks) {
+					if (task instanceof LightingTaskBatch) {
+						batches.add((LightingTaskBatch) task);
 					}
 				}
-			}}.write()) {
-
-			// Move the files around
-			if (saveFile.exists() && !saveFile.delete()) {
-				NoLaggLighting.plugin.log(Level.WARNING, "Failed to remove the previous pending light save file. No states saved.");
-			} else if (!tmpFile.renameTo(saveFile)) {
-				NoLaggLighting.plugin.log(Level.WARNING, "Failed to move pending save file to the actual save file. No states saved.");
 			}
-		} else {
-			NoLaggLighting.plugin.log(Level.WARNING, "Failed to write to pending save file. No states saved.");
+			// Write to the tmp file
+			if (new CompressedDataWriter(tmpFile) {
+				@Override
+				public void write(DataOutputStream stream) throws IOException {
+					stream.writeInt(batches.size());
+					for (LightingTaskBatch batch : batches) {
+						// Write world name
+						stream.writeUTF(batch.getWorld().getName());
+						// Write all chunks
+						LongHashSet chunks = batch.getChunks();
+						stream.writeInt(chunks.size());
+						for (long chunk : chunks.toArray()) {
+							stream.writeLong(chunk);
+						}
+					}
+				}}.write()) {
+
+				// Move the files around
+				if (saveFile.exists() && !saveFile.delete()) {
+					NoLaggLighting.plugin.log(Level.WARNING, "Failed to remove the previous pending light save file. No states saved.");
+				} else if (!tmpFile.renameTo(saveFile)) {
+					NoLaggLighting.plugin.log(Level.WARNING, "Failed to move pending save file to the actual save file. No states saved.");
+				}
+			} else {
+				NoLaggLighting.plugin.log(Level.WARNING, "Failed to write to pending save file. No states saved.");
+			}
+		} finally {
+			pendingFileInUse = false;
 		}
-		pendingFileInUse = false;
 	}
 
 	/**

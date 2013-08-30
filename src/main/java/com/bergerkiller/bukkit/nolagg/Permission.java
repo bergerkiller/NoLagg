@@ -11,6 +11,8 @@ public class Permission extends PermissionEnum {
 	public static final Permission COMMON_RESEND = new Permission("nolagg.common.resend", PermissionDefault.OP, "Allows a player to resend all the chunks around to all players");
 	public static final Permission COMMON_CLEAN = new Permission("nolagg.common.clean", PermissionDefault.OP, "The player can clean server memory from unloadable chunks and pending saves");
 	public static final Permission CHUNKS_SENDING = new Permission("nolagg.chunks.sending", PermissionDefault.OP, "The player can view sending information about himself");
+	public static final Permission CHUNKS_LIMITVIEW = new Permission("nolagg.chunks.limitview", PermissionDefault.OP, "The player can limit the chunk view distance of other players");
+	public static final Permission CHUNKS_LIMITVIEW_SELF = new Permission("nolagg.chunks.limitview.self", PermissionDefault.TRUE, "The player can limit the chunk view distance of himself");
 	public static final Permission EXAMINE_RUN = new Permission("nolagg.examine.run", PermissionDefault.OP, "Allows a player to examine the server");
 	public static final Permission LIGHTING_FIX = new Permission("nolagg.lighting.fix", PermissionDefault.OP, "Allows a player to fix lighting issues in chunks around him");
 	public static final Permission LIGHTING_ABORT = new Permission("nolagg.lighting.abort", PermissionDefault.OP, "Allows a player to abort all current lighting operations");

@@ -459,7 +459,7 @@ public class PerformanceMonitor extends Task {
 							p.sendMessage(msg);
 							msg = ChatColor.YELLOW + "Packet buffer size: " + queue.getBufferLoadMsg();
 							p.sendMessage(msg);
-							msg = ChatColor.YELLOW + "Dynamic view distance: " + ChatColor.GREEN + DynamicViewDistance.viewDistance + ChatColor.YELLOW + " chunks";
+							msg = ChatColor.YELLOW + "Dynamic view distance: " + ChatColor.GREEN + DynamicViewDistance.getViewDistance(p) + ChatColor.YELLOW + " chunks";
 							p.sendMessage(msg);
 						}
 						if (removalReq.remove(name)) {

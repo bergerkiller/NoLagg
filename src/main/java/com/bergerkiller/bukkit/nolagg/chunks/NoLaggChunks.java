@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -17,8 +20,10 @@ import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.permissions.NoPermissionException;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.LogicUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
+import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.common.utils.StringUtil;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
@@ -36,7 +41,6 @@ public class NoLaggChunks extends NoLaggComponent {
 	public static boolean isSpigotObfEnabled = Common.IS_SPIGOT_SERVER;
 	public static boolean useBufferedLoading = true;
 	public static boolean useDynamicView = true;
-	public static boolean hasDynamicView = false;
 
 	@Override
 	public void updateDependency(Plugin plugin, String pluginName, boolean enabled) {
@@ -132,7 +136,46 @@ public class NoLaggChunks extends NoLaggComponent {
 	public boolean onCommand(CommandSender sender, String[] args) throws NoPermissionException {
 		if (args.length == 0)
 			return false;
-		if (args[0].equalsIgnoreCase("sending")) {
+		if (LogicUtil.contains(args[0].toLowerCase(Locale.ENGLISH), "viewlimit", "limitview", "viewmax", "maxview")) {
+			if (!useDynamicView) {
+				sender.sendMessage(ChatColor.RED + "Dynamic view distance is disabled. Enable it in the configuration.");
+				return true;
+			}
+			Player toAffect;
+			int limit;
+			// Parse the arguments
+			if (args.length >= 3) {
+				Permission.CHUNKS_LIMITVIEW.handle(sender);
+				toAffect = Bukkit.getPlayer(args[1]);
+				if (toAffect == null) {
+					sender.sendMessage(ChatColor.RED + "Player '" + args[1] + "' could not be found!");
+					return true;
+				}
+				limit = ParseUtil.parseInt(args[2], -1);
+			} else if (sender instanceof Player) {
+				Permission.CHUNKS_LIMITVIEW_SELF.handle(sender);
+				toAffect = (Player) sender;
+				limit = ParseUtil.parseInt(args[1], -1);
+			} else {
+				sender.sendMessage(ChatColor.RED + "Invalid format, use /lag maxview [playername] [limit]");
+				return true;
+			}
+			// Check limit
+			if (limit < 0) {
+				sender.sendMessage(ChatColor.RED + "The limit specified is invalid (negative or not a number)");
+			} else {
+				if (limit < 2) {
+					sender.sendMessage(ChatColor.YELLOW + "Limit set to 2: can not go less than this");
+					limit = 2;
+				}
+				DynamicViewDistance.setViewLimit(toAffect, limit);
+				sender.sendMessage(ChatColor.GREEN + "Player view distance limit has been set!");
+				if (sender != toAffect) {
+					toAffect.sendMessage(ChatColor.GREEN + "You view distance is now limited to " + limit + " chunks");
+				}
+			}
+			return true;
+		} else if (args[0].equalsIgnoreCase("sending")) {
 			double avgrate = MathUtil.round(ChunkSendQueue.getAverageRate(), 2);
 			double compbus = MathUtil.round(ChunkSendQueue.compressBusyPercentage, 2);
 			if (sender instanceof Player) {

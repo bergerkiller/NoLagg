@@ -244,7 +244,7 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 			// Queue some remaining chunks that are not visible yet?
 			if (isSentChunksVerified.set()) {
 				// Verify all chunks - add those that haven't been sent yet
-				final int view = DynamicViewDistance.viewDistance;
+				final int view = DynamicViewDistance.getViewDistance(this.player);
 				int cx, cz;
 				int x = this.getCenterX();
 				int z = this.getCenterZ();
@@ -414,6 +414,15 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	@Override
 	public boolean isNear(final int chunkx, final int chunkz, final int view) {
 		return EntityUtil.isNearChunk(this.player, chunkx, chunkz, view + 1);
+	}
+
+	@Override
+	public boolean isNearDynamic(final int chunkx, final int chunkz) {
+		if (NoLaggChunks.useDynamicView) {
+			return this.isNear(chunkx, chunkz, DynamicViewDistance.getViewDistance(this.player) - 1);
+		} else {
+			return true;
+		}
 	}
 
 	@Override

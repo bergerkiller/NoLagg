@@ -168,13 +168,7 @@ public abstract class ChunkSendQueueBase extends LinkedList {
 	 * @param chunkz of the chunk
 	 * @return True is it is near, False if not
 	 */
-	public boolean isNearDynamic(final int chunkx, final int chunkz) {
-		if (NoLaggChunks.hasDynamicView) {
-			return this.isNear(chunkx, chunkz, DynamicViewDistance.viewDistance - 1);
-		} else {
-			return true;
-		}
-	}
+	public abstract boolean isNearDynamic(final int chunkx, final int chunkz);
 
 	/**
 	 * Checks if the chunk is near this queue and can be contained
