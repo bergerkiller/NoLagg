@@ -88,7 +88,7 @@ public class CustomExplosion {
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
-					slot.block.type = world.getBlockTypeIdAt(x, y, z);
+					slot.block.type = WorldUtil.getBlockTypeId(world, x, y, z);
 					if (slot.block.type > 0) {
 						slot.block.damagefactor = (MaterialUtil.getDamageResilience(slot.block.type, source) + 0.3F) * 0.3F;
 						slot.block.damagefactor *= (2.0F + worldRandom.nextFloat()) / 3.0F;
@@ -266,7 +266,7 @@ public class CustomExplosion {
 			x = block.getX();
 			y = block.getY();
 			z = block.getZ();
-			type = block.getTypeId();
+			type = WorldUtil.getBlockTypeId(this.world, x, y, z);
 
 			double d0 = (double) ((float) x + worldRandom.nextFloat());
 			double d1 = (double) ((float) y + worldRandom.nextFloat());
@@ -287,13 +287,13 @@ public class CustomExplosion {
 			d5 *= d7;
 
 			// CraftBukkit - stop explosions from putting out fire
-			if (type > 0 && type != Material.FIRE.getId()) {
+			if (type > 0 && !MaterialUtil.isType(type, Material.FIRE)) {
 				final BlockInfo info = BlockInfo.get(block);
 				info.destroy(block, event.getYield());
 				info.ignite(block);
 			}
 			if (this.fire) {
-				int typeBelow = this.world.getBlockTypeIdAt(x, y - 1, z);
+				int typeBelow = WorldUtil.getBlockTypeId(this.world, x, y - 1, z);
 				if (type == 0 && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
 					block.setType(org.bukkit.Material.FIRE);
 				}

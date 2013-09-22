@@ -155,7 +155,7 @@ public class PluginLogger {
 
 				// Set up a new measurement and reset to clear initial data
 				ListenerMeasurement meas = new ListenerMeasurement((TimedRegisteredListener) listener, duration);
-				meas.listener.reset();
+				meas.reset();
 
 				// Hook up an event cancel monitor
 				if (exec instanceof TimedListenerExecutor) {

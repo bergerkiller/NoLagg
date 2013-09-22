@@ -26,6 +26,11 @@ public class ListenerMeasurement {
 		listener.reset();
 	}
 
+	public void reset() {
+		executionCount = 0;
+		listener.reset();
+	}
+
 	public Class<?> getEventClass() {
 		return NoLaggUtil.getEventClass.invoke(listener);
 	}

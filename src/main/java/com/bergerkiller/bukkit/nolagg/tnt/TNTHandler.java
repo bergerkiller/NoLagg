@@ -20,6 +20,7 @@ import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
 import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
 import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
@@ -99,8 +100,8 @@ public class TNTHandler {
 							}
 
 							// Detonate the block if TNT
-							if (next.getTypeId() == Material.TNT.getId()) {
-								next.setTypeId(0);
+							if (MaterialUtil.isType(next, Material.TNT)) {
+								next.setType(Material.AIR);
 
 								// Spawn a mobile TNT entity
 								TNTPrimed tnt = next.getWorld().spawn(next.getLocation().add(0.5, 0.5, 0.5), TNTPrimed.class);
@@ -162,7 +163,7 @@ public class TNTHandler {
 	 * @return True if allowed, False if not
 	 */
 	public boolean isExplosionAllowed(Block block) {
-		return !isScheduledForDetonation(block) && (changeBlocks || block.getTypeId() == Material.TNT.getId());
+		return !isScheduledForDetonation(block) && (changeBlocks || MaterialUtil.isType(block, Material.TNT));
 	}
 
 	/**
@@ -195,13 +196,12 @@ public class TNTHandler {
 		if (interval > 0) {
 			if (denyExplosionsCounter == 0) {
 				try {
-					int id;
 					for (Block b : affectedBlocks) {
-						id = b.getTypeId();
-						if (id == Material.TNT.getId()) {
+						Material type = b.getType();
+						if (type == Material.TNT) {
 							detonate(b);
-						} else if (id != Material.FIRE.getId()) {
-							BlockInfo.get(id).destroy(b, yield);
+						} else if (type != Material.FIRE) {
+							BlockInfo.get(type).destroy(b, yield);
 						}
 					}
 					if (sentExplosions < explosionRate) {

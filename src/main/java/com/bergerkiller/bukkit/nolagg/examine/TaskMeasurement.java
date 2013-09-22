@@ -23,7 +23,6 @@ public class TaskMeasurement {
 		this.name = name;
 		this.reset();
 		this.plugin = plugin;
-		this.executionCount = 0;
 	}
 
 	public void addDelta(long deltaTime) {
@@ -40,6 +39,7 @@ public class TaskMeasurement {
 
 	public void reset() {
 		this.times = new long[logger.getDuration()];
+		this.executionCount = 0;
 	}
 
 	public TimedWrapper getWrapper(Runnable runnable) {
