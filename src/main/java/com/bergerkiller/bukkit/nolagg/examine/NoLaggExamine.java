@@ -16,6 +16,7 @@ import com.bergerkiller.bukkit.common.utils.ParseUtil;
 import com.bergerkiller.bukkit.nolagg.NoLagg;
 import com.bergerkiller.bukkit.nolagg.NoLaggComponent;
 import com.bergerkiller.bukkit.nolagg.Permission;
+import com.bergerkiller.bukkit.nolagg.TickRateTrigger;
 
 public class NoLaggExamine extends NoLaggComponent {
 	public static NoLaggExamine plugin;
@@ -66,7 +67,7 @@ public class NoLaggExamine extends NoLaggComponent {
 		int measurementDuration = triggerConfig.get("measurementDuration", 500);
 		int measurementInterval = triggerConfig.get("measurementInterval", 15 * 60);
 		if (enabled) {
-			tickRateTrigger = new TickRateTrigger(logger, NoLagg.plugin, minTPS, minLagDuration, measurementDuration, measurementInterval);
+			tickRateTrigger = new TriggeredExamine(logger, NoLagg.plugin, minTPS, minLagDuration, measurementDuration, measurementInterval);
 			tickRateTrigger.start(1, 1);
 		} else {
 			Task.stop(tickRateTrigger);
