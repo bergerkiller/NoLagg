@@ -2,7 +2,7 @@ package com.bergerkiller.bukkit.nolagg.lighting;
 
 import com.bergerkiller.bukkit.common.bases.NibbleArrayBase;
 import com.bergerkiller.bukkit.common.reflection.classes.ChunkSectionRef;
-import com.bergerkiller.bukkit.common.utils.MaterialUtil;
+import com.bergerkiller.bukkit.common.wrappers.BlockInfo;
 
 public class LightingChunkSection {
 	public final LightingChunk owner;
@@ -18,15 +18,16 @@ public class LightingChunkSection {
 		this.skyLight = skyLight == null ? null : new NibbleArrayBase(skyLight, 4);
 		// Fill opacity and initial block lighting values
 		this.opacity = new NibbleArrayBase(4096, 4);
-		int x, y, z, typeId, opacity, maxlight, light, blockEmission;
+		int x, y, z, opacity, maxlight, light, blockEmission;
 		boolean withinBounds;
+		BlockInfo info;
 		for (x = 0; x < 16; x++) {
 			for (z = 0; z < 16; z++) {
 				withinBounds = x >= owner.startX && x <= owner.endX && z >= owner.startZ && z <= owner.endZ;
 				for (y = 0; y < 16; y++) {
-					typeId = readBlockId(blockIds, x, y, z);
-					opacity = MaterialUtil.OPACITY.get(typeId) & 0xf;
-					blockEmission = MaterialUtil.EMISSION.get(typeId);
+					info = readBlock(blockIds, x, y, z);
+					opacity = info.getOpacity() & 0xf;
+					blockEmission = info.getLightEmission();
 					if (withinBounds) {
 						// Within bounds: Regenerate (skylight is regenerated elsewhere)
 						this.opacity.set(x, y, z, opacity);
@@ -57,8 +58,8 @@ public class LightingChunkSection {
 		}
 	}
 
-	private static int readBlockId(byte[] blockIds, int x, int y, int z) {
-		return blockIds[y << 8 | z << 4 | x] & 255;
+	private static BlockInfo readBlock(byte[] blockIds, int x, int y, int z) {
+		return BlockInfo.get(blockIds[y << 8 | z << 4 | x] & 255);
 	}
 
 	/**

@@ -13,7 +13,6 @@ import com.bergerkiller.bukkit.common.IntRemainder;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
-import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
 import com.bergerkiller.bukkit.common.reflection.classes.EntityRef;
@@ -69,10 +68,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 	}
 
 	public static void init() {
-		if (!NetworkManagerRef.queueSize.isValid()) {
-			NoLaggChunks.plugin.log(Level.SEVERE, "Failed to hook into the player packet queue size field");
-			NoLaggChunks.plugin.log(Level.SEVERE, "Distortions in the chunk rate will cause players to get kicked");
-		}
 		prevtime = System.currentTimeMillis();
 		task = new ChunkSendingTask().start(1, 1);
 	}
@@ -148,8 +143,6 @@ public class ChunkSendQueue extends ChunkSendQueueBase {
 		if (!NetworkManagerRef.TEMPLATE.isInstance(nm)) {
 			return;
 		}
-		long queued = CommonPlugin.getInstance().getPacketHandler().getPendingBytes(player);
-		NetworkManagerRef.queueSize.set(nm, (int) (queued - 9437184));
 	}
 
 	@Override

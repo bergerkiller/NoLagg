@@ -9,7 +9,6 @@ import org.bukkit.entity.Player;
 import com.bergerkiller.bukkit.common.AsyncTask;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.reflection.FieldAccessor;
 import com.bergerkiller.bukkit.common.reflection.MethodAccessor;
@@ -132,10 +131,10 @@ public class ChunkCompressionThread extends AsyncTask {
 		Object worldProvider = ChunkRef.worldProvider.get(world);
 		boolean hasSkylight = !ChunkRef.hasSkyLight.get(worldProvider);
 		// Version which uses the Chunkmap buffer to create the packet
-		CommonPacket mapchunk = new CommonPacket(PacketType.MAP_CHUNK);
-		PacketFields.MAP_CHUNK.x.set(mapchunk.getHandle(), ChunkRef.x.get(chunk));
-		PacketFields.MAP_CHUNK.z.set(mapchunk.getHandle(), ChunkRef.z.get(chunk));
-		PacketFields.MAP_CHUNK.hasBiomeData.set(mapchunk.getHandle(), true); //yes, has biome data
+		CommonPacket mapchunk = new CommonPacket(PacketType.OUT_MAP_CHUNK);
+		PacketType.OUT_MAP_CHUNK.x.set(mapchunk.getHandle(), ChunkRef.x.get(chunk));
+		PacketType.OUT_MAP_CHUNK.z.set(mapchunk.getHandle(), ChunkRef.z.get(chunk));
+		PacketType.OUT_MAP_CHUNK.hasBiomeData.set(mapchunk.getHandle(), true); //yes, has biome data
 
 		// =====================================
 		// =========== Fill with data ==========
@@ -208,19 +207,19 @@ public class ChunkCompressionThread extends AsyncTask {
 		// =====================================
 
 		// Set data in packet
-		mapchunk.write(PacketFields.MAP_CHUNK.chunkDataBitMap, chunkDataBitMap);
-		mapchunk.write(PacketFields.MAP_CHUNK.chunkBiomeBitMap, chunkBiomeBitMap);
-		mapchunk.write(PacketFields.MAP_CHUNK.size, this.rawLength);
-		mapchunk.write(PacketFields.MAP_CHUNK.inflatedBuffer, this.rawbuffer);
+		mapchunk.write(PacketType.OUT_MAP_CHUNK.chunkDataBitMap, chunkDataBitMap);
+		mapchunk.write(PacketType.OUT_MAP_CHUNK.chunkBiomeBitMap, chunkBiomeBitMap);
+		mapchunk.write(PacketType.OUT_MAP_CHUNK.size, this.rawLength);
+		mapchunk.write(PacketType.OUT_MAP_CHUNK.inflatedBuffer, this.rawbuffer);
 		return mapchunk;
 	}
 
 	private void deflate(CommonPacket packet) {
-		int size = PacketFields.MAP_CHUNK.size.get(packet.getHandle());
+		int size = PacketType.OUT_MAP_CHUNK.size.get(packet.getHandle());
 		// Set input information
 		this.deflater.reset();
 		this.deflater.setLevel(6);
-		this.deflater.setInput(PacketFields.MAP_CHUNK.inflatedBuffer.get(packet.getHandle()), 0, size);
+		this.deflater.setInput(PacketType.OUT_MAP_CHUNK.inflatedBuffer.get(packet.getHandle()), 0, size);
 		this.deflater.finish();
 		// Start deflating
 		size = this.deflater.deflate(this.compbuffer);
@@ -230,9 +229,9 @@ public class ChunkCompressionThread extends AsyncTask {
 		byte[] buffer = new byte[size];
 		System.arraycopy(this.compbuffer, 0, buffer, 0, size);
 		// Write to packet
-		PacketFields.MAP_CHUNK.size.set(packet.getHandle(), size);
-		PacketFields.MAP_CHUNK.buffer.set(packet.getHandle(), buffer);
-		PacketFields.MAP_CHUNK.inflatedBuffer.set(packet.getHandle(), null); // dereference
+		PacketType.OUT_MAP_CHUNK.size.set(packet.getHandle(), size);
+		PacketType.OUT_MAP_CHUNK.buffer.set(packet.getHandle(), buffer);
+		PacketType.OUT_MAP_CHUNK.inflatedBuffer.set(packet.getHandle(), null); // dereference
 	}
 
 	public static double getBusyPercentage(long timescale) {
@@ -278,8 +277,8 @@ public class ChunkCompressionThread extends AsyncTask {
 		}
 		// ========================================
 		if (NoLaggChunks.isSpigotObfEnabled) {
-			final int bitmap =  mapchunk.read(PacketFields.MAP_CHUNK.chunkDataBitMap);
-			final byte[] buffer = mapchunk.read(PacketFields.MAP_CHUNK.inflatedBuffer);
+			final int bitmap =  mapchunk.read(PacketType.OUT_MAP_CHUNK.chunkDataBitMap);
+			final byte[] buffer = mapchunk.read(PacketType.OUT_MAP_CHUNK.inflatedBuffer);
 			final Object worldHandle = Conversion.toWorldHandle.convert(chunk.getWorld());
 
 			// Initialize the Spigot Anti-XRay support module

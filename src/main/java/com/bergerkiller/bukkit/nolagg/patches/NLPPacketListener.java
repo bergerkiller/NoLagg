@@ -11,7 +11,6 @@ import com.bergerkiller.bukkit.common.entity.CommonEntity;
 import com.bergerkiller.bukkit.common.events.PacketReceiveEvent;
 import com.bergerkiller.bukkit.common.events.PacketSendEvent;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
 import com.bergerkiller.bukkit.common.protocol.PacketListener;
 import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
@@ -30,37 +29,37 @@ public class NLPPacketListener implements PacketListener {
 		CommonPacket packet = event.getPacket();
 		final Player player = event.getPlayer();
 
-		if (NoLaggPatches.headRotationPatch && event.getType() == PacketType.NAMED_ENTITY_SPAWN) {
-			final int EntityId = packet.read(PacketFields.NAMED_ENTITY_SPAWN.entityId);
-			final byte yaw = packet.read(PacketFields.NAMED_ENTITY_SPAWN.yaw);
-			final byte pitch = packet.read(PacketFields.NAMED_ENTITY_SPAWN.pitch);
+		if (NoLaggPatches.headRotationPatch && event.getType() == PacketType.OUT_ENTITY_SPAWN_NAMED) {
+			final int EntityId = packet.read(PacketType.OUT_ENTITY_SPAWN_NAMED.entityId);
+			final byte yaw = packet.read(PacketType.OUT_ENTITY_SPAWN_NAMED.yaw);
+			final byte pitch = packet.read(PacketType.OUT_ENTITY_SPAWN_NAMED.pitch);
 			
 			CommonUtil.nextTick(new Runnable() {
 				@Override
 				public void run() {
-					CommonPacket headPacket = new CommonPacket(PacketType.ENTITY_HEAD_ROTATION);
-					headPacket.write(PacketFields.ENTITY_HEAD_ROTATION.entityId, EntityId);
-					headPacket.write(PacketFields.ENTITY_HEAD_ROTATION.headYaw, yaw);
+					CommonPacket headPacket = new CommonPacket(PacketType.OUT_ENTITY_HEAD_ROTATION);
+					headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.entityId, EntityId);
+					headPacket.write(PacketType.OUT_ENTITY_HEAD_ROTATION.headYaw, yaw);
 					
-					CommonPacket bodyPacket = new CommonPacket(PacketType.ENTITY_LOOK);
-					bodyPacket.write(PacketFields.ENTITY_LOOK.entityId, EntityId);
-					bodyPacket.write(PacketFields.ENTITY_LOOK.dyaw, yaw);
-					bodyPacket.write(PacketFields.ENTITY_LOOK.dpitch, pitch);
-					
+					CommonPacket bodyPacket = new CommonPacket(PacketType.OUT_ENTITY_LOOK);
+					bodyPacket.write(PacketType.OUT_ENTITY_LOOK.entityId, EntityId);
+					bodyPacket.write(PacketType.OUT_ENTITY_LOOK.yaw, yaw);
+					bodyPacket.write(PacketType.OUT_ENTITY_LOOK.pitch, pitch);
+
 					PacketUtil.sendPacket(player, headPacket);
 					PacketUtil.sendPacket(player, bodyPacket);
 				}
 			});
 		} else if (NoLaggPatches.entitySpawnPatch) {
-			final boolean mob = event.getType() == PacketType.MOB_SPAWN;
-			final boolean vehicle = event.getType() == PacketType.VEHICLE_SPAWN;
+			final boolean mob = event.getType() == PacketType.OUT_ENTITY_SPAWN_LIVING;
+			final boolean vehicle = event.getType() == PacketType.OUT_ENTITY_SPAWN;
 			if (mob || vehicle) {
 				// Obtain the Entity Tracker Entry of this Entity
 				int entityId;
 				if (mob) {
-					entityId = packet.read(PacketFields.MOB_SPAWN.entityId);
+					entityId = packet.read(PacketType.OUT_ENTITY_SPAWN_LIVING.entityId);
 				} else if (vehicle) {
-					entityId = packet.read(PacketFields.VEHICLE_SPAWN.entityId);
+					entityId = packet.read(PacketType.OUT_ENTITY_SPAWN.entityId);
 				} else {
 					return;
 				}
@@ -75,13 +74,13 @@ public class NLPPacketListener implements PacketListener {
 				}
 				// Let's go and fix up this packet!
 				if (mob) {
-					packet.write(PacketFields.MOB_SPAWN.x, controller.locSynched.getX());
-					packet.write(PacketFields.MOB_SPAWN.y, controller.locSynched.getY());
-					packet.write(PacketFields.MOB_SPAWN.z, controller.locSynched.getZ());
+					packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.x, controller.locSynched.getX());
+					packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.y, controller.locSynched.getY());
+					packet.write(PacketType.OUT_ENTITY_SPAWN_LIVING.z, controller.locSynched.getZ());
 				} else if (vehicle) {
-					packet.write(PacketFields.VEHICLE_SPAWN.x, controller.locSynched.getX());
-					packet.write(PacketFields.VEHICLE_SPAWN.y, controller.locSynched.getY());
-					packet.write(PacketFields.VEHICLE_SPAWN.z, controller.locSynched.getZ());
+					packet.write(PacketType.OUT_ENTITY_SPAWN.x, controller.locSynched.getX());
+					packet.write(PacketType.OUT_ENTITY_SPAWN.y, controller.locSynched.getY());
+					packet.write(PacketType.OUT_ENTITY_SPAWN.z, controller.locSynched.getZ());
 				}
 			}
 		}

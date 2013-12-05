@@ -20,11 +20,9 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.Location;
 
-import com.bergerkiller.bukkit.common.Common;
 import com.bergerkiller.bukkit.common.ToggledState;
 import com.bergerkiller.bukkit.common.bases.IntVector3;
 import com.bergerkiller.bukkit.common.entity.CommonEntity;
-import com.bergerkiller.bukkit.common.reflection.SafeMethod;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
@@ -88,9 +86,9 @@ public class CustomExplosion {
 					x = slot.block.pos.x + xoff;
 					y = slot.block.pos.y + yoff;
 					z = slot.block.pos.z + zoff;
-					slot.block.type = WorldUtil.getBlockTypeId(world, x, y, z);
-					if (slot.block.type > 0) {
-						slot.block.damagefactor = (MaterialUtil.getDamageResilience(slot.block.type, source) + 0.3F) * 0.3F;
+					slot.block.type = WorldUtil.getBlockType(world, x, y, z);
+					if (slot.block.type != Material.AIR) {
+						slot.block.damagefactor = (BlockInfo.get(slot.block.type).getDamageResilience(source) + 0.3F) * 0.3F;
 						slot.block.damagefactor *= (2.0F + worldRandom.nextFloat()) / 3.0F;
 					} else {
 						slot.block.destroyed.set(); // prevent air getting destroyed by marking it as destroyed already
@@ -199,31 +197,17 @@ public class CustomExplosion {
 			// Send a damage event to Bukkit and deal the damage if not cancelled
 			final EntityDamageEvent event;
 			double damage;
-			if (Common.MC_VERSION.equals("1.5.2")) {
-				if (source == null) {
-					event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, (int) damageDone);
-				} else if (source instanceof TNTPrimed) {
-					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, (int) damageDone);
-				} else {
-					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, (int) damageDone);
-				}
-				if (CommonUtil.callEvent(event).isCancelled()) {
-					return;
-				}
-				damage = new SafeMethod<Integer>(event, "getDamage").invoke(event);
+			if (source == null) {
+				event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
+			} else if (source instanceof TNTPrimed) {
+				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
 			} else {
-				if (source == null) {
-					event = new EntityDamageByBlockEvent(null, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
-				} else if (source instanceof TNTPrimed) {
-					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.BLOCK_EXPLOSION, damageDone);
-				} else {
-					event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, damageDone);
-				}
-				if (CommonUtil.callEvent(event).isCancelled()) {
-					return;
-				}
-				damage = event.getDamage();
+				event = new EntityDamageByEntityEvent(source, bukkitEntity, DamageCause.ENTITY_EXPLOSION, damageDone);
 			}
+			if (CommonUtil.callEvent(event).isCancelled()) {
+				return;
+			}
+			damage = event.getDamage();
 			if (!CommonUtil.callEvent(event).isCancelled()) {
 				EntityUtil.damage(bukkitEntity, DamageCause.BLOCK_EXPLOSION, damage);
 				entity.vel.add(tmpX * force, tmpY * force, tmpZ * force);
@@ -259,14 +243,14 @@ public class CustomExplosion {
 		int x;
 		int y;
 		int z;
-		int type;
+		Material type;
 		List<org.bukkit.block.Block> blocks = event.blockList();
 		for (int i = blocks.size() - 1; i >= 0; --i) {
 			org.bukkit.block.Block block = blocks.get(i);
 			x = block.getX();
 			y = block.getY();
 			z = block.getZ();
-			type = WorldUtil.getBlockTypeId(this.world, x, y, z);
+			type = WorldUtil.getBlockType(this.world, x, y, z);
 
 			double d0 = (double) ((float) x + worldRandom.nextFloat());
 			double d1 = (double) ((float) y + worldRandom.nextFloat());
@@ -287,14 +271,14 @@ public class CustomExplosion {
 			d5 *= d7;
 
 			// CraftBukkit - stop explosions from putting out fire
-			if (type > 0 && !MaterialUtil.isType(type, Material.FIRE)) {
+			if (type != Material.AIR && !MaterialUtil.isType(type, Material.FIRE)) {
 				final BlockInfo info = BlockInfo.get(block);
 				info.destroy(block, event.getYield());
 				info.ignite(block);
 			}
 			if (this.fire) {
-				int typeBelow = WorldUtil.getBlockTypeId(this.world, x, y - 1, z);
-				if (type == 0 && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
+				Material typeBelow = WorldUtil.getBlockType(this.world, x, y - 1, z);
+				if (type == Material.AIR && MaterialUtil.ISSOLID.get(typeBelow) && this.h.nextInt(3) == 0) {
 					block.setType(org.bukkit.Material.FIRE);
 				}
 			}
@@ -305,7 +289,7 @@ public class CustomExplosion {
 		public final IntVector3 pos;
 		public final ToggledState initialized = new ToggledState();
 		public final ToggledState destroyed = new ToggledState();
-		public int type = 0;
+		public Material type = Material.AIR;
 		public float damagefactor;
 
 		public ExplosionBlock(final IntVector3 pos) {

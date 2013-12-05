@@ -58,7 +58,7 @@ public class NoLaggChunks extends NoLaggComponent {
 		}
 		if (enabled && useBufferedLoading) {
 			// Check that no plugin is currently listening for chunk packets
-			Collection<Plugin> plugins = PacketUtil.getListenerPlugins(PacketType.MAP_CHUNK);
+			Collection<Plugin> plugins = PacketUtil.getListenerPlugins(PacketType.OUT_MAP_CHUNK);
 			if (!plugins.isEmpty()) {
 				List<String> names = new ArrayList<String>(plugins.size());
 				for (Plugin p : plugins) {

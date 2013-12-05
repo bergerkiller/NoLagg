@@ -7,11 +7,10 @@ import java.util.LinkedList;
 import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 
-import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.protocol.CommonPacket;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
-import com.bergerkiller.bukkit.common.reflection.classes.EntityPlayerRef;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
+import com.bergerkiller.bukkit.common.utils.PlayerUtil;
 
 public class ChunkCompressQueue {
 	public ChunkCompressQueue(final ChunkSendQueue owner) {
@@ -49,9 +48,7 @@ public class ChunkCompressQueue {
 	}
 
 	public boolean isAlive() {
-		Object ep = Conversion.toEntityHandle.convert(this.owner.player);
-		Object playerConnection = EntityPlayerRef.playerConnection.get(ep);
-		return playerConnection != null && !EntityPlayerRef.disconnected.get(playerConnection);
+		return !PlayerUtil.isDisconnected(this.owner.player);
 	}
 
 	public boolean canSend() {
@@ -79,12 +76,12 @@ public class ChunkCompressQueue {
 			// Let the server itself deal with it
 			CommonPacket packet = null;
 			try {
-				packet = PacketFields.MAP_CHUNK_BULK.newInstance(Arrays.asList(chunk));
+				packet = PacketType.OUT_MAP_CHUNK_BULK.newInstance(Arrays.asList(chunk));
 			} catch (NullPointerException ex) {
 			}
 			if (packet == null || packet.getHandle() == null) {
 				// Something is up in the 1.5.2 version - this'll temporarily fix it
-				packet = PacketFields.MAP_CHUNK.newInstance(chunk);
+				packet = PacketType.OUT_MAP_CHUNK.newInstance(chunk);
 			}
 			this.enqueue(new ChunkSendCommand(packet, chunk));
 		}

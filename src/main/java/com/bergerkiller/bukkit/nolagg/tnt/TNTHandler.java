@@ -19,7 +19,7 @@ import com.bergerkiller.bukkit.common.BlockLocation;
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.collections.BlockSet;
 import com.bergerkiller.bukkit.common.config.ConfigurationNode;
-import com.bergerkiller.bukkit.common.protocol.PacketFields;
+import com.bergerkiller.bukkit.common.protocol.PacketType;
 import com.bergerkiller.bukkit.common.utils.MaterialUtil;
 import com.bergerkiller.bukkit.common.utils.PacketUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -208,7 +208,7 @@ public class TNTHandler {
 						sentExplosions++;
 
 						// Explosion effect
-						Object explosionPacket = PacketFields.EXPLOSION.newInstance(at.getX(), at.getY(), at.getZ(), yield);
+						Object explosionPacket = PacketType.OUT_EXPLOSION.newInstance(at.getX(), at.getY(), at.getZ(), yield);
 						PacketUtil.broadcastPacketNearby(at, 64.0, explosionPacket);
 
 						// Sound (with random pitch)

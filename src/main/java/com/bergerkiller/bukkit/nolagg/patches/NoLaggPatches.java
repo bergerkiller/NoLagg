@@ -33,7 +33,7 @@ public class NoLaggPatches extends NoLaggComponent {
 	@Override
 	public void onEnable(ConfigurationNode config) {
 		plugin = this;
-		PacketUtil.addPacketListener(NoLagg.plugin, headRotationFixListener, PacketType.NAMED_ENTITY_SPAWN, PacketType.VEHICLE_SPAWN, PacketType.MOB_SPAWN);
+		PacketUtil.addPacketListener(NoLagg.plugin, headRotationFixListener, PacketType.OUT_ENTITY_SPAWN_LIVING, PacketType.OUT_ENTITY_SPAWN, PacketType.OUT_ENTITY_SPAWN_NAMED);
 		this.onReload(config);
 	}
 }
