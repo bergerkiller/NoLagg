@@ -1,5 +1,6 @@
 package com.bergerkiller.bukkit.nolagg.chunks.antiloader;
 
+import java.util.Map;
 import java.util.Queue;
 
 import org.bukkit.Bukkit;
@@ -10,6 +11,7 @@ import com.bergerkiller.bukkit.common.bases.DummyWorldServer;
 import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.PlayerChunkMapBase;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
+import com.bergerkiller.bukkit.common.reflection.classes.ChunkIOExecutorRef;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkMapRef;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
@@ -74,7 +76,11 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 		this.isRecent = true;
 		
 		if(!wasLoaded) {
-			PlayerChunkRef.loaded.set(playerchunk, true);
+			Object asynchronousExecutor = ChunkIOExecutorRef.asynchronousExecutor.get(null);
+			Map<?, ?> tasks = ChunkIOExecutorRef.tasks.get(asynchronousExecutor);
+			if(!tasks.containsKey(playerchunk)) {
+				PlayerChunkRef.loaded.set(playerchunk, true);
+			}
 		}
 		
 		return playerchunk;
