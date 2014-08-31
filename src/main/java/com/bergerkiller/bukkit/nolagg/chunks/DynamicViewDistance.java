@@ -8,8 +8,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import com.bergerkiller.bukkit.common.Task;
 import com.bergerkiller.bukkit.common.ToggledState;
@@ -17,6 +22,7 @@ import com.bergerkiller.bukkit.common.collections.InterpolatedMap;
 import com.bergerkiller.bukkit.common.collections.StringMap;
 import com.bergerkiller.bukkit.common.config.CompressedDataReader;
 import com.bergerkiller.bukkit.common.config.CompressedDataWriter;
+import com.bergerkiller.bukkit.common.internal.CommonPlugin;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.MathUtil;
 import com.bergerkiller.bukkit.common.utils.WorldUtil;
@@ -120,12 +126,14 @@ public class DynamicViewDistance {
 				}
 			}
 		}.start(15, 40);
+		
+		CommonPlugin.getInstance().register(new DyanmicViewListener());
 	}
 
 	public static void deinit() {
 		Task.stop(task);
 		task = null;
-		DummyPlayerManager.revert();
+//		DummyPlayerManager.revert(); Don't revert because it crashes the server :3
 
 		File dataFile = NoLagg.plugin.getDataFile("PlayerViewLimits.dat");
 		if (!viewLimits.isEmpty()) {
@@ -141,6 +149,24 @@ public class DynamicViewDistance {
 			}.write();
 		} else if (dataFile.exists()) {
 			dataFile.delete();
+		}
+	}
+	
+	/**
+	 * Prevnet players from typing /reload
+	 * It will totally bug out if you use it with dynamicView enabled
+	 * @author lenis0012
+	 */
+	public static class DyanmicViewListener implements Listener {
+		
+		@EventHandler(priority = EventPriority.HIGHEST)
+		public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+			final Player player = event.getPlayer();
+			final String message = event.getMessage().toLowerCase();
+			if(message.equals("/reload") || message.startsWith("/reload ")) {
+				event.setCancelled(true);
+				player.sendMessage(ChatColor.RED + "/reload is disabled by NoLagg because dynamicViewDistance is enabled, reloading would crash the server.");
+			}
 		}
 	}
 }
