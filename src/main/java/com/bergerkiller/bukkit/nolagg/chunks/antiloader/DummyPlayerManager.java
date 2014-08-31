@@ -11,6 +11,7 @@ import com.bergerkiller.bukkit.common.bases.IntVector2;
 import com.bergerkiller.bukkit.common.bases.PlayerChunkMapBase;
 import com.bergerkiller.bukkit.common.conversion.Conversion;
 import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkMapRef;
+import com.bergerkiller.bukkit.common.reflection.classes.PlayerChunkRef;
 import com.bergerkiller.bukkit.common.reflection.classes.WorldServerRef;
 import com.bergerkiller.bukkit.common.utils.CommonUtil;
 import com.bergerkiller.bukkit.common.utils.EntityUtil;
@@ -59,12 +60,40 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 		this.base = base;
 		this.dirtyChunkQueue = PlayerChunkMapRef.dirtyBlockChunks.get(base);
 	}
+	
+	private Object recentChunk;
+	private boolean wasLoaded;
+	private boolean isRecent;
+	
+	@Override
+	public Object getPlayerChunk(Object playerchunk) {
+		//Hacky hacky prevent error code from gettin called
+		//Properly check if chunk is loaded or not
+		this.recentChunk = playerchunk;
+		this.wasLoaded = PlayerChunkRef.loaded.get(playerchunk);
+		this.isRecent = true;
+		
+		if(!wasLoaded) {
+			PlayerChunkRef.loaded.set(playerchunk, true);
+		}
+		
+		return playerchunk;
+	}
 
 	@Override
 	public void movePlayer(Player player) {
 		DummyInstancePlayerList.FILTER = true;
 		super.movePlayer(player);
 		DummyInstancePlayerList.FILTER = false;
+		
+		//Reset chunk loaded
+		if(isRecent && !wasLoaded) {
+			PlayerChunkRef.loaded.set(recentChunk, false);
+		}
+		
+		this.recentChunk = null;
+		this.isRecent = false;
+		this.wasLoaded = false;
 	}
 
 	@Override

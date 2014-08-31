@@ -14,7 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.spinotversion>1.7.5-R0.1-SNAPSHOT</project.spinotversion>
     <project.cbversion>1.7.5-R0.1-SNAPSHOT</project.cbversion>
-    <project.bkcversion>1.58-SNAPSHOT</project.bkcversion>
+    <project.bkcversion>1.59-SNAPSHOT</project.bkcversion>
   </properties>
 
   <repositories>
