@@ -101,6 +101,20 @@ public class DummyPlayerManager extends PlayerChunkMapBase {
 		this.isRecent = false;
 		this.wasLoaded = false;
 	}
+	
+	@Override
+	public void removePlayer(Player player) {
+		super.removePlayer(player);
+		
+		//Reset chunk loaded
+		if(isRecent && !wasLoaded) {
+			PlayerChunkRef.loaded.set(recentChunk, false);
+		}
+		
+		this.recentChunk = null;
+		this.isRecent = false;
+		this.wasLoaded = false;
+	}
 
 	@Override
 	public void addChunksToSend(Player player) {
